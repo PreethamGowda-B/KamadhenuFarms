@@ -1,0 +1,15 @@
+# Windows thumbnail cache
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Folder config files
+Desktop.ini
+
+# OS X system files
+.DS_Store
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
