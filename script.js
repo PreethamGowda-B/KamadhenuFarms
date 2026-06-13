@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
       baseDesc: 'Premium raw honey rich in hand-sorted almonds, cashews, pistachios, and walnuts.',
       prices: {
         '250g': 399,
-        '500g': 749,
-        '1kg': 1399
+        '500g': 599,
+        '1kg': 1000
       },
       image: 'assets/dry_fruits_honey.jpg',
       images: [
