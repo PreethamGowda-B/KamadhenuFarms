@@ -581,21 +581,24 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add to Cart button
       if (addToCartBtn) {
         addToCartBtn.addEventListener('click', (e) => {
-          // Check if cart is empty before adding
-          const isCartEmpty = cart.length === 0;
-          
-          addItemToCart(product.id, selectedSize, 1, true);
-          
-          // Visual feedback on the button itself (premium honey style)
+          // 1. Instantly trigger visual feedback synchronously to satisfy INP immediately
           const originalContent = addToCartBtn.innerHTML;
           addToCartBtn.textContent = '✓ Added!';
           addToCartBtn.classList.add('btn-gold');
           addToCartBtn.style.boxShadow = '0 0 15px var(--primary-gold)';
           
-          // Trigger the premium celebration system
-          if (window.CartCelebration) {
-            window.CartCelebration.trigger(addToCartBtn, product, e, isCartEmpty);
-          }
+          // 2. Defer all heavy updates and animation calls to the next paint cycle
+          setTimeout(() => {
+            const isCartEmpty = cart.length === 0;
+            
+            // Updates cart array, saves to local storage, rerenders drawer elements
+            addItemToCart(product.id, selectedSize, 1, true);
+            
+            // Runs visual celebration, fly-to-cart, and audio chimes
+            if (window.CartCelebration) {
+              window.CartCelebration.trigger(addToCartBtn, product, e, isCartEmpty);
+            }
+          }, 20); // 20ms delay yields thread for immediate screen paint
           
           setTimeout(() => {
             addToCartBtn.innerHTML = originalContent;
@@ -1525,9 +1528,13 @@ document.addEventListener('DOMContentLoaded', () => {
       ripple.style.top = y + 'px';
       document.body.appendChild(ripple);
       
-      // Force repaint
-      ripple.offsetWidth;
-      ripple.classList.add('active');
+      // Use double requestAnimationFrame to wait for the DOM insertion to register
+      // and trigger the CSS transition naturally without blocking the UI thread
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          ripple.classList.add('active');
+        });
+      });
       
       setTimeout(() => {
         ripple.remove();
@@ -1908,9 +1915,11 @@ document.addEventListener('DOMContentLoaded', () => {
       ring.style.top = cartCenterY + 'px';
       document.body.appendChild(ring);
       
-      // Force repaint
-      ring.offsetWidth;
-      ring.classList.add('active');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          ring.classList.add('active');
+        });
+      });
       setTimeout(() => { ring.remove(); }, 600);
       
       // 2. Add glow & bounce classes
@@ -1994,13 +2003,13 @@ document.addEventListener('DOMContentLoaded', () => {
       toast.className = 'toast-hidden';
       progressBar.classList.remove('toast-progress-shrink');
       
-      // Force layout repaint
-      toast.offsetWidth;
-      
-      // Trigger show
-      toast.classList.remove('toast-hidden');
-      toast.classList.add('toast-show');
-      progressBar.classList.add('toast-progress-shrink');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          toast.classList.remove('toast-hidden');
+          toast.classList.add('toast-show');
+          progressBar.classList.add('toast-progress-shrink');
+        });
+      });
       
       // Auto-hide toast after 3 seconds
       const hideTimeout = setTimeout(() => {
