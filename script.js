@@ -21,8 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
       baseDesc: 'Unprocessed, raw honey collected directly from pristine organic bee boxes.',
       prices: {
         '250g': 250,
-        '500g': 450,
-        '1kg': 850
+        '500g': 399,
+        '1kg': 749
       },
       image: 'assets/raw_honey.jpg',
       images: [
