@@ -1194,14 +1194,16 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   /* ==========================================================================
-     Upcoming Products Gallery Interactions
+     Upcoming Products — 3D Gallery & Cinematic Interactions
      ========================================================================== */
   const initializeUpcomingGallery = () => {
+
+    /* ---- Per-card gallery with crossfade ---- */
     const initCardGallery = (card) => {
       if (!card) return;
 
       const thumbBtns = card.querySelectorAll('.thumb-nav-btn');
-      const mainImg = card.querySelector('.upcoming-media-placeholder .upcoming-main-img');
+      const mainImg   = card.querySelector('.upcoming-media-placeholder .upcoming-main-img');
 
       if (thumbBtns.length === 0 || !mainImg) return;
 
@@ -1210,7 +1212,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = thumbBtns[index];
         if (btn) {
           btn.classList.add('active');
+          mainImg.classList.remove('fade-switch');
+          void mainImg.offsetWidth; // trigger reflow for re-animation
           mainImg.src = btn.dataset.imgSrc;
+          mainImg.classList.add('fade-switch');
         }
       };
 
@@ -1231,15 +1236,156 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    // Initialise flagship (Product 1) gallery
     const flagshipCard = document.querySelector('.upcoming-card.flagship-card');
     initCardGallery(flagshipCard);
 
-    // Initialise Product 2 gallery
     const upcomingCards = document.querySelectorAll('.upcoming-card');
-    if (upcomingCards.length > 1) {
-      initCardGallery(upcomingCards[1]);
+    if (upcomingCards.length > 1) initCardGallery(upcomingCards[1]);
+  };
+
+  /* ---- 3D Mouse-Tracking Card Tilt ---- */
+  const initUpcoming3DTilt = () => {
+    const cards = document.querySelectorAll('.upcoming-card');
+    if (!cards.length) return;
+    if (window.matchMedia('(max-width: 992px)').matches) return;
+
+    const MAX_TILT  = 10;
+    const MAX_SHIFT = 6;
+
+    cards.forEach(card => {
+      const content = card.querySelector('.upcoming-content');
+      const media   = card.querySelector('.upcoming-media-placeholder');
+      let raf       = null;
+
+      const applyTilt = (rx, ry, progress) => {
+        card.style.transform  = `perspective(1200px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(${progress * 8}px)`;
+        card.style.boxShadow  = `${-ry * 2}px ${rx * 2 + 20}px 60px rgba(0,0,0,0.6), 0 0 ${40 + progress * 40}px rgba(216,166,79,${0.06 + progress * 0.12})`;
+        if (content) content.style.transform = `translateX(${-ry * MAX_SHIFT / MAX_TILT}px) translateY(${rx * MAX_SHIFT / MAX_TILT}px)`;
+        if (media)   media.style.transform   = `translateX(${ry * 3 / MAX_TILT}px) translateY(${-rx * 3 / MAX_TILT}px)`;
+      };
+
+      const resetTilt = () => {
+        card.style.transform  = '';
+        card.style.boxShadow  = '';
+        if (content) content.style.transform = '';
+        if (media)   media.style.transform   = '';
+      };
+
+      card.addEventListener('mousemove', (e) => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          const rect     = card.getBoundingClientRect();
+          const dx       = e.clientX - (rect.left + rect.width  / 2);
+          const dy       = e.clientY - (rect.top  + rect.height / 2);
+          const rx       = -(dy / (rect.height / 2)) * MAX_TILT;
+          const ry       =  (dx / (rect.width  / 2)) * MAX_TILT;
+          const progress =  Math.hypot(dx / rect.width, dy / rect.height);
+          applyTilt(rx, ry, progress);
+        });
+      });
+
+      card.addEventListener('mouseenter', () => { card.style.transition = 'none'; });
+
+      card.addEventListener('mouseleave', () => {
+        if (raf) cancelAnimationFrame(raf);
+        card.style.transition = 'transform 0.7s cubic-bezier(0.16,1,0.3,1), box-shadow 0.7s cubic-bezier(0.16,1,0.3,1)';
+        resetTilt();
+        setTimeout(() => { card.style.transition = ''; }, 700);
+      });
+    });
+  };
+
+  /* ---- Floating Gold Particle Canvas ---- */
+  const initUpcomingParticles = () => {
+    const section = document.querySelector('.upcoming-products');
+    if (!section) return;
+
+    const canvas = document.createElement('canvas');
+    canvas.classList.add('upcoming-particle-canvas');
+    canvas.setAttribute('aria-hidden', 'true');
+    section.insertBefore(canvas, section.firstChild);
+
+    const ctx = canvas.getContext('2d');
+
+    const resize = () => {
+      canvas.width  = section.offsetWidth;
+      canvas.height = section.offsetHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    class Particle {
+      constructor() { this.reset(true); }
+      reset(initial = false) {
+        this.x        = Math.random() * canvas.width;
+        this.y        = initial ? Math.random() * canvas.height : canvas.height + 10;
+        this.r        = 0.8 + Math.random() * 1.8;
+        this.vx       = (Math.random() - 0.5) * 0.4;
+        this.vy       = -(0.3 + Math.random() * 0.7);
+        this.alpha    = 0;
+        this.maxAlpha = 0.25 + Math.random() * 0.4;
+        this.life     = 0;
+        this.maxLife  = 120 + Math.random() * 160;
+        this.gold     = Math.random() > 0.35;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life++;
+        const t    = this.life / this.maxLife;
+        this.alpha = t < 0.2 ? (t / 0.2) * this.maxAlpha
+                   : t > 0.7 ? ((1 - t) / 0.3) * this.maxAlpha
+                   : this.maxAlpha;
+        if (this.life >= this.maxLife || this.y < -10) this.reset();
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle   = this.gold ? `rgba(216,166,79,${this.alpha})` : `rgba(255,220,120,${this.alpha * 0.6})`;
+        ctx.shadowBlur  = 8;
+        ctx.shadowColor = this.gold ? 'rgba(216,166,79,0.5)' : 'rgba(255,200,80,0.3)';
+        ctx.fill();
+        ctx.shadowBlur  = 0;
+      }
     }
+
+    const particles = Array.from({ length: 55 }, () => new Particle());
+    let rafId;
+
+    const loop = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      rafId = requestAnimationFrame(loop);
+    };
+
+    // Only animate when visible
+    const io = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) { loop(); }
+      else { cancelAnimationFrame(rafId); }
+    }, { threshold: 0.05 });
+    io.observe(section);
+  };
+
+  /* ---- Cinematic Card Entrance (scroll-triggered) ---- */
+  const initUpcomingEntrance = () => {
+    const cards = document.querySelectorAll('.upcoming-grid .upcoming-card');
+    if (!cards.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const card = entry.target;
+        const idx  = Array.from(cards).indexOf(card);
+        card.style.animation      = `${idx === 0 ? 'upcomingCardEntrance' : 'upcomingCard2Entrance'} 0.9s cubic-bezier(0.16,1,0.3,1) forwards`;
+        card.style.animationDelay = `${idx * 0.15}s`;
+        observer.unobserve(card);
+      });
+    }, { threshold: 0.12 });
+
+    cards.forEach(card => {
+      card.style.opacity = '0';
+      observer.observe(card);
+    });
   };
 
   /* ==========================================================================
@@ -1251,7 +1397,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCart();
     initializeTestimonials();
     initializeUpcomingGallery();
-    
+    initUpcomingParticles();
+    initUpcoming3DTilt();
+    initUpcomingEntrance();
+
     // Initial triggers for animations
     setTimeout(triggerScrollReveal, 400);
     setTimeout(addTiltEffect, 800);
