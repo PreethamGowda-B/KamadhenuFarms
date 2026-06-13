@@ -70,7 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const validCoupons = {
     'KAMADHENU10': { type: 'percent', value: 10 },
     'HONEY50': { type: 'fixed', value: 50 },
-    'FREEPURE': { type: 'percent', value: 15 }
+    'FREEPURE': { type: 'percent', value: 15 },
+    'PREETHUGOWDA01': { type: 'percent', value: 10 }
   };
 
   // Simulated Tracker Database
