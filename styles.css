@@ -1000,7 +1000,8 @@ header nav {
   transition: var(--transition-smooth);
 }
 
-.product-card:hover .card-thumb-nav {
+.product-card:hover .card-thumb-nav,
+.upcoming-card:hover .card-thumb-nav {
   opacity: 1;
   transform: translate(-50%, 0);
 }

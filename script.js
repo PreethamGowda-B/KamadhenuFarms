@@ -1194,6 +1194,55 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   /* ==========================================================================
+     Upcoming Products Gallery Interactions
+     ========================================================================== */
+  const initializeUpcomingGallery = () => {
+    const initCardGallery = (card) => {
+      if (!card) return;
+
+      const thumbBtns = card.querySelectorAll('.thumb-nav-btn');
+      const mainImg = card.querySelector('.upcoming-media-placeholder .upcoming-main-img');
+
+      if (thumbBtns.length === 0 || !mainImg) return;
+
+      const switchImage = (index) => {
+        thumbBtns.forEach(b => b.classList.remove('active'));
+        const btn = thumbBtns[index];
+        if (btn) {
+          btn.classList.add('active');
+          mainImg.src = btn.dataset.imgSrc;
+        }
+      };
+
+      thumbBtns.forEach((btn, idx) => {
+        btn.addEventListener('click', (e) => {
+          if (e) e.stopPropagation();
+          switchImage(idx);
+        });
+      });
+
+      // Auto-play each gallery independently every 5 seconds
+      if (thumbBtns.length > 1) {
+        let currentIndex = 0;
+        setInterval(() => {
+          currentIndex = (currentIndex + 1) % thumbBtns.length;
+          switchImage(currentIndex);
+        }, 5000);
+      }
+    };
+
+    // Initialise flagship (Product 1) gallery
+    const flagshipCard = document.querySelector('.upcoming-card.flagship-card');
+    initCardGallery(flagshipCard);
+
+    // Initialise Product 2 gallery
+    const upcomingCards = document.querySelectorAll('.upcoming-card');
+    if (upcomingCards.length > 1) {
+      initCardGallery(upcomingCards[1]);
+    }
+  };
+
+  /* ==========================================================================
      App Initialization
      ========================================================================== */
   const initApp = () => {
@@ -1201,6 +1250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderProductCards();
     renderCart();
     initializeTestimonials();
+    initializeUpcomingGallery();
     
     // Initial triggers for animations
     setTimeout(triggerScrollReveal, 400);
