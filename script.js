@@ -196,7 +196,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const updateBadges = () => {
     // Update Cart counters
     const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
-    cartBadgeCounts.forEach(el => el.textContent = totalQty);
+    
+    // If flight is active, we sync the drawer count, but defer the header count update
+    // to match the exact collision arrival of the product image
+    if (window.CartCelebration && window.CartCelebration.isFlying) {
+      window.CartCelebration.targetCartCount = totalQty;
+      const drawerBadge = document.querySelector('.cart-drawer .cart-count');
+      if (drawerBadge) drawerBadge.textContent = totalQty;
+    } else {
+      cartBadgeCounts.forEach(el => el.textContent = totalQty);
+    }
     
     // Update Wishlist counters
     const totalWish = wishlist.length;
@@ -571,21 +580,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Add to Cart button
       if (addToCartBtn) {
-        addToCartBtn.addEventListener('click', () => {
+        addToCartBtn.addEventListener('click', (e) => {
+          // Check if cart is empty before adding
+          const isCartEmpty = cart.length === 0;
+          
           addItemToCart(product.id, selectedSize, 1, true);
           
-          // Visual feedback animation
+          // Visual feedback on the button itself (premium honey style)
+          const originalContent = addToCartBtn.innerHTML;
           addToCartBtn.textContent = '✓ Added!';
-          addToCartBtn.style.background = '#27ae60';
-          addToCartBtn.style.borderColor = '#27ae60';
+          addToCartBtn.classList.add('btn-gold');
+          addToCartBtn.style.boxShadow = '0 0 15px var(--primary-gold)';
+          
+          // Trigger the premium celebration system
+          if (window.CartCelebration) {
+            window.CartCelebration.trigger(addToCartBtn, product, e, isCartEmpty);
+          }
+          
           setTimeout(() => {
-            addToCartBtn.innerHTML = `
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-              </svg>
-              Add to Cart`;
-            addToCartBtn.style.background = '';
-            addToCartBtn.style.borderColor = '';
+            addToCartBtn.innerHTML = originalContent;
+            addToCartBtn.classList.remove('btn-gold');
+            addToCartBtn.style.boxShadow = '';
           }, 1200);
         });
       }
@@ -1386,6 +1401,620 @@ document.addEventListener('DOMContentLoaded', () => {
       card.style.opacity = '0';
       observer.observe(card);
     });
+  };
+
+  /* ==========================================================================
+     Add to Cart Premium Celebration System
+     ========================================================================== */
+  window.CartCelebration = {
+    isFlying: false,
+    targetCartCount: null,
+    canvas: null,
+    ctx: null,
+    particles: [],
+    animationFrameId: null,
+    audioCtx: null,
+
+    initCanvas: function() {
+      if (this.canvas) return;
+      this.canvas = document.createElement('canvas');
+      this.canvas.id = 'cart-confetti-canvas';
+      document.body.appendChild(this.canvas);
+      this.ctx = this.canvas.getContext('2d');
+      
+      const resize = () => {
+        if (this.canvas) {
+          this.canvas.width = window.innerWidth;
+          this.canvas.height = window.innerHeight;
+        }
+      };
+      resize();
+      window.addEventListener('resize', resize);
+    },
+
+    trigger: function(button, product, event, isFirstItem) {
+      this.initCanvas();
+      
+      // Get click position (fallback to button center if no event coords)
+      const btnRect = button.getBoundingClientRect();
+      const clickX = event && event.clientX ? event.clientX : (btnRect.left + btnRect.width / 2);
+      const clickY = event && event.clientY ? event.clientY : (btnRect.top + btnRect.height / 2);
+      
+      const isMobile = window.innerWidth < 768;
+      
+      // 1. Play success chime
+      this.playChime(isFirstItem);
+      
+      // 2. Glow Ripple
+      this.triggerGlowRipple(clickX, clickY, isFirstItem);
+      
+      // 3. Confetti particles + escort bees (inside canvas animation)
+      this.spawnParticles(clickX, clickY, isFirstItem, isMobile);
+      
+      // 4. Flying image
+      this.flyImage(button, product, isFirstItem, isMobile);
+    },
+
+    playChime: function(isFirstItem) {
+      try {
+        // Initialize Web Audio API on first user interaction
+        if (!this.audioCtx) {
+          this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        if (this.audioCtx.state === 'suspended') {
+          this.audioCtx.resume();
+        }
+
+        const now = this.audioCtx.currentTime;
+        
+        if (isFirstItem) {
+          // Play a rich luxury major triad chord arpeggio (C5 -> E5 -> G5 -> C6)
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, index) => {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            
+            // Premium triangle/sine mix for warm sound
+            osc.type = index % 2 === 0 ? 'sine' : 'triangle';
+            osc.frequency.setValueAtTime(freq, now + index * 0.08);
+            
+            // Envelope
+            gain.gain.setValueAtTime(0, now + index * 0.08);
+            gain.gain.linearRampToValueAtTime(0.12, now + index * 0.08 + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.08 + 0.65);
+            
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            
+            osc.start(now + index * 0.08);
+            osc.stop(now + index * 0.08 + 0.7);
+          });
+        } else {
+          // Lighter subsequent chime: high note arpeggietto (C6 -> E6)
+          const notes = [1046.50, 1318.51];
+          notes.forEach((freq, index) => {
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + index * 0.06);
+            
+            // Envelope
+            gain.gain.setValueAtTime(0, now + index * 0.06);
+            gain.gain.linearRampToValueAtTime(0.08, now + index * 0.06 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.06 + 0.4);
+            
+            osc.connect(gain);
+            gain.connect(this.audioCtx.destination);
+            
+            osc.start(now + index * 0.06);
+            osc.stop(now + index * 0.06 + 0.45);
+          });
+        }
+      } catch (e) {
+        console.warn("Audio Context failure: ", e);
+      }
+    },
+
+    triggerGlowRipple: function(x, y, isFirstItem) {
+      const ripple = document.createElement('div');
+      ripple.className = 'cart-glow-ripple';
+      if (isFirstItem) ripple.classList.add('first-item');
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      document.body.appendChild(ripple);
+      
+      // Force repaint
+      ripple.offsetWidth;
+      ripple.classList.add('active');
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 1600);
+    },
+
+    spawnParticles: function(startX, startY, isFirstItem, isMobile) {
+      // Setup particles
+      // Honey gold palette
+      const colors = [
+        '#FFD07F', // light gold
+        '#D8A64F', // brand gold
+        '#B6852F', // dark gold
+        '#E5A93B', // amber gold
+        '#FCE8B2'  // cream gold
+      ];
+      
+      let count = isFirstItem ? 80 : 45;
+      if (isMobile) count = Math.floor(count * 0.5);
+
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        // Launch upwards and outwards
+        const speed = 4 + Math.random() * 8;
+        const vx = Math.cos(angle) * speed;
+        // biased upwards: negative Y
+        const vy = Math.sin(angle) * speed - (2 + Math.random() * 4);
+        
+        this.particles.push({
+          type: 'confetti',
+          x: startX,
+          y: startY,
+          vx: vx,
+          vy: vy,
+          size: 4 + Math.random() * 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          opacity: 1,
+          decay: 0.015 + Math.random() * 0.02,
+          gravity: 0.2,
+          drag: 0.96,
+          shape: Math.random() > 0.5 ? 'hexagon' : 'circle',
+          rotation: Math.random() * Math.PI,
+          rotSpeed: -0.1 + Math.random() * 0.2
+        });
+      }
+
+      this.startLoop();
+    },
+
+    startLoop: function() {
+      if (this.animationFrameId) return;
+      
+      const loop = () => {
+        if (!this.canvas) return;
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Update & Draw particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          
+          if (p.type === 'confetti') {
+            p.vx *= p.drag;
+            p.vy *= p.drag;
+            p.vy += p.gravity;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.opacity -= p.decay;
+            p.rotation += p.rotSpeed;
+            
+            if (p.opacity <= 0) {
+              this.particles.splice(i, 1);
+              continue;
+            }
+            
+            this.ctx.save();
+            this.ctx.globalAlpha = p.opacity;
+            this.ctx.translate(p.x, p.y);
+            this.ctx.rotate(p.rotation);
+            this.ctx.fillStyle = p.color;
+            
+            if (p.shape === 'hexagon') {
+              this.ctx.beginPath();
+              for (let h = 0; h < 6; h++) {
+                const angle = (h * Math.PI) / 3;
+                this.ctx.lineTo(Math.cos(angle) * p.size, Math.sin(angle) * p.size);
+              }
+              this.ctx.closePath();
+              this.ctx.fill();
+            } else {
+              this.ctx.beginPath();
+              this.ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+              this.ctx.fill();
+            }
+            this.ctx.restore();
+          } 
+          else if (p.type === 'honey_drop') {
+            // Honey droplets drift down and evaporate/fade
+            p.vy += p.gravity;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.opacity -= p.decay;
+            p.size *= 0.97; // shrink slightly as they fall
+            
+            if (p.opacity <= 0 || p.size < 0.5) {
+              this.particles.splice(i, 1);
+              continue;
+            }
+            
+            this.ctx.save();
+            this.ctx.globalAlpha = p.opacity;
+            this.ctx.fillStyle = p.color;
+            
+            // Draw drop shape
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+          }
+          else if (p.type === 'bee') {
+            // Bees follow/orbit the flying image coords
+            if (!this.isFlying && p.lifetime > 60) {
+              // Fade out if image landed
+              p.opacity -= 0.05;
+              if (p.opacity <= 0) {
+                this.particles.splice(i, 1);
+                continue;
+              }
+            } else {
+              p.lifetime++;
+            }
+            
+            // Wing flap phase increment
+            p.wingPhase += 0.45;
+            
+            // Update orbit around current image coordinates
+            if (window.CartCelebrationFlightPos) {
+              const targetX = window.CartCelebrationFlightPos.x;
+              const targetY = window.CartCelebrationFlightPos.y;
+              
+              p.angle += p.orbitSpeed;
+              // Add noise for realistic hover jitter
+              const jitterX = Math.sin(p.lifetime * 0.15) * 3;
+              const jitterY = Math.cos(p.lifetime * 0.2) * 3;
+              
+              const destX = targetX + Math.cos(p.angle) * p.orbitRadius + jitterX;
+              const destY = targetY + Math.sin(p.angle) * p.orbitRadius + jitterY;
+              
+              // Easing towards the destination orbit
+              p.x += (destX - p.x) * 0.12;
+              p.y += (destY - p.y) * 0.12;
+            } else {
+              // Drift/fly towards the cart icon directly if positions cleared
+              const cartBtn = document.querySelector('.open-cart-btn');
+              if (cartBtn) {
+                const rect = cartBtn.getBoundingClientRect();
+                const cartX = rect.left + rect.width / 2;
+                const cartY = rect.top + rect.height / 2;
+                p.x += (cartX - p.x) * 0.08;
+                p.y += (cartY - p.y) * 0.08;
+                p.opacity -= 0.02;
+                if (p.opacity <= 0 || Math.abs(p.x - cartX) < 10) {
+                  this.particles.splice(i, 1);
+                  continue;
+                }
+              } else {
+                p.opacity -= 0.02;
+              }
+            }
+            
+            // Draw Bee
+            this.ctx.save();
+            this.ctx.globalAlpha = p.opacity;
+            this.ctx.translate(p.x, p.y);
+            
+            // Face the direction of motion relative to center
+            const faceLeft = Math.cos(p.angle) < 0;
+            this.ctx.scale(faceLeft ? -1 : 1, 1);
+            
+            // 1. Draw wings (fluttering)
+            const flapOffset = Math.sin(p.wingPhase) * 6;
+            this.ctx.fillStyle = 'rgba(235, 245, 255, 0.72)';
+            
+            // Wing 1
+            this.ctx.beginPath();
+            this.ctx.ellipse(-2, -6 + flapOffset/2, 4, 8, -Math.PI / 4, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Wing 2
+            this.ctx.beginPath();
+            this.ctx.ellipse(3, -5 - flapOffset/2, 3, 7, Math.PI / 6, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // 2. Draw Body (Golden honey color)
+            this.ctx.fillStyle = '#D8A64F';
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, 0, 8, 6, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // 3. Draw stripes (Black charcoal)
+            this.ctx.strokeStyle = '#1a1813';
+            this.ctx.lineWidth = 2.5;
+            
+            // Stripe 1
+            this.ctx.beginPath();
+            this.ctx.moveTo(-2, -5.5);
+            this.ctx.lineTo(-2, 5.5);
+            this.ctx.stroke();
+            
+            // Stripe 2
+            this.ctx.beginPath();
+            this.ctx.moveTo(2, -5.5);
+            this.ctx.lineTo(2, 5.5);
+            this.ctx.stroke();
+            
+            // Head
+            this.ctx.fillStyle = '#1a1813';
+            this.ctx.beginPath();
+            this.ctx.arc(6, -1, 3.5, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            this.ctx.restore();
+          }
+        }
+        
+        if (this.particles.length > 0) {
+          this.animationFrameId = requestAnimationFrame(loop);
+        } else {
+          this.animationFrameId = null;
+        }
+      };
+      
+      this.animationFrameId = requestAnimationFrame(loop);
+    },
+
+    flyImage: function(button, product, isFirstItem, isMobile) {
+      // Find the product card image
+      const productCard = button.closest('.product-card');
+      if (!productCard) return;
+      
+      const imgEl = productCard.querySelector('.product-media img');
+      if (!imgEl) return;
+      
+      const cartBtn = document.querySelector('.open-cart-btn');
+      if (!cartBtn) return;
+      
+      const imgRect = imgEl.getBoundingClientRect();
+      const cartRect = cartBtn.getBoundingClientRect();
+      
+      // Create flying clone
+      const flyImg = document.createElement('img');
+      flyImg.src = imgEl.src;
+      flyImg.className = 'cart-fly-img';
+      
+      // Position at original image spot
+      flyImg.style.left = imgRect.left + 'px';
+      flyImg.style.top = imgRect.top + 'px';
+      flyImg.style.width = imgRect.width + 'px';
+      flyImg.style.height = imgRect.height + 'px';
+      
+      document.body.appendChild(flyImg);
+      
+      // Initialize global coordinate reference for bees to orbit
+      this.isFlying = true;
+      window.CartCelebrationFlightPos = {
+        x: imgRect.left + imgRect.width / 2,
+        y: imgRect.top + imgRect.height / 2
+      };
+      
+      // Spawn escort bees
+      let beeCount = isFirstItem ? 3 : 2;
+      if (isMobile) beeCount = Math.max(1, beeCount - 1);
+      
+      for (let i = 0; i < beeCount; i++) {
+        this.particles.push({
+          type: 'bee',
+          x: window.CartCelebrationFlightPos.x,
+          y: window.CartCelebrationFlightPos.y,
+          opacity: 1,
+          lifetime: 0,
+          angle: (i * Math.PI * 2) / beeCount,
+          orbitRadius: 28 + Math.random() * 12,
+          orbitSpeed: 0.08 + Math.random() * 0.06,
+          wingPhase: Math.random() * 10
+        });
+      }
+      
+      // Setup flight path variables for JS frame-by-frame updates (to match honey drips and bees)
+      const startX = imgRect.left;
+      const startY = imgRect.top;
+      const startW = imgRect.width;
+      const startH = imgRect.height;
+      
+      const destX = cartRect.left + cartRect.width / 2 - 20; // scale down towards center
+      const destY = cartRect.top + cartRect.height / 2 - 20;
+      const destW = 40;
+      const destH = 40;
+      
+      const startTime = performance.now();
+      const duration = 850; // 0.85 seconds
+      
+      const updateFlight = (timestamp) => {
+        const elapsed = timestamp - startTime;
+        const progress = Math.min(1, elapsed / duration);
+        
+        // Bezier Ease Out Cubic
+        const ease = 1 - Math.pow(1 - progress, 3);
+        
+        const curX = startX + (destX - startX) * ease;
+        const curY = startY + (destY - startY) * ease;
+        const curW = startW + (destW - startW) * ease;
+        const curH = startH + (destH - startH) * ease;
+        const rotate = ease * 360; // complete rotation
+        const scale = 1 - (0.75 * ease); // shrink to 25% size
+        
+        // Update DOM element positions
+        flyImg.style.left = curX + 'px';
+        flyImg.style.top = curY + 'px';
+        flyImg.style.width = curW + 'px';
+        flyImg.style.height = curH + 'px';
+        flyImg.style.transform = `rotate(${rotate}deg) scale(${scale})`;
+        flyImg.style.opacity = 1 - (ease * 0.6); // fade slightly on arrival
+        
+        // Update global flight pos for orbiting bees
+        const imgCenterX = curX + curW / 2;
+        const imgCenterY = curY + curH / 2;
+        window.CartCelebrationFlightPos = { x: imgCenterX, y: imgCenterY };
+        
+        // Spawn Honey Drip Trail Droplets (physics-based)
+        if (progress < 0.95 && Math.random() < 0.45) {
+          const vx = (Math.random() - 0.5) * 1.5;
+          const vy = 1 + Math.random() * 2;
+          
+          this.particles.push({
+            type: 'honey_drop',
+            x: imgCenterX + (Math.random() - 0.5) * 15,
+            y: imgCenterY + (Math.random() - 0.5) * 15,
+            vx: vx,
+            vy: vy,
+            size: 2.5 + Math.random() * 3.5,
+            color: Math.random() > 0.4 ? 'rgba(216, 166, 79, 0.82)' : 'rgba(255, 208, 127, 0.88)',
+            opacity: 0.95,
+            decay: 0.035 + Math.random() * 0.02,
+            gravity: 0.15
+          });
+        }
+        
+        if (progress < 1) {
+          requestAnimationFrame(updateFlight);
+        } else {
+          // Landing/Collision reached!
+          flyImg.remove();
+          this.isFlying = false;
+          window.CartCelebrationFlightPos = null;
+          
+          // Trigger impact details
+          this.cartImpact(cartRect);
+          
+          // Trigger Toast Notification
+          this.showToast(product.name);
+        }
+      };
+      
+      requestAnimationFrame(updateFlight);
+      this.startLoop();
+    },
+
+    cartImpact: function(cartRect) {
+      const cartBtn = document.querySelector('.open-cart-btn');
+      if (!cartBtn) return;
+      
+      const cartCenterX = cartRect.left + cartRect.width / 2;
+      const cartCenterY = cartRect.top + cartRect.height / 2;
+      
+      // 1. Spans Ring Burst around the cart
+      const ring = document.createElement('div');
+      ring.className = 'cart-ring-burst';
+      ring.style.left = cartCenterX + 'px';
+      ring.style.top = cartCenterY + 'px';
+      document.body.appendChild(ring);
+      
+      // Force repaint
+      ring.offsetWidth;
+      ring.classList.add('active');
+      setTimeout(() => { ring.remove(); }, 600);
+      
+      // 2. Add glow & bounce classes
+      cartBtn.classList.add('cart-glow-active', 'cart-icon-bounce');
+      
+      // 3. Animate cart count smoothly
+      const badges = document.querySelectorAll('.cart-count');
+      const targetCount = this.targetCartCount !== null ? this.targetCartCount : 0;
+      
+      badges.forEach(badge => {
+        badge.classList.add('cart-badge-pulse');
+        
+        const currentCount = parseInt(badge.textContent) || 0;
+        if (currentCount !== targetCount) {
+          let start = currentCount;
+          const end = targetCount;
+          const duration = 300;
+          const stepTime = Math.abs(Math.floor(duration / (end - start || 1)));
+          
+          const timer = setInterval(() => {
+            if (start < end) {
+              start++;
+              badge.textContent = start;
+            } else if (start > end) {
+              start--;
+              badge.textContent = start;
+            }
+            if (start === end) {
+              clearInterval(timer);
+            }
+          }, Math.max(stepTime, 20));
+        }
+      });
+      
+      // Clean up classes after animations complete
+      setTimeout(() => {
+        cartBtn.classList.remove('cart-glow-active', 'cart-icon-bounce');
+        badges.forEach(badge => badge.classList.remove('cart-badge-pulse'));
+        this.targetCartCount = null;
+      }, 1000);
+    },
+
+    showToast: function(productName) {
+      const toast = document.getElementById('cart-celebration-toast');
+      if (!toast) return;
+      
+      // List of dynamic luxury messages
+      const titles = [
+        "🍯 Sweet Choice!",
+        "🐝 Fresh From The Hive!",
+        "✨ Added To Your Collection!",
+        "🍯 Pure Honey Added!",
+        "🐝 Great Pick!",
+        "🍯 Farm Fresh Goodness Added!"
+      ];
+      
+      const subtitles = [
+        "Added To Your Kamadhenu Collection",
+        "Product Added Successfully",
+        "Fresh Honey Added To Cart",
+        "Ready For Checkout"
+      ];
+      
+      const randomTitle = titles[Math.floor(Math.random() * titles.length)];
+      const randomSub = subtitles[Math.floor(Math.random() * subtitles.length)];
+      
+      // Update contents
+      const titleEl = toast.querySelector('.toast-title');
+      const subEl = toast.querySelector('.toast-subtitle');
+      const iconEl = toast.querySelector('.toast-icon-wrap');
+      const progressBar = toast.querySelector('.toast-progress-bar');
+      
+      if (titleEl) titleEl.textContent = randomTitle.replace(/^[^\s]+\s+/, '');
+      if (subEl) subEl.textContent = randomSub;
+      
+      // Extract emoji for the icon column
+      const emojiMatch = randomTitle.match(/^([^\s]+)/);
+      if (iconEl && emojiMatch) iconEl.textContent = emojiMatch[0];
+      
+      // Reset toast animation states
+      toast.className = 'toast-hidden';
+      progressBar.classList.remove('toast-progress-shrink');
+      
+      // Force layout repaint
+      toast.offsetWidth;
+      
+      // Trigger show
+      toast.classList.remove('toast-hidden');
+      toast.classList.add('toast-show');
+      progressBar.classList.add('toast-progress-shrink');
+      
+      // Auto-hide toast after 3 seconds
+      const hideTimeout = setTimeout(() => {
+        toast.classList.remove('toast-show');
+        toast.classList.add('toast-hidden');
+      }, 3000);
+      
+      // Enable close on click
+      toast.onclick = () => {
+        clearTimeout(hideTimeout);
+        toast.classList.remove('toast-show');
+        toast.classList.add('toast-hidden');
+      };
+    }
   };
 
   /* ==========================================================================

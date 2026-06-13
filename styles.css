@@ -4399,3 +4399,224 @@ body:not(.loaded) {
     animation: none !important;
   }
 }
+
+/* ==========================================================================
+   Add to Cart Celebration CSS (Premium Honey Farms Theme)
+   ========================================================================== */
+
+/* Fullscreen Canvas overlay */
+#cart-confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 999999;
+}
+
+/* Flying product image */
+.cart-fly-img {
+  position: fixed;
+  z-index: 100000;
+  pointer-events: none;
+  border-radius: 12px;
+  box-shadow: 0 0 25px rgba(216, 166, 79, 0.8), 0 0 50px rgba(255, 208, 127, 0.4);
+  object-fit: cover;
+  transition: all 0.85s cubic-bezier(0.25, 1, 0.3, 1);
+  transform: translate(0, 0) scale(1) rotate(0deg);
+}
+
+/* Screen glow ripple */
+.cart-glow-ripple {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 208, 127, 0.18) 0%, rgba(216, 166, 79, 0.04) 50%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 1.3s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 1.3s ease-out;
+  z-index: 9999;
+  opacity: 1;
+}
+
+.cart-glow-ripple.active {
+  transform: translate(-50%, -50%) scale(8);
+  opacity: 0;
+}
+
+/* First-item extra strong ripple */
+.cart-glow-ripple.active.first-item {
+  background: radial-gradient(circle, rgba(255, 208, 127, 0.28) 0%, rgba(216, 166, 79, 0.08) 50%, transparent 70%);
+  transform: translate(-50%, -50%) scale(12);
+  transition-duration: 1.6s;
+}
+
+/* Cart Button Glowing Effect */
+.open-cart-btn.cart-glow-active {
+  animation: cartArrivalGlow 1s ease-out forwards;
+}
+
+@keyframes cartArrivalGlow {
+  0% {
+    filter: drop-shadow(0 0 0px rgba(216, 166, 79, 0));
+    border-color: rgba(216, 166, 79, 0.2);
+  }
+  20% {
+    filter: drop-shadow(0 0 15px rgba(255, 208, 127, 0.95)) drop-shadow(0 0 5px rgba(216, 166, 79, 0.8));
+    border-color: rgba(255, 208, 127, 0.8);
+    transform: scale(1.15);
+  }
+  100% {
+    filter: drop-shadow(0 0 0px rgba(216, 166, 79, 0));
+    border-color: rgba(216, 166, 79, 0.2);
+    transform: scale(1);
+  }
+}
+
+/* Cart Icon bounce & badge pulse */
+.cart-icon-bounce {
+  animation: cartIconBounce 0.65s cubic-bezier(0.25, 1.25, 0.5, 1.25) forwards;
+}
+
+.cart-badge-pulse {
+  animation: cartBadgePulse 0.75s cubic-bezier(0.25, 1.25, 0.5, 1.25) forwards;
+}
+
+@keyframes cartIconBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.7) translateY(4px); }
+  60% { transform: scale(1.25) translateY(-6px); }
+  85% { transform: scale(0.92) translateY(1.5px); }
+  100% { transform: scale(1); }
+}
+
+@keyframes cartBadgePulse {
+  0% { transform: scale(1); }
+  40% {
+    transform: scale(1.7);
+    background-color: var(--primary-gold);
+    color: #000;
+    box-shadow: 0 0 18px var(--primary-gold), 0 0 5px rgba(255, 255, 255, 0.5);
+    font-weight: 800;
+  }
+  100% { transform: scale(1); }
+}
+
+/* Landing Ring Burst */
+.cart-ring-burst {
+  position: fixed;
+  border: 2px solid var(--primary-gold);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 100001;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 1;
+  transition: transform 0.6s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.6s ease-out;
+}
+
+.cart-ring-burst.active {
+  transform: translate(-50%, -50%) scale(2.2);
+  opacity: 0;
+}
+
+/* Premium Glassmorphic Toast Notification */
+#cart-celebration-toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: rgba(18, 16, 12, 0.88);
+  border: 1px solid rgba(216, 166, 79, 0.38);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55), 0 0 15px rgba(216, 166, 79, 0.12) inset;
+  border-radius: 14px;
+  padding: 18px 26px;
+  color: var(--warm-white);
+  z-index: 1000000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  min-width: 330px;
+  max-width: 440px;
+  transform: translateY(120px) scale(0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.45s ease;
+}
+
+#cart-celebration-toast.toast-show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toast-icon-wrap {
+  font-size: 2.2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 8px rgba(216,166,79,0.3));
+}
+
+.toast-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toast-title {
+  font-family: var(--font-headings);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary-gold);
+  letter-spacing: 0.02em;
+}
+
+.toast-subtitle {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: #e0e0e0;
+}
+
+.toast-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--primary-gold), #FFD07F);
+  transform-origin: left;
+  transform: scaleX(1);
+}
+
+.toast-progress-shrink {
+  animation: toastProgressShrink 3s linear forwards;
+}
+
+@keyframes toastProgressShrink {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  #cart-celebration-toast {
+    bottom: auto;
+    top: 20px;
+    right: 15px;
+    left: 15px;
+    min-width: 0;
+    max-width: none;
+    transform: translateY(-120px) scale(0.95);
+    padding: 14px 20px;
+  }
+  
+  #cart-celebration-toast.toast-show {
+    transform: translateY(0) scale(1);
+  }
+}
