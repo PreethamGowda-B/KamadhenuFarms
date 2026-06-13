@@ -3048,18 +3048,19 @@ h2::after {
   position: absolute;
   right: 72px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(10px);
   background: var(--luxury-charcoal);
   color: #fff;
-  padding: 8px 16px;
+  padding: 10px 18px;
   border-radius: 8px;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
   font-family: var(--font-body);
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: var(--transition-fast);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 .floating-wa-tooltip::after {
@@ -3074,6 +3075,7 @@ h2::after {
 
 .floating-wa-btn:hover .floating-wa-tooltip {
   opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
 
 /* ==========================================================================
