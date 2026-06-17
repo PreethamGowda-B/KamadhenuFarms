@@ -164,13 +164,20 @@ document.addEventListener('DOMContentLoaded', () => {
      Navbar & Menu Logic
      ========================================================================== */
   // Sticky Navbar Blur Swap
+  let isNavScrolling = false;
   window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-      header.classList.add('scrolled');
-    } else {
-      header.classList.remove('scrolled');
+    if (!isNavScrolling) {
+      window.requestAnimationFrame(() => {
+        if (window.scrollY > 50) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+        isNavScrolling = false;
+      });
+      isNavScrolling = true;
     }
-  });
+  }, { passive: true });
 
   // Mobile Hamburger toggling
   const toggleMobileNav = () => {
@@ -1011,21 +1018,24 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
      Intersection Observer (Scroll Animations reveal hooks)
      ========================================================================== */
+  const revealObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('active');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { root: null, rootMargin: '0px 0px -50px 0px', threshold: 0 });
+
   function triggerScrollReveal() {
     const reveals = document.querySelectorAll('.reveal');
-    const windowHeight = window.innerHeight;
-    const revealPoint = 100;
-
     reveals.forEach(reveal => {
-      const revealTop = reveal.getBoundingClientRect().top;
-
-      if (revealTop < windowHeight - revealPoint) {
-        reveal.classList.add('active');
+      if (!reveal.classList.contains('observed-reveal')) {
+        reveal.classList.add('observed-reveal');
+        revealObserver.observe(reveal);
       }
     });
   }
-
-  window.addEventListener('scroll', triggerScrollReveal);
 
   /* ==========================================================================
      Inquiry Contact Form Submission Handler
@@ -1105,24 +1115,39 @@ document.addEventListener('DOMContentLoaded', () => {
      ========================================================================== */
   const preloader = document.getElementById('preloader');
   if (preloader) {
-    window.addEventListener('load', () => {
-      setTimeout(() => {
+    const hidePreloader = () => {
+      if (!preloader.classList.contains('hidden')) {
         preloader.classList.add('hidden');
         document.body.classList.add('loaded');
         setTimeout(() => preloader.remove(), 800);
-      }, 1500);
+      }
+    };
+    
+    // Fallback: hide preloader after 2.5s even if window hasn't loaded
+    const fallbackTimer = setTimeout(hidePreloader, 2500);
+
+    window.addEventListener('load', () => {
+      clearTimeout(fallbackTimer);
+      setTimeout(hidePreloader, 300);
     });
   }
 
   const backToTopBtn = document.getElementById('backToTopBtn');
   if (backToTopBtn) {
+    let isBtnScrolling = false;
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 600) {
-        backToTopBtn.classList.add('visible');
-      } else {
-        backToTopBtn.classList.remove('visible');
+      if (!isBtnScrolling) {
+        window.requestAnimationFrame(() => {
+          if (window.scrollY > 600) {
+            backToTopBtn.classList.add('visible');
+          } else {
+            backToTopBtn.classList.remove('visible');
+          }
+          isBtnScrolling = false;
+        });
+        isBtnScrolling = true;
       }
-    });
+    }, { passive: true });
     backToTopBtn.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -1183,16 +1208,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const heroMedia = document.querySelector('.hero-media');
   const heroContent = document.querySelector('.hero-content');
+  let isHeroScrolling = false;
   window.addEventListener('scroll', () => {
-    const scrollY = window.scrollY;
-    if (scrollY < window.innerHeight) {
-      if (heroMedia) heroMedia.style.transform = `translateY(${scrollY * 0.15}px)`;
-      if (heroContent) {
-        heroContent.style.transform = `translateY(${scrollY * 0.05}px)`;
-        heroContent.style.opacity = 1 - (scrollY / (window.innerHeight * 0.8));
-      }
+    if (!isHeroScrolling) {
+      window.requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        if (scrollY < window.innerHeight) {
+          if (heroMedia) heroMedia.style.transform = `translateY(${scrollY * 0.15}px)`;
+          if (heroContent) {
+            heroContent.style.transform = `translateY(${scrollY * 0.05}px)`;
+            heroContent.style.opacity = Math.max(0, 1 - (scrollY / (window.innerHeight * 0.8)));
+          }
+        }
+        isHeroScrolling = false;
+      });
+      isHeroScrolling = true;
     }
-  });
+  }, { passive: true });
 
   /* ==========================================================================
      Dynamic Glare & 3D Lighting Effects
