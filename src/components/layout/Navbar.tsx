@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Menu, X, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { Menu, X, ArrowRight } from 'lucide-react';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,12 +37,6 @@ export default function Navbar() {
             </Link>
             <Link href="/careers#faq" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
               FAQ
-            </Link>
-            <Link 
-              href="/admin/recruitment" 
-              className="text-xs font-semibold px-3 py-1.5 rounded-full bg-gold-100 text-gold-800 border border-gold-300 hover:bg-gold-200 transition-colors flex items-center gap-1.5"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-gold-600" /> Admin Portal
             </Link>
           </nav>
 
@@ -92,13 +86,6 @@ export default function Navbar() {
             className="block px-3 py-2 rounded-md text-base font-medium text-charcoal hover:bg-gold-50 hover:text-gold-600"
           >
             FAQ
-          </Link>
-          <Link
-            href="/admin/recruitment"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-gold-800 bg-gold-100"
-          >
-            🛡️ Admin Dashboard Portal
           </Link>
           <div className="pt-2">
             <Link

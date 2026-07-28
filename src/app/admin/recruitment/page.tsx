@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Users, 
   Search, 
@@ -11,23 +12,22 @@ import {
   XCircle, 
   Clock, 
   Phone, 
-  Download, 
   Eye, 
-  Plus, 
-  ShieldCheck, 
   MapPin,
-  Sparkles,
-  ChevronRight,
-  TrendingUp
+  TrendingUp,
+  LogOut,
+  ShieldCheck
 } from 'lucide-react';
 import { ApplicationRecord } from '@/lib/store';
 
 export default function AdminRecruitmentPage() {
+  const router = useRouter();
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     fetchApplications();
@@ -62,6 +62,18 @@ export default function AdminRecruitmentPage() {
       }
     } catch (e) {
       alert('Failed to update status');
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' });
+      router.push('/admin/login');
+    } catch (e) {
+      alert('Logout failed');
+    } finally {
+      setLoggingOut(false);
     }
   };
 
@@ -114,67 +126,80 @@ export default function AdminRecruitmentPage() {
     <div className="min-h-screen bg-cream-bg flex flex-col lg:flex-row">
       
       {/* Sidebar Navigation */}
-      <aside className="w-full lg:w-64 bg-charcoal text-cream-bg p-6 shrink-0 border-r border-gold-900 space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gold-500 flex items-center justify-center text-xl">
-            🛡️
+      <aside className="w-full lg:w-64 bg-charcoal text-cream-bg p-6 shrink-0 border-r border-gold-900 flex flex-col justify-between space-y-6">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gold-500 flex items-center justify-center text-xl">
+              🛡️
+            </div>
+            <div>
+              <h2 className="font-serif font-bold text-lg text-gold-400 leading-tight">Admin Portal</h2>
+              <p className="text-[11px] text-gray-400">admin@kamadhenuhoneyfarms.in</p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-serif font-bold text-lg text-gold-400 leading-tight">Admin Portal</h2>
-            <p className="text-[11px] text-gray-400">Kamadhenu Recruitment</p>
-          </div>
+
+          <nav className="space-y-1.5 pt-2">
+            <button
+              onClick={() => setStatusFilter('ALL')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                statusFilter === 'ALL' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
+              }`}
+            >
+              <span className="flex items-center gap-2"><Users className="w-4 h-4" /> All Applications</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{totalCount}</span>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('INTERVIEW_SCHEDULED')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                statusFilter === 'INTERVIEW_SCHEDULED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
+              }`}
+            >
+              <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-400" /> Interviews</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{shortlistedCount}</span>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('SELECTED')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                statusFilter === 'SELECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
+              }`}
+            >
+              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Hired / Selected</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{hiredCount}</span>
+            </button>
+
+            <button
+              onClick={() => setStatusFilter('REJECTED')}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                statusFilter === 'REJECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
+              }`}
+            >
+              <span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-rose-400" /> Rejected</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{rejectedCount}</span>
+            </button>
+
+            <div className="pt-4 border-t border-gray-800">
+              <Link
+                href="/admin/recruitment/analytics"
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-gold-400 hover:bg-charcoal-light transition-colors"
+              >
+                <BarChart3 className="w-4 h-4" /> Recruitment Analytics
+              </Link>
+            </div>
+          </nav>
         </div>
 
-        <nav className="space-y-1.5 pt-4">
+        {/* Logout Action Button */}
+        <div className="pt-6 border-t border-gray-800">
           <button
-            onClick={() => setStatusFilter('ALL')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-              statusFilter === 'ALL' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-            }`}
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-950/60 border border-rose-600/40 text-rose-300 hover:bg-rose-900 rounded-xl text-xs font-semibold transition-colors"
           >
-            <span className="flex items-center gap-2"><Users className="w-4 h-4" /> All Applications</span>
-            <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{totalCount}</span>
+            <LogOut className="w-4 h-4" /> {loggingOut ? 'Signing Out...' : 'Sign Out Admin'}
           </button>
-
-          <button
-            onClick={() => setStatusFilter('INTERVIEW_SCHEDULED')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-              statusFilter === 'INTERVIEW_SCHEDULED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-            }`}
-          >
-            <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-400" /> Interviews</span>
-            <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{shortlistedCount}</span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('SELECTED')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-              statusFilter === 'SELECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-            }`}
-          >
-            <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Hired / Selected</span>
-            <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{hiredCount}</span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter('REJECTED')}
-            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-              statusFilter === 'REJECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-            }`}
-          >
-            <span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-rose-400" /> Rejected</span>
-            <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{rejectedCount}</span>
-          </button>
-
-          <div className="pt-4 border-t border-gray-800">
-            <Link
-              href="/admin/recruitment/analytics"
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-gold-400 hover:bg-charcoal-light transition-colors"
-            >
-              <BarChart3 className="w-4 h-4" /> Recruitment Analytics
-            </Link>
-          </div>
-        </nav>
+        </div>
       </aside>
 
       {/* Main Dashboard Body */}
@@ -183,8 +208,13 @@ export default function AdminRecruitmentPage() {
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal">Recruitment Dashboard</h1>
-            <p className="text-xs text-gray-600">Review candidate submissions, schedule interviews, and track sales partner hiring.</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal">Recruitment Dashboard</h1>
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" /> Session Active
+              </span>
+            </div>
+            <p className="text-xs text-gray-600 mt-1">Review candidate submissions, schedule interviews, and track sales partner hiring.</p>
           </div>
 
           <Link

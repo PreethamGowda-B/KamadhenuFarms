@@ -48,8 +48,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin/recruitment" className="hover:text-gold-400 transition-colors">
-                  Recruitment Admin Dashboard
+                <Link href="/careers#faq" className="hover:text-gold-400 transition-colors">
+                  Frequently Asked Questions
                 </Link>
               </li>
             </ul>
