@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #10B981; border-radius: 8px;">
           <h2 style="color: #059669;">🎉 Congratulations ${app.fullName}!</h2>
           <p>You have been officially selected to join the <strong>Kamadhenu Honey Farm Sales Partner Network</strong>!</p>
-          <p>Your flat commission rate is <strong>₹100 per KG</strong> with weekly Monday payouts.</p>
+          <p>Your commission rate is <strong>₹100–₹150 per KG (20%–25%)</strong> with weekly Monday payouts.</p>
           <p>Our onboarding team will send your Partner ID and product catalog materials via WhatsApp shortly.</p>
           <p>Welcome aboard!<br/>Kamadhenu Honey Farms</p>
         </div>

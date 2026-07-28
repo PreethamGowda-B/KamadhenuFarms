@@ -39,7 +39,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/careers/sales-agent" className="hover:text-gold-400 transition-colors">
-                  Sales Agent Role (₹100/KG)
+                  Sales Agent Role (₹100–₹150/KG)
                 </Link>
               </li>
               <li>
@@ -62,7 +62,7 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2.5 text-sm text-gray-300">
               <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-gold-500" /> ₹100 per KG Commission
+                <CheckCircle2 className="w-4 h-4 text-gold-500" /> ₹100–₹150 per KG Commission (20%–25%)
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-gold-500" /> Flexible Field Hours

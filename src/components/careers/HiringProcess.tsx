@@ -32,7 +32,7 @@ const STEPS = [
     number: '05',
     icon: ShoppingBag,
     title: 'Start Selling',
-    description: 'Begin taking orders, supply fresh raw honey to customers, and start earning weekly ₹100/kg commissions!',
+    description: 'Begin taking orders, supply fresh raw honey to customers, and start earning weekly ₹100–₹150/kg commissions!',
   },
 ];
 

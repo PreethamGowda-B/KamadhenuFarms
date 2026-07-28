@@ -7,7 +7,7 @@ const BENEFITS = [
   {
     icon: DollarSign,
     title: 'High Commission Earnings',
-    description: 'Earn a lucrative flat ₹100 for every single kilogram of honey sold. No earnings ceiling—your performance directly dictates your income.',
+    description: 'Earn ₹100–₹150 commission (20%–25%) for every kilogram of honey sold. Higher sales performance unlocks higher commission within this range with unlimited earning potential.',
   },
   {
     icon: Clock,

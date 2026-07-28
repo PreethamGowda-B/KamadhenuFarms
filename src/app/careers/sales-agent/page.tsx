@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { MapPin, Briefcase, DollarSign, CheckCircle2, ArrowRight, Calculator, Award, Sparkles, ShieldAlert } from 'lucide-react';
+import { MapPin, Briefcase, DollarSign, CheckCircle2, ArrowRight, Calculator, Award, Sparkles } from 'lucide-react';
 
 export default function JobDetailsPage() {
   const [salesKg, setSalesKg] = useState<number>(100);
 
-  const baseCommission = salesKg * 100;
+  // Updated commission structure: ₹100–₹150 per KG (avg ₹125/kg for 20%–25% margin)
+  const baseCommission = salesKg * 125;
   let bonus = 0;
   if (salesKg >= 200) bonus = 5000;
   else if (salesKg >= 100) bonus = 2000;
@@ -64,14 +65,14 @@ export default function JobDetailsPage() {
               <DollarSign className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
                 <p className="text-xs text-emerald-700 font-medium">Commission Rate</p>
-                <p className="text-sm font-bold text-emerald-900">₹100 per KG</p>
+                <p className="text-sm font-bold text-emerald-900">₹100–₹150 per KG (20%–25%)</p>
               </div>
             </div>
           </div>
 
           <div className="pt-4 border-t border-gold-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-gray-500">
-              ⚡ Weekly Monday payouts direct to Bank account or UPI.
+              ⚡ Weekly Monday payouts direct to Bank account or UPI. Higher sales performance unlocks higher commission within range.
             </p>
             <Link
               href="/careers/apply"
@@ -94,7 +95,7 @@ export default function JobDetailsPage() {
                 Interactive Earnings Calculator
               </h2>
               <p className="text-xs text-gray-300">
-                Adjust monthly honey sales volume to see expected partner income.
+                Adjust monthly honey sales volume to see expected partner income (calculated at ₹100–₹150/KG range).
               </p>
             </div>
           </div>
@@ -124,7 +125,7 @@ export default function JobDetailsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-gold-800">
               <div className="bg-charcoal p-4 rounded-xl border border-gold-900">
-                <p className="text-xs text-gray-400">Base Commission (₹100/kg)</p>
+                <p className="text-xs text-gray-400">Base Commission (₹100–₹150/kg)</p>
                 <p className="text-xl font-bold text-white mt-1">₹{baseCommission.toLocaleString()}</p>
               </div>
 
@@ -134,7 +135,7 @@ export default function JobDetailsPage() {
               </div>
 
               <div className="bg-gold-500/20 p-4 rounded-xl border border-gold-500 text-gold-300">
-                <p className="text-xs font-bold uppercase tracking-wider text-gold-400">Total Monthly Earnings</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-gold-400 font-serif">Total Monthly Earnings</p>
                 <p className="text-2xl font-serif font-extrabold text-gold-400 mt-1">
                   ₹{totalEarnings.toLocaleString()} <span className="text-xs text-gray-300 font-normal">/ mo</span>
                 </p>
@@ -149,24 +150,28 @@ export default function JobDetailsPage() {
           {/* Responsibilities */}
           <div className="glass-panel p-8 rounded-3xl border border-gold-300/60">
             <h3 className="text-xl font-serif font-bold text-charcoal mb-4 flex items-center gap-2">
-              <Award className="w-5 h-5 text-gold-600" /> Key Responsibilities
+              <Award className="w-5 h-5 text-gold-600" /> Key Responsibilities & Benefits
             </h3>
             <ul className="space-y-3 text-sm text-gray-600">
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-gold-600 shrink-0 mt-0.5" />
-                <span>Introduce Kamadhenu 100% Pure Raw Honey to local retail stores, bakery shops, and organic food outlets.</span>
+                <span>Earn ₹100–₹150 commission for every kilogram of honey sold.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-gold-600 shrink-0 mt-0.5" />
-                <span>Promote direct-to-consumer orders across apartment societies, WhatsApp communities, and fitness centers.</span>
+                <span>Earn 20%–25% commission margin on every successful customer sale.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-gold-600 shrink-0 mt-0.5" />
-                <span>Distribute tasting samples and explain raw, unheated honey health advantages.</span>
+                <span>Higher sales performance can unlock higher commission within this range.</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-gold-600 shrink-0 mt-0.5" />
-                <span>Collect orders, coordinate stock delivery with farm logistics, and maintain customer relations.</span>
+                <span>Unlimited earning potential based on sales performance.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-gold-600 shrink-0 mt-0.5" />
+                <span>Weekly/Monthly payout as configured by the company direct to your bank or UPI.</span>
               </li>
             </ul>
           </div>
@@ -200,7 +205,7 @@ export default function JobDetailsPage() {
 
         {/* Bottom CTA */}
         <div className="mt-12 text-center glass-panel p-8 rounded-3xl border border-gold-400 space-y-4">
-          <h3 className="text-2xl font-serif font-bold text-charcoal">Ready to Start Earning ₹100/KG?</h3>
+          <h3 className="text-2xl font-serif font-bold text-charcoal">Ready to Start Earning ₹100–₹150/KG?</h3>
           <p className="text-sm text-gray-600 max-w-xl mx-auto">
             Complete the 4-step application form online. Takes less than 3 minutes.
           </p>

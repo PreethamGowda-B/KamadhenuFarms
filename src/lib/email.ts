@@ -99,7 +99,7 @@ export function getHiredSelectionTemplate(applicantName: string, applicationNo: 
         <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 16px; margin: 20px 0; border-radius: 6px;">
           <h4 style="margin: 0 0 8px 0; color: #065F46;">Joining Summary & Terms:</h4>
           <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #047857;">
-            <li><strong>Commission Rate:</strong> ₹100 flat per KG of pure raw honey sold</li>
+            <li><strong>Commission Rate:</strong> ₹100–₹150 per KG (20%–25%) of pure raw honey sold</li>
             <li><strong>Payout Schedule:</strong> Every Monday via Bank Direct Transfer / UPI</li>
             <li><strong>Territory Coverage:</strong> Your registered local area in Karnataka</li>
           </ul>

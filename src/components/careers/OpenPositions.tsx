@@ -60,7 +60,7 @@ export default function OpenPositions() {
                     <Briefcase className="w-4 h-4 text-gold-600" /> Commission Based
                   </div>
                   <div className="flex items-center gap-1.5 bg-emerald-100 text-emerald-900 px-3 py-1.5 rounded-lg border border-emerald-200 font-bold">
-                    <DollarSign className="w-4 h-4 text-emerald-600" /> ₹100 per KG Commission
+                    <DollarSign className="w-4 h-4 text-emerald-600" /> ₹100–₹150 per KG Commission (20%–25%)
                   </div>
                 </div>
               </div>

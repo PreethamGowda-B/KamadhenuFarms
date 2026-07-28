@@ -7,7 +7,7 @@ import { ChevronDown, HelpCircle } from 'lucide-react';
 const FAQS = [
   {
     question: 'How do I earn commission with Kamadhenu Honey Farm?',
-    answer: 'You earn a direct flat commission of ₹100 for every kilogram of honey sold. For example, if you sell 50 kg of honey in a month, your commission earnings equal ₹5,000. If you sell 200 kg, you earn ₹20,000 plus performance bonuses.',
+    answer: 'You earn a direct commission of ₹100–₹150 for every kilogram of honey sold (20%–25% commission margin). Higher sales performance unlocks higher commission within this range. For example, if you sell 50 kg of honey at ₹125/kg average commission, your earnings equal ₹6,250. If you sell 200 kg, you earn ₹25,000–₹30,000 plus volume performance bonuses.',
   },
   {
     question: 'Do I need prior sales experience to apply?',

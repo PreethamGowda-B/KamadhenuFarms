@@ -75,10 +75,10 @@ export default function HeroSection() {
             className="pt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-gold-300/40 max-w-2xl mx-auto text-left"
           >
             <div className="glass-panel p-4 rounded-2xl border border-gold-200">
-              <div className="flex items-center gap-2 text-gold-600 font-bold text-xl sm:text-2xl">
-                <TrendingUp className="w-5 h-5" /> ₹100/KG
+              <div className="flex items-center gap-2 text-gold-600 font-bold text-lg sm:text-xl">
+                <TrendingUp className="w-5 h-5" /> ₹100–₹150/KG
               </div>
-              <p className="text-xs text-gray-600 mt-1 font-medium">Direct Commission</p>
+              <p className="text-xs text-gray-600 mt-1 font-medium">Commission (20%–25%)</p>
             </div>
             
             <div className="glass-panel p-4 rounded-2xl border border-gold-200">
