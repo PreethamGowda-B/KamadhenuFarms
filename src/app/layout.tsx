@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
-  title: 'Careers & Partner Program | Kamadhenu Honey Farms Bangalore',
-  description: 'Join Kamadhenu Honey Farm as a Sales Partner. Deliver 100% pure, natural farm honey across India. High commissions, weekly incentives, and complete support.',
-  keywords: ['Kamadhenu Honey Farms Careers', 'Sales Partner Bangalore', 'Commission Based Sales Job Karnataka', 'Pure Honey Distributor'],
+  title: 'Kamadhenu Honey Farms | 100% Pure Natural Raw Honey Bangalore',
+  description: 'Buy 100% pure, natural, raw, unprocessed honey in Bangalore direct from beekeepers at Kamadhenu Honey Farms. Try our flagship Raw Honey and Dry Fruits Honey.',
+  keywords: ['Pure Honey Bangalore', 'Raw Honey Bangalore', 'Natural Honey Bangalore', 'Kamadhenu Honey Farms', 'Magadi Road Honey'],
 };
 
 export default function RootLayout({
@@ -17,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen flex flex-col antialiased selection:bg-gold-500 selection:text-white">
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );
