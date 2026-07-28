@@ -669,6 +669,49 @@ export default function AdminRecruitmentPage() {
               <p className="text-charcoal italic">"{activeCandidate.whyJoin}"</p>
             </div>
 
+            {/* Uploaded Documents */}
+            <div className="bg-gold-100/60 p-4 rounded-xl space-y-2 text-xs border border-gold-300">
+              <p className="text-gold-900 font-bold uppercase tracking-wider text-[11px]">Uploaded Candidate Documents:</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {activeCandidate.resumeUrl ? (
+                  <a
+                    href={activeCandidate.resumeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-gold-600 text-white rounded-lg text-xs font-semibold hover:bg-gold-700 transition-colors inline-flex items-center gap-1"
+                  >
+                    📄 View Resume PDF
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-gray-500 bg-white/80 px-2.5 py-1 rounded border">No Resume Uploaded</span>
+                )}
+
+                {activeCandidate.aadhaarUrl ? (
+                  <a
+                    href={activeCandidate.aadhaarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-gold-600 text-white rounded-lg text-xs font-semibold hover:bg-gold-700 transition-colors inline-flex items-center gap-1"
+                  >
+                    🆔 View Aadhaar ID
+                  </a>
+                ) : (
+                  <span className="text-[11px] text-gray-500 bg-white/80 px-2.5 py-1 rounded border">No Aadhaar Uploaded</span>
+                )}
+
+                {activeCandidate.profilePhotoUrl && (
+                  <a
+                    href={activeCandidate.profilePhotoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-gold-600 text-white rounded-lg text-xs font-semibold hover:bg-gold-700 transition-colors inline-flex items-center gap-1"
+                  >
+                    🖼️ View Photo
+                  </a>
+                )}
+              </div>
+            </div>
+
             <div className="pt-2 flex justify-between items-center">
               <Link
                 href={`/admin/recruitment/applications/${activeCandidate.id}`}

@@ -18,7 +18,9 @@ import {
   Send, 
   MessageSquare, 
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Download,
+  Image as ImageIcon
 } from 'lucide-react';
 import { ApplicationRecord } from '@/lib/store';
 
@@ -132,8 +134,12 @@ export default function ApplicationDetailPage() {
         <div className="glass-panel p-8 rounded-3xl border-2 border-gold-300 shadow-luxury space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gold-500 text-white font-serif font-bold text-2xl flex items-center justify-center shadow-md shrink-0">
-                {app.fullName.charAt(0)}
+              <div className="w-16 h-16 rounded-2xl bg-gold-500 text-white font-serif font-bold text-2xl flex items-center justify-center shadow-md shrink-0 overflow-hidden">
+                {app.profilePhotoUrl ? (
+                  <img src={app.profilePhotoUrl} alt={app.fullName} className="w-full h-full object-cover" />
+                ) : (
+                  app.fullName.charAt(0)
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -229,6 +235,83 @@ export default function ApplicationDetailPage() {
             >
               Send Rejection Email
             </button>
+          </div>
+        </div>
+
+        {/* Uploaded Documents & Verification Section */}
+        <div className="glass-panel p-6 rounded-3xl border-2 border-gold-300 space-y-4">
+          <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-gold-200 pb-3">
+            <FileText className="w-5 h-5 text-gold-600" /> Uploaded Candidate Documents & Verification
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            {/* Resume File */}
+            <div className="bg-white p-4 rounded-2xl border border-gold-200 flex flex-col justify-between space-y-3">
+              <div>
+                <p className="text-xs font-bold text-charcoal flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-gold-600" /> Resume / CV
+                </p>
+                <p className="text-[11px] text-gray-500 mt-1">Uploaded PDF / Word Resume</p>
+              </div>
+              {app.resumeUrl ? (
+                <a
+                  href={app.resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> View / Download Resume
+                </a>
+              ) : (
+                <span className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded text-center">No resume uploaded</span>
+              )}
+            </div>
+
+            {/* Aadhaar Document */}
+            <div className="bg-white p-4 rounded-2xl border border-gold-200 flex flex-col justify-between space-y-3">
+              <div>
+                <p className="text-xs font-bold text-charcoal flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-gold-600" /> Aadhaar ID Proof
+                </p>
+                <p className="text-[11px] text-gray-500 mt-1">Identity Verification Document</p>
+              </div>
+              {app.aadhaarUrl ? (
+                <a
+                  href={app.aadhaarUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> View Aadhaar Document
+                </a>
+              ) : (
+                <span className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded text-center">No Aadhaar uploaded</span>
+              )}
+            </div>
+
+            {/* Profile Photo */}
+            <div className="bg-white p-4 rounded-2xl border border-gold-200 flex flex-col justify-between space-y-3">
+              <div>
+                <p className="text-xs font-bold text-charcoal flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-gold-600" /> Candidate Photo
+                </p>
+                <p className="text-[11px] text-gray-500 mt-1">Passport / Headshot Photo</p>
+              </div>
+              {app.profilePhotoUrl ? (
+                <a
+                  href={app.profilePhotoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> View Profile Photo
+                </a>
+              ) : (
+                <span className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded text-center">No photo uploaded</span>
+              )}
+            </div>
+
           </div>
         </div>
 
