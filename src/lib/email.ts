@@ -19,8 +19,9 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<{ 
         },
       });
 
+      const senderEmail = process.env.SMTP_USER || 'careers@kamadhenuhoneyfarms.com';
       const info = await transporter.sendMail({
-        from: '"Kamadhenu Honey Farms Recruitment" <careers@kamadhenuhoneyfarms.com>',
+        from: `"Kamadhenu Honey Farms Recruitment" <${senderEmail}>`,
         to,
         subject,
         html,
