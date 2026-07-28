@@ -1,0 +1,65 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ApplicationStatus {
+  APPLIED
+  REVIEWED
+  INTERVIEW_SCHEDULED
+  SELECTED
+  REJECTED
+}
+
+model Application {
+  id                    String            @id @default(cuid())
+  applicationNo         String            @unique // e.g. KHF-2026-001
+  fullName              String
+  mobileNumber          String
+  whatsAppNumber        String
+  email                 String
+  gender                String
+  age                   Int
+  city                  String
+  state                 String
+  pinCode               String
+  
+  hasBike               Boolean
+  hasDrivingLicense     Boolean
+  salesExperience       String
+  currentOccupation     String
+  languagesKnown        String[]
+  preferredSalesArea    String
+  
+  resumeUrl             String?
+  aadhaarUrl            String?
+  profilePhotoUrl       String?
+  
+  whyJoin               String
+  declarationAccepted   Boolean           @default(true)
+  
+  status                ApplicationStatus @default(APPLIED)
+  rating                Int?              @default(0)
+  
+  notes                 ApplicationNote[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([mobileNumber])
+  @@index([email])
+  @@index([status])
+  @@index([city])
+}
+
+model ApplicationNote {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  author        String
+  content       String
+  createdAt     DateTime    @default(now())
+}

@@ -1,3 +1,12 @@
+# Node dependencies & Next.js build
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+.env
+.env.local
+
 # Windows thumbnail cache
 Thumbs.db
 ehthumbs.db

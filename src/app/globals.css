@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-playfair: 'Playfair Display', Georgia, serif;
+  --font-inter: 'Inter', system-ui, sans-serif;
+}
+
+body {
+  background-color: #F8F5EF;
+  color: #2E2E2E;
+  font-family: var(--font-inter);
+  overflow-x: hidden;
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #D8A64F 0%, #B6852F 50%, #8F6321 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border-glow {
+  border: 1px solid rgba(216, 166, 79, 0.3);
+  box-shadow: 0 10px 30px -10px rgba(216, 166, 79, 0.15);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(216, 166, 79, 0.2);
+}
+
+.glass-panel-dark {
+  background: rgba(30, 25, 18, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(216, 166, 79, 0.25);
+  color: #FDF9F0;
+}
+
+@media (max-width: 768px) {
+  .glass-panel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.96);
+  }
+  .glass-panel-dark {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(30, 25, 18, 0.98);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F5EF;
+}
+::-webkit-scrollbar-thumb {
+  background: #D8A64F;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B6852F;
+}
