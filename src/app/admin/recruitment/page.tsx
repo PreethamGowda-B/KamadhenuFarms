@@ -146,7 +146,7 @@ export default function AdminRecruitmentPage() {
     setLoggingOut(true);
     try {
       await fetch('/api/admin/logout', { method: 'POST' });
-      router.push('/admin/login');
+      window.location.href = '/login';
     } catch (e) {
       showToast('Logout failed', 'error');
     } finally {

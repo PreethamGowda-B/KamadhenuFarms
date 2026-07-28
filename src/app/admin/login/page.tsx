@@ -8,7 +8,7 @@ import { ShieldCheck, Lock, Mail, Eye, EyeOff, Loader2, Sparkles, AlertCircle, H
 function AdminLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get('from') || '/admin/recruitment';
+  const from = searchParams.get('from') || '/dashboard';
 
   const [email, setEmail] = useState('admin@kamadhenuhoneyfarms.in');
   const [password, setPassword] = useState('');
@@ -33,13 +33,13 @@ function AdminLoginContent() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        throw new Error(json.message || 'Authentication failed');
+        throw new Error(json.message || 'Invalid email or password');
       }
 
       // Success -> Redirect to protected admin dashboard
-      router.push(from);
+      window.location.href = from;
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to authenticate admin credentials.');
+      setErrorMessage(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

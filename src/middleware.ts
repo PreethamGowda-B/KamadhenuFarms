@@ -1,54 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const ADMIN_COOKIE_NAME = 'khf_admin_token';
-const JWT_SECRET = process.env.JWT_SECRET || 'kamadhenu-luxury-secret-key-2026-super-secure';
 
 export async function middleware(req: NextRequest) {
-  const { pathname, hostname } = req.nextUrl;
+  const { pathname } = req.nextUrl;
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.hostname;
 
-  // Subdomain detection: if request comes to admin.kamadhenuhoneyfarms.in
-  const isAdminSubdomain = hostname.startsWith('admin.');
+  // 1. Check if request comes from admin subdomain (e.g. admin.kamadhenuhoneyfarms.in or admin.localhost)
+  const isAdminSubdomain = host.startsWith('admin.');
 
-  const isAdminPageRoute = pathname.startsWith('/admin');
-  const isAdminApiRoute = pathname.startsWith('/api/admin');
+  // 2. Validate JWT Session from Cookie
+  const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  let isAuthenticated = false;
 
-  const isLoginRoute = pathname === '/admin/login' || pathname === '/api/admin/login';
+  if (token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && now < payload.exp && payload.role === 'ADMIN') {
+          isAuthenticated = true;
+        }
+      }
+    } catch (e) {
+      isAuthenticated = false;
+    }
+  }
 
-  // If visiting admin route or admin subdomain
-  if (isAdminPageRoute || isAdminApiRoute || isAdminSubdomain) {
-    if (isLoginRoute) {
+  // 3. Protected API Routes Enforcement (/api/admin/*)
+  if (pathname.startsWith('/api/admin')) {
+    if (pathname === '/api/admin/login' || pathname === '/api/admin/logout') {
+      return NextResponse.next();
+    }
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { success: false, message: '403 Unauthorized: Admin authentication required' },
+        { status: 403 }
+      );
+    }
+    return NextResponse.next();
+  }
+
+  // 4. ADMIN SUBDOMAIN ROUTING (admin.kamadhenuhoneyfarms.in)
+  if (isAdminSubdomain) {
+    // A. Root URL (https://admin.kamadhenuhoneyfarms.in/)
+    if (pathname === '/') {
+      if (isAuthenticated) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      } else {
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
+    }
+
+    // B. Login Page (/login)
+    if (pathname === '/login') {
+      if (isAuthenticated) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+      return NextResponse.rewrite(new URL('/admin/login', req.url));
+    }
+
+    // C. Protected Subdomain Routes (/dashboard, /applications, /analytics, /settings)
+    if (
+      pathname === '/dashboard' || 
+      pathname === '/applications' || 
+      pathname.startsWith('/applications/') ||
+      pathname === '/analytics' || 
+      pathname === '/settings' ||
+      pathname.startsWith('/admin')
+    ) {
+      if (!isAuthenticated) {
+        const loginUrl = new URL('/login', req.url);
+        loginUrl.searchParams.set('from', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+
+      // Perform internal rewrites to corresponding app router pages
+      if (pathname === '/dashboard' || pathname === '/applications') {
+        return NextResponse.rewrite(new URL('/admin/recruitment', req.url));
+      }
+      if (pathname.startsWith('/applications/')) {
+        const id = pathname.replace('/applications/', '');
+        return NextResponse.rewrite(new URL(`/admin/recruitment/applications/${id}`, req.url));
+      }
+      if (pathname === '/analytics') {
+        return NextResponse.rewrite(new URL('/admin/recruitment/analytics', req.url));
+      }
+      if (pathname === '/settings') {
+        return NextResponse.rewrite(new URL('/admin/settings', req.url));
+      }
+      if (pathname === '/admin/login' && isAuthenticated) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+
       return NextResponse.next();
     }
 
-    const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-    let isAuthenticated = false;
+    // D. Prevent public website from EVER loading on admin subdomain
+    if (!isAuthenticated) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    } else {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+  }
 
-    if (token) {
-      try {
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const body = parts[1];
-          const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
-          const now = Math.floor(Date.now() / 1000);
-          if (payload.exp && now < payload.exp && payload.role === 'ADMIN') {
-            isAuthenticated = true;
-          }
-        }
-      } catch (e) {
-        isAuthenticated = false;
+  // 5. MAIN WEBSITE ROUTING (kamadhenuhoneyfarms.in, www.kamadhenuhoneyfarms.in)
+  if (pathname.startsWith('/admin')) {
+    if (pathname === '/admin/login') {
+      if (isAuthenticated) {
+        return NextResponse.redirect(new URL('/admin/recruitment', req.url));
       }
+      return NextResponse.next();
     }
 
     if (!isAuthenticated) {
-      // Return 403 for API routes
-      if (isAdminApiRoute) {
-        return NextResponse.json(
-          { success: false, message: '403 Unauthorized: Admin authentication required' },
-          { status: 403 }
-        );
-      }
-
-      // Redirect pages to /admin/login
       const loginUrl = new URL('/admin/login', req.url);
       loginUrl.searchParams.set('from', pathname);
       return NextResponse.redirect(loginUrl);
@@ -59,5 +125,10 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: [
+    /*
+     * Match all request paths except static assets
+     */
+    '/((?!_next/static|_next/image|favicon.ico|assets/|styles.css|script.js).*)',
+  ],
 };
