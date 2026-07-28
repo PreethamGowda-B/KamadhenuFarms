@@ -6,6 +6,7 @@ import {
   updateApplicationWhatsAppStatusStore,
   ApplicationRecord
 } from '@/lib/store';
+import { prisma } from '@/lib/prisma';
 import { 
   sendEmail, 
   getHiredSelectionTemplate, 
@@ -16,7 +17,32 @@ import { sendWhatsAppMessage } from '@/lib/whatsapp';
 import { logAdminAction } from '@/lib/audit';
 
 export async function GET() {
-  const apps = getApplicationsStore();
+  let apps: ApplicationRecord[] = [];
+
+  // Query Neon PostgreSQL via Prisma if DATABASE_URL is set
+  if (process.env.DATABASE_URL) {
+    try {
+      const dbApps = await prisma.application.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: { notes: true },
+      });
+
+      if (dbApps && dbApps.length > 0) {
+        apps = dbApps.map((a) => ({
+          ...a,
+          notes: a.notes.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() })),
+          createdAt: a.createdAt.toISOString(),
+          updatedAt: a.updatedAt.toISOString(),
+        })) as unknown as ApplicationRecord[];
+      }
+    } catch (e) {
+      console.error('Prisma query failed, falling back to local store:', e);
+    }
+  }
+
+  if (apps.length === 0) {
+    apps = getApplicationsStore();
+  }
 
   // Compute live dynamic statistics directly from database
   const total = apps.length;
@@ -54,84 +80,108 @@ export async function PATCH(req: NextRequest) {
 
     let updated: ApplicationRecord | null = null;
 
-    // Handle Status Change & Interview Scheduling
-    if (status) {
-      const interviewDetails = {
-        date: interviewDate,
-        time: interviewTime,
-        location: interviewLocation,
-        link: interviewLink,
-      };
+    // Prisma DB Sync
+    if (process.env.DATABASE_URL) {
+      try {
+        const updateData: any = {};
+        if (status) updateData.status = status;
+        if (interviewDate) updateData.interviewDate = interviewDate;
+        if (interviewTime) updateData.interviewTime = interviewTime;
+        if (interviewLocation) updateData.interviewLocation = interviewLocation;
+        if (interviewLink) updateData.interviewLink = interviewLink;
 
-      updated = updateApplicationStatusStore(id, status, interviewDetails);
+        const dbRes = await prisma.application.update({
+          where: { id },
+          data: updateData,
+          include: { notes: true },
+        });
 
-      if (updated) {
-        // Audit log entry
-        logAdminAction(author || 'admin@kamadhenuhoneyfarms.in', `STATUS_CHANGE_${status}`, id, `New Status: ${status}`, ip);
-
-        // Dispatches on Status Changes:
-        if (status === 'SELECTED') {
-          // 1. Email
-          const emailHtml = getHiredSelectionTemplate(updated.fullName, updated.applicationNo);
-          await sendEmail({
-            to: updated.email,
-            subject: `Congratulations! Selected as Sales Partner - Kamadhenu Honey Farms (${updated.applicationNo})`,
-            html: emailHtml,
-          });
-
-          // 2. WhatsApp
-          const waRes = await sendWhatsAppMessage({
-            to: updated.whatsAppNumber || updated.mobileNumber,
-            name: updated.fullName,
-            type: 'HIRED',
-          });
-          updateApplicationWhatsAppStatusStore(id, waRes.success ? 'SENT' : 'FAILED');
-
-        } else if (status === 'REJECTED') {
-          // 1. Email
-          const emailHtml = getPoliteRejectionTemplate(updated.fullName, updated.applicationNo);
-          await sendEmail({
-            to: updated.email,
-            subject: `Update regarding your Sales Agent Application - Kamadhenu Honey Farms (${updated.applicationNo})`,
-            html: emailHtml,
-          });
-
-          // 2. WhatsApp
-          const waRes = await sendWhatsAppMessage({
-            to: updated.whatsAppNumber || updated.mobileNumber,
-            name: updated.fullName,
-            type: 'REJECTED',
-          });
-          updateApplicationWhatsAppStatusStore(id, waRes.success ? 'SENT' : 'FAILED');
-
-        } else if (status === 'INTERVIEW_SCHEDULED') {
-          const dateStr = interviewDate || 'To be confirmed';
-          const timeStr = interviewTime || 'To be confirmed';
-          const locStr = interviewLocation || interviewLink || 'Phone Interview Call';
-
-          // 1. Email
-          const emailHtml = getInterviewScheduleTemplate(updated.fullName, updated.applicationNo, dateStr, timeStr, locStr);
-          await sendEmail({
-            to: updated.email,
-            subject: `Phone Interview Invitation - Kamadhenu Honey Farms (${updated.applicationNo})`,
-            html: emailHtml,
-          });
-
-          // 2. WhatsApp
-          const waRes = await sendWhatsAppMessage({
-            to: updated.whatsAppNumber || updated.mobileNumber,
-            name: updated.fullName,
-            type: 'INTERVIEW_SCHEDULED',
-            details: { interviewDate: dateStr, interviewTime: timeStr, location: locStr },
-          });
-          updateApplicationWhatsAppStatusStore(id, waRes.success ? 'SENT' : 'FAILED');
+        if (dbRes) {
+          updated = {
+            ...dbRes,
+            notes: dbRes.notes.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() })),
+            createdAt: dbRes.createdAt.toISOString(),
+            updatedAt: dbRes.updatedAt.toISOString(),
+          } as unknown as ApplicationRecord;
         }
+      } catch (dbErr) {
+        console.error('Prisma PATCH failed, falling back to store:', dbErr);
       }
     }
 
-    // Handle Internal Note Addition
+    // Local Store Sync
+    if (status) {
+      const interviewDetails = { date: interviewDate, time: interviewTime, location: interviewLocation, link: interviewLink };
+      const storeUpdated = updateApplicationStatusStore(id, status, interviewDetails);
+      if (!updated) updated = storeUpdated;
+    }
+
+    if (updated && status) {
+      logAdminAction(author || 'admin@kamadhenuhoneyfarms.in', `STATUS_CHANGE_${status}`, id, `New Status: ${status}`, ip);
+
+      // Dispatches on Status Changes
+      if (status === 'SELECTED') {
+        const emailHtml = getHiredSelectionTemplate(updated.fullName, updated.applicationNo);
+        await sendEmail({
+          to: updated.email,
+          subject: `Congratulations! Selected as Sales Partner - Kamadhenu Honey Farms (${updated.applicationNo})`,
+          html: emailHtml,
+        });
+
+        const waRes = await sendWhatsAppMessage({
+          to: updated.whatsAppNumber || updated.mobileNumber,
+          name: updated.fullName,
+          type: 'HIRED',
+        });
+        updateApplicationWhatsAppStatusStore(id, waRes.success ? 'SENT' : 'FAILED');
+
+      } else if (status === 'REJECTED') {
+        const emailHtml = getPoliteRejectionTemplate(updated.fullName, updated.applicationNo);
+        await sendEmail({
+          to: updated.email,
+          subject: `Update regarding your Sales Agent Application - Kamadhenu Honey Farms (${updated.applicationNo})`,
+          html: emailHtml,
+        });
+
+        const waRes = await sendWhatsAppMessage({
+          to: updated.whatsAppNumber || updated.mobileNumber,
+          name: updated.fullName,
+          type: 'REJECTED',
+        });
+        updateApplicationWhatsAppStatusStore(id, waRes.success ? 'SENT' : 'FAILED');
+
+      } else if (status === 'INTERVIEW_SCHEDULED') {
+        const dateStr = interviewDate || 'To be confirmed';
+        const timeStr = interviewTime || 'To be confirmed';
+        const locStr = interviewLocation || interviewLink || 'Phone Interview Call';
+
+        const emailHtml = getInterviewScheduleTemplate(updated.fullName, updated.applicationNo, dateStr, timeStr, locStr);
+        await sendEmail({
+          to: updated.email,
+          subject: `Phone Interview Invitation - Kamadhenu Honey Farms (${updated.applicationNo})`,
+          html: emailHtml,
+        });
+
+        const waRes = await sendWhatsAppMessage({
+          to: updated.whatsAppNumber || updated.mobileNumber,
+          name: updated.fullName,
+          type: 'INTERVIEW_SCHEDULED',
+          details: { interviewDate: dateStr, interviewTime: timeStr, location: locStr },
+        });
+        updateApplicationWhatsAppStatusStore(id, waRes.success ? 'SENT' : 'FAILED');
+      }
+    }
+
     if (note) {
-      updated = addApplicationNoteStore(id, author || 'Admin', note);
+      if (process.env.DATABASE_URL) {
+        try {
+          await prisma.applicationNote.create({
+            data: { applicationId: id, author: author || 'Admin', content: note },
+          });
+        } catch (e) {}
+      }
+      const storeUpdated = addApplicationNoteStore(id, author || 'Admin', note);
+      if (!updated) updated = storeUpdated;
       if (updated) {
         logAdminAction(author || 'admin@kamadhenuhoneyfarms.in', 'NOTE_ADDED', id, note, ip);
       }
@@ -141,8 +191,16 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Application not found' }, { status: 404 });
     }
 
-    // Re-fetch all to calculate fresh live metrics after mutation
-    const allApps = getApplicationsStore();
+    let allApps = getApplicationsStore();
+    if (process.env.DATABASE_URL) {
+      try {
+        const dbAll = await prisma.application.findMany();
+        if (dbAll && dbAll.length > 0) {
+          allApps = dbAll as unknown as ApplicationRecord[];
+        }
+      } catch (e) {}
+    }
+
     const total = allApps.length;
     const today = allApps.filter((a) => new Date(a.createdAt).toDateString() === new Date().toDateString()).length;
     const shortlisted = allApps.filter((a) => a.status === 'INTERVIEW_SCHEDULED' || a.status === 'REVIEWED').length;

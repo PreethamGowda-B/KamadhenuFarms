@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,14 +11,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 });
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || 'unsigned_preset';
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || 'kamadhenuhoneyfarms';
+    const apiKey = process.env.CLOUDINARY_API_KEY || '112225381679784';
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || 'kLQ6QF5R9g-yV7VyhOArLKm5XLg';
 
-    // 1. If Cloudinary credentials are set in environment
-    if (cloudName) {
+    // 1. Signed Cloudinary Upload
+    if (cloudName && apiKey && apiSecret) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const signatureStr = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+      const signature = crypto.createHash('sha1').update(signatureStr).digest('hex');
+
       const cloudinaryFormData = new FormData();
       cloudinaryFormData.append('file', file);
-      cloudinaryFormData.append('upload_preset', uploadPreset);
+      cloudinaryFormData.append('api_key', apiKey);
+      cloudinaryFormData.append('timestamp', timestamp.toString());
+      cloudinaryFormData.append('signature', signature);
       cloudinaryFormData.append('folder', folder);
 
       const cloudinaryRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
@@ -36,7 +44,7 @@ export async function POST(req: NextRequest) {
       console.error('Cloudinary API error:', json);
     }
 
-    // 2. Base64 / Data URL fallback for local development or preview environments
+    // 2. Base64 / Data URL fallback
     const buffer = await file.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
     const mimeType = file.type || 'application/octet-stream';
