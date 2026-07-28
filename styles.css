@@ -442,10 +442,15 @@ header nav {
   justify-content: center;
   transform: translateY(-100%);
   transition: var(--transition-smooth);
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .mobile-nav.active {
   transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .mobile-nav ul {
