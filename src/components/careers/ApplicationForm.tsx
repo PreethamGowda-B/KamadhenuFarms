@@ -136,24 +136,48 @@ export default function ApplicationForm() {
     }
   };
 
-  const handleFileUpload = (type: 'resume' | 'aadhaar' | 'photo', e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploadingState, setUploadingState] = useState<{ [key: string]: boolean }>({});
+
+  const handleFileUpload = async (type: 'resume' | 'aadhaar' | 'photo', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit');
-        return;
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds 10MB limit');
+      return;
+    }
+
+    setUploadingState((prev) => ({ ...prev, [type]: true }));
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', `kamadhenu_${type}s`);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success || !json.url) {
+        throw new Error(json.message || 'File upload failed');
       }
-      const fakeUrl = `https://res.cloudinary.com/demo/uploads/${file.name}`;
+
       if (type === 'resume') {
         setResumeName(file.name);
-        setValue('resumeUrl', fakeUrl);
+        setValue('resumeUrl', json.url, { shouldValidate: true });
       } else if (type === 'aadhaar') {
         setAadhaarName(file.name);
-        setValue('aadhaarUrl', fakeUrl);
+        setValue('aadhaarUrl', json.url, { shouldValidate: true });
       } else if (type === 'photo') {
         setPhotoName(file.name);
-        setValue('profilePhotoUrl', fakeUrl);
+        setValue('profilePhotoUrl', json.url, { shouldValidate: true });
       }
+    } catch (err: any) {
+      alert(`Failed to upload ${file.name}: ${err.message || 'Upload error'}`);
+    } finally {
+      setUploadingState((prev) => ({ ...prev, [type]: false }));
     }
   };
 
@@ -501,12 +525,13 @@ export default function ApplicationForm() {
                 <div className="border-2 border-dashed border-gold-300 rounded-2xl p-5 bg-gold-50/30 text-center hover:bg-gold-50/70 transition-colors">
                   <Upload className="w-8 h-8 text-gold-600 mx-auto mb-2" />
                   <p className="text-sm font-semibold text-charcoal">Upload Resume (Optional)</p>
-                  <p className="text-xs text-gray-500 mb-3">PDF or DOCX format</p>
+                  <p className="text-xs text-gray-500 mb-3">PDF or DOCX format (Max 10MB)</p>
                   <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-white text-gold-700 text-xs font-semibold rounded-lg border border-gold-300 hover:bg-gold-100 shadow-sm">
-                    Choose File
+                    {uploadingState['resume'] ? 'Uploading to Cloudinary...' : 'Choose File'}
                     <input type="file" accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload('resume', e)} className="hidden" />
                   </label>
-                  {resumeName && <p className="text-xs text-emerald-600 font-semibold mt-2">✓ Uploaded: {resumeName}</p>}
+                  {uploadingState['resume'] && <p className="text-xs text-gold-600 font-semibold mt-2 animate-pulse">⏳ Uploading to Cloudinary CDN...</p>}
+                  {resumeName && !uploadingState['resume'] && <p className="text-xs text-emerald-600 font-semibold mt-2">✓ Uploaded: {resumeName}</p>}
                 </div>
 
                 {/* Upload Aadhaar */}
@@ -515,22 +540,24 @@ export default function ApplicationForm() {
                   <p className="text-sm font-semibold text-charcoal">Upload Aadhaar Card Copy *</p>
                   <p className="text-xs text-gray-500 mb-3">JPG, PNG or PDF format</p>
                   <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-white text-gold-700 text-xs font-semibold rounded-lg border border-gold-300 hover:bg-gold-100 shadow-sm">
-                    Choose File
+                    {uploadingState['aadhaar'] ? 'Uploading to Cloudinary...' : 'Choose File'}
                     <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => handleFileUpload('aadhaar', e)} className="hidden" />
                   </label>
-                  {aadhaarName && <p className="text-xs text-emerald-600 font-semibold mt-2">✓ Uploaded: {aadhaarName}</p>}
+                  {uploadingState['aadhaar'] && <p className="text-xs text-gold-600 font-semibold mt-2 animate-pulse">⏳ Uploading to Cloudinary CDN...</p>}
+                  {aadhaarName && !uploadingState['aadhaar'] && <p className="text-xs text-emerald-600 font-semibold mt-2">✓ Uploaded: {aadhaarName}</p>}
                 </div>
 
-                {/* Upload Profile Photo */}
+                {/* Upload Photo */}
                 <div className="border-2 border-dashed border-gold-300 rounded-2xl p-5 bg-gold-50/30 text-center hover:bg-gold-50/70 transition-colors">
                   <Upload className="w-8 h-8 text-gold-600 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-charcoal">Upload Recent Passport Photo *</p>
-                  <p className="text-xs text-gray-500 mb-3">JPG or PNG format</p>
+                  <p className="text-sm font-semibold text-charcoal">Upload Passport Photo *</p>
+                  <p className="text-xs text-gray-500 mb-3">JPG or PNG image format</p>
                   <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-white text-gold-700 text-xs font-semibold rounded-lg border border-gold-300 hover:bg-gold-100 shadow-sm">
-                    Choose File
+                    {uploadingState['photo'] ? 'Uploading to Cloudinary...' : 'Choose File'}
                     <input type="file" accept=".jpg,.jpeg,.png" onChange={(e) => handleFileUpload('photo', e)} className="hidden" />
                   </label>
-                  {photoName && <p className="text-xs text-emerald-600 font-semibold mt-2">✓ Uploaded: {photoName}</p>}
+                  {uploadingState['photo'] && <p className="text-xs text-gold-600 font-semibold mt-2 animate-pulse">⏳ Uploading to Cloudinary CDN...</p>}
+                  {photoName && !uploadingState['photo'] && <p className="text-xs text-emerald-600 font-semibold mt-2">✓ Uploaded: {photoName}</p>}
                 </div>
 
               </div>

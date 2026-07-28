@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, ArrowRight, Search } from 'lucide-react';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,6 +34,9 @@ export default function Navbar() {
             </Link>
             <Link href="/careers/sales-agent" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
               Sales Partner Job
+            </Link>
+            <Link href="/track" className="text-sm font-medium text-gold-700 hover:text-gold-900 transition-colors inline-flex items-center gap-1">
+              <Search className="w-3.5 h-3.5" /> Track Application
             </Link>
             <Link href="/careers#faq" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
               FAQ
@@ -79,6 +82,13 @@ export default function Navbar() {
             className="block px-3 py-2 rounded-md text-base font-medium text-charcoal hover:bg-gold-50 hover:text-gold-600"
           >
             Sales Partner Job
+          </Link>
+          <Link
+            href="/track"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block px-3 py-2 rounded-md text-base font-medium text-gold-700 hover:bg-gold-50"
+          >
+            Track Application Status
           </Link>
           <Link
             href="/careers#faq"
