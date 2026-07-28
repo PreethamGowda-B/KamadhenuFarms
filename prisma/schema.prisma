@@ -15,6 +15,12 @@ enum ApplicationStatus {
   REJECTED
 }
 
+enum WhatsAppStatus {
+  NOT_SENT
+  SENT
+  FAILED
+}
+
 model Application {
   id                    String            @id @default(cuid())
   applicationNo         String            @unique // e.g. KHF-2026-001
@@ -45,7 +51,15 @@ model Application {
   status                ApplicationStatus @default(APPLIED)
   rating                Int?              @default(0)
   
+  interviewDate         String?
+  interviewTime         String?
+  interviewLocation     String?
+  interviewLink         String?
+
+  whatsAppStatus        WhatsAppStatus    @default(NOT_SENT)
+  
   notes                 ApplicationNote[]
+  auditLogs             AuditLog[]
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
@@ -62,4 +76,15 @@ model ApplicationNote {
   author        String
   content       String
   createdAt     DateTime    @default(now())
+}
+
+model AuditLog {
+  id            String       @id @default(cuid())
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  adminEmail    String
+  action        String
+  details       String?
+  ipAddress     String?
+  createdAt     DateTime     @default(now())
 }

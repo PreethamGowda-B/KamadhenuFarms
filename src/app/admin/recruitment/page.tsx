@@ -16,7 +16,13 @@ import {
   MapPin,
   TrendingUp,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Calendar,
+  MessageSquare,
+  MessageCircle,
+  Award,
+  Loader2,
+  X
 } from 'lucide-react';
 import { ApplicationRecord } from '@/lib/store';
 
@@ -27,11 +33,38 @@ export default function AdminRecruitmentPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [cityFilter, setCityFilter] = useState<string>('ALL');
+  const [expFilter, setExpFilter] = useState<string>('ALL');
+  const [bikeFilter, setBikeFilter] = useState<string>('ALL');
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // Metrics State (Calculated directly from Database)
+  const [metrics, setMetrics] = useState({
+    total: 0,
+    today: 0,
+    shortlisted: 0,
+    hired: 0,
+    rejected: 0,
+    conversionRate: 0,
+  });
+
+  // Modal & Toast States
+  const [activeCandidate, setActiveCandidate] = useState<ApplicationRecord | null>(null);
+  const [interviewModalApp, setInterviewModalApp] = useState<ApplicationRecord | null>(null);
+  const [interviewDate, setInterviewDate] = useState('');
+  const [interviewTime, setInterviewTime] = useState('');
+  const [interviewLocation, setInterviewLocation] = useState('Google Meet / Phone Call');
+
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
   useEffect(() => {
     fetchApplications();
   }, []);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const fetchApplications = async () => {
     try {
@@ -39,29 +72,73 @@ export default function AdminRecruitmentPage() {
       const json = await res.json();
       if (json.success) {
         setApplications(json.data);
+        if (json.metrics) setMetrics(json.metrics);
       }
     } catch (e) {
-      console.error('Failed to load applications', e);
+      showToast('Failed to load applications from database', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: ApplicationRecord['status']) => {
+  // Status Change Handler with Optimistic Updates & Toast
+  const handleStatusChange = async (
+    id: string, 
+    newStatus: ApplicationRecord['status'],
+    interviewData?: { date: string; time: string; location: string }
+  ) => {
+    setActionInProgress(id);
+
+    // Backup current state for rollback
+    const previousApps = [...applications];
+    const previousMetrics = { ...metrics };
+
+    // Optimistic Update
+    setApplications((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
+    );
+
     try {
+      const payload: any = { id, status: newStatus, author: 'admin@kamadhenuhoneyfarms.in' };
+      if (interviewData) {
+        payload.interviewDate = interviewData.date;
+        payload.interviewTime = interviewData.time;
+        payload.interviewLocation = interviewData.location;
+      }
+
       const res = await fetch('/api/admin/applications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: newStatus }),
+        body: JSON.stringify(payload),
       });
+
       const json = await res.json();
-      if (json.success) {
-        setApplications((prev) =>
-          prev.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
-        );
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || 'Operation failed');
       }
-    } catch (e) {
-      alert('Failed to update status');
+
+      // Update with server confirmed data & fresh metrics
+      setApplications((prev) =>
+        prev.map((app) => (app.id === id ? json.data : app))
+      );
+      if (json.metrics) setMetrics(json.metrics);
+
+      const statusLabels: Record<string, string> = {
+        SELECTED: 'Hired & Selection Email/WhatsApp Sent',
+        REJECTED: 'Rejected & Notification Sent',
+        INTERVIEW_SCHEDULED: 'Interview Scheduled & Notification Dispatched',
+        REVIEWED: 'Shortlisted for Review',
+      };
+
+      showToast(`Candidate ${statusLabels[newStatus] || newStatus}!`);
+      setInterviewModalApp(null);
+    } catch (e: any) {
+      // Rollback on failure
+      setApplications(previousApps);
+      setMetrics(previousMetrics);
+      showToast(e.message || 'Database update failed. Action rolled back.', 'error');
+    } finally {
+      setActionInProgress(null);
     }
   };
 
@@ -71,40 +148,30 @@ export default function AdminRecruitmentPage() {
       await fetch('/api/admin/logout', { method: 'POST' });
       router.push('/admin/login');
     } catch (e) {
-      alert('Logout failed');
+      showToast('Logout failed', 'error');
     } finally {
       setLoggingOut(false);
     }
   };
 
-  // Metrics Calculation
-  const totalCount = applications.length;
-  const todayCount = applications.filter(
-    (a) => new Date(a.createdAt).toDateString() === new Date().toDateString()
-  ).length;
-  const shortlistedCount = applications.filter((a) => a.status === 'INTERVIEW_SCHEDULED' || a.status === 'REVIEWED').length;
-  const hiredCount = applications.filter((a) => a.status === 'SELECTED').length;
-  const rejectedCount = applications.filter((a) => a.status === 'REJECTED').length;
-  const conversionRate = totalCount > 0 ? Math.round((hiredCount / totalCount) * 100) : 0;
-
   // Cities List for Filter Dropdown
   const cities = Array.from(new Set(applications.map((a) => a.city)));
 
-  // Filtered List
+  // Filtered Applications List
   const filteredApps = applications.filter((app) => {
     const matchesSearch =
       app.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.mobileNumber.includes(searchQuery) ||
+      app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.applicationNo.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === 'ALL' || app.status === statusFilter;
+    const matchesStatus = statusFilter === 'ALL' || app.status === statusFilter;
+    const matchesCity = cityFilter === 'ALL' || app.city === cityFilter;
+    const matchesExp = expFilter === 'ALL' || app.salesExperience === expFilter;
+    const matchesBike = bikeFilter === 'ALL' || (bikeFilter === 'YES' ? app.hasBike : !app.hasBike);
 
-    const matchesCity =
-      cityFilter === 'ALL' || app.city === cityFilter;
-
-    return matchesSearch && matchesStatus && matchesCity;
+    return matchesSearch && matchesStatus && matchesCity && matchesExp && matchesBike;
   });
 
   const getStatusBadge = (status: ApplicationRecord['status']) => {
@@ -112,7 +179,7 @@ export default function AdminRecruitmentPage() {
       case 'APPLIED':
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">Applied</span>;
       case 'REVIEWED':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">Reviewed</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">Shortlisted</span>;
       case 'INTERVIEW_SCHEDULED':
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Interview Scheduled</span>;
       case 'SELECTED':
@@ -123,13 +190,27 @@ export default function AdminRecruitmentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream-bg flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-cream-bg flex flex-col lg:flex-row relative">
       
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-6 right-6 z-50 px-5 py-3.5 rounded-2xl shadow-2xl text-xs font-bold flex items-center gap-2 border transition-all ${
+            toast.type === 'success'
+              ? 'bg-emerald-900 text-emerald-100 border-emerald-500'
+              : 'bg-rose-900 text-rose-100 border-rose-500'
+          }`}
+        >
+          {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {/* Sidebar Navigation */}
       <aside className="w-full lg:w-64 bg-charcoal text-cream-bg p-6 shrink-0 border-r border-gold-900 flex flex-col justify-between space-y-6">
         <div className="space-y-6">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gold-500 flex items-center justify-center text-xl">
+            <div className="w-9 h-9 rounded-xl bg-gold-500 flex items-center justify-center text-xl shadow-md">
               🛡️
             </div>
             <div>
@@ -145,8 +226,8 @@ export default function AdminRecruitmentPage() {
                 statusFilter === 'ALL' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
               }`}
             >
-              <span className="flex items-center gap-2"><Users className="w-4 h-4" /> All Applications</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{totalCount}</span>
+              <span className="flex items-center gap-2"><Users className="w-4 h-4" /> All Applicants</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.total}</span>
             </button>
 
             <button
@@ -156,7 +237,7 @@ export default function AdminRecruitmentPage() {
               }`}
             >
               <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-400" /> Interviews</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{shortlistedCount}</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.shortlisted}</span>
             </button>
 
             <button
@@ -165,8 +246,8 @@ export default function AdminRecruitmentPage() {
                 statusFilter === 'SELECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
               }`}
             >
-              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Hired / Selected</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{hiredCount}</span>
+              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Hired Agents</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.hired}</span>
             </button>
 
             <button
@@ -176,7 +257,7 @@ export default function AdminRecruitmentPage() {
               }`}
             >
               <span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-rose-400" /> Rejected</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{rejectedCount}</span>
+              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.rejected}</span>
             </button>
 
             <div className="pt-4 border-t border-gray-800">
@@ -211,10 +292,10 @@ export default function AdminRecruitmentPage() {
             <div className="flex items-center gap-2">
               <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal">Recruitment Dashboard</h1>
               <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-600" /> Session Active
+                <ShieldCheck className="w-3 h-3 text-emerald-600" /> Database Live
               </span>
             </div>
-            <p className="text-xs text-gray-600 mt-1">Review candidate submissions, schedule interviews, and track sales partner hiring.</p>
+            <p className="text-xs text-gray-600 mt-1">Real-time candidate tracking, WhatsApp notifications, and recruitment metrics.</p>
           </div>
 
           <Link
@@ -225,52 +306,52 @@ export default function AdminRecruitmentPage() {
           </Link>
         </div>
 
-        {/* Analytics Summary Cards Grid */}
+        {/* Database-Driven Dynamic Metrics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="glass-panel p-4 rounded-2xl border border-gold-300">
             <p className="text-[11px] text-gray-500 font-medium">Total Applications</p>
-            <p className="text-2xl font-bold text-charcoal mt-1">{totalCount}</p>
+            <p className="text-2xl font-bold text-charcoal mt-1">{metrics.total}</p>
           </div>
           <div className="glass-panel p-4 rounded-2xl border border-gold-300">
             <p className="text-[11px] text-gray-500 font-medium">Today's Applicants</p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">+{todayCount}</p>
+            <p className="text-2xl font-bold text-blue-600 mt-1">+{metrics.today}</p>
           </div>
           <div className="glass-panel p-4 rounded-2xl border border-gold-300">
-            <p className="text-[11px] text-gray-500 font-medium">Shortlisted</p>
-            <p className="text-2xl font-bold text-amber-600 mt-1">{shortlistedCount}</p>
+            <p className="text-[11px] text-gray-500 font-medium">Interview Scheduled</p>
+            <p className="text-2xl font-bold text-amber-600 mt-1">{metrics.shortlisted}</p>
           </div>
           <div className="glass-panel p-4 rounded-2xl border border-gold-300">
             <p className="text-[11px] text-gray-500 font-medium">Hired Sales Agents</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{hiredCount}</p>
+            <p className="text-2xl font-bold text-emerald-600 mt-1">{metrics.hired}</p>
           </div>
           <div className="glass-panel p-4 rounded-2xl border border-gold-300">
             <p className="text-[11px] text-gray-500 font-medium">Rejected</p>
-            <p className="text-2xl font-bold text-rose-600 mt-1">{rejectedCount}</p>
+            <p className="text-2xl font-bold text-rose-600 mt-1">{metrics.rejected}</p>
           </div>
           <div className="glass-panel p-4 rounded-2xl border border-gold-300">
             <p className="text-[11px] text-gray-500 font-medium">Conversion Rate</p>
-            <p className="text-2xl font-bold text-gold-600 mt-1">{conversionRate}%</p>
+            <p className="text-2xl font-bold text-gold-600 mt-1">{metrics.conversionRate}%</p>
           </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="glass-panel p-4 rounded-2xl border border-gold-300 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="glass-panel p-4 rounded-2xl border border-gold-300 flex flex-col lg:flex-row gap-4 items-center justify-between">
           
           {/* Search Box */}
-          <div className="relative w-full sm:w-80">
+          <div className="relative w-full lg:w-80">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
             <input
               type="text"
-              placeholder="Search by name, phone, city..."
+              placeholder="Search by name, phone, email, city, ref no..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
             />
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            {/* City Dropdown */}
-            <div className="flex items-center gap-1 text-xs text-gray-600">
+          {/* Multi-Field Filter Controls */}
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto text-xs text-gray-600">
+            <div className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-gold-600" />
               <select
                 value={cityFilter}
@@ -284,8 +365,22 @@ export default function AdminRecruitmentPage() {
               </select>
             </div>
 
-            {/* Status Filter Dropdown */}
-            <div className="flex items-center gap-1 text-xs text-gray-600">
+            <div className="flex items-center gap-1">
+              <Award className="w-3.5 h-3.5 text-gold-600" />
+              <select
+                value={expFilter}
+                onChange={(e) => setExpFilter(e.target.value)}
+                className="px-3 py-2 rounded-xl border border-gold-300 bg-white text-xs outline-none"
+              >
+                <option value="ALL">All Experience</option>
+                <option value="Fresher">Fresher</option>
+                <option value="1-2 Years">1-2 Years</option>
+                <option value="2-5 Years">2-5 Years</option>
+                <option value="5+ Years">5+ Years</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1">
               <Filter className="w-3.5 h-3.5 text-gold-600" />
               <select
                 value={statusFilter}
@@ -294,9 +389,9 @@ export default function AdminRecruitmentPage() {
               >
                 <option value="ALL">All Statuses</option>
                 <option value="APPLIED">Applied</option>
-                <option value="REVIEWED">Reviewed</option>
+                <option value="REVIEWED">Shortlisted</option>
                 <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
-                <option value="SELECTED">Selected</option>
+                <option value="SELECTED">Hired</option>
                 <option value="REJECTED">Rejected</option>
               </select>
             </div>
@@ -304,12 +399,22 @@ export default function AdminRecruitmentPage() {
 
         </div>
 
-        {/* Applications Table */}
+        {/* Database-Driven Applications Table */}
         <div className="glass-panel rounded-2xl border border-gold-300 overflow-hidden shadow-sm">
           {loading ? (
-            <div className="p-12 text-center text-sm text-gray-500">Loading candidate records...</div>
+            <div className="p-12 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-gold-600" /> Querying database records...
+            </div>
           ) : filteredApps.length === 0 ? (
-            <div className="p-12 text-center text-sm text-gray-500">No applications match your search filter.</div>
+            <div className="p-12 text-center space-y-2">
+              <Users className="w-10 h-10 text-gold-400 mx-auto opacity-50" />
+              <p className="text-sm font-semibold text-charcoal">No Applications Found</p>
+              <p className="text-xs text-gray-500">
+                {applications.length === 0 
+                  ? 'No candidates have submitted an application yet. New submissions via /careers/apply will appear here live.' 
+                  : 'No records match your active search filters.'}
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -324,76 +429,125 @@ export default function AdminRecruitmentPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gold-200/50 text-xs">
-                  {filteredApps.map((app) => (
-                    <tr key={app.id} className="hover:bg-gold-50/50 transition-colors">
-                      <td className="p-4">
-                        <div className="font-mono font-bold text-gold-700">{app.applicationNo}</div>
-                        <div className="font-bold text-charcoal text-sm">{app.fullName}</div>
-                        <div className="text-[10px] text-gray-400">{new Date(app.createdAt).toLocaleDateString()}</div>
-                      </td>
+                  {filteredApps.map((app) => {
+                    const isProcessing = actionInProgress === app.id;
+                    return (
+                      <tr key={app.id} className="hover:bg-gold-50/50 transition-colors">
+                        
+                        {/* Ref No & Name */}
+                        <td className="p-4">
+                          <div className="font-mono font-bold text-gold-700">{app.applicationNo}</div>
+                          <div className="font-bold text-charcoal text-sm">{app.fullName}</div>
+                          <div className="text-[10px] text-gray-400">{new Date(app.createdAt).toLocaleDateString()}</div>
+                        </td>
 
-                      <td className="p-4 space-y-0.5">
-                        <div className="font-semibold text-charcoal">{app.mobileNumber}</div>
-                        <div className="text-[11px] text-gray-500">{app.email}</div>
-                      </td>
+                        {/* Contact Info */}
+                        <td className="p-4 space-y-0.5">
+                          <div className="font-semibold text-charcoal">{app.mobileNumber}</div>
+                          <div className="text-[11px] text-gray-500">{app.email}</div>
+                        </td>
 
-                      <td className="p-4">
-                        <div className="font-medium text-charcoal">{app.city}, {app.state}</div>
-                        <div className="text-[10px] text-gray-500">PIN: {app.pinCode}</div>
-                      </td>
+                        {/* Location */}
+                        <td className="p-4">
+                          <div className="font-medium text-charcoal">{app.city}, {app.state}</div>
+                          <div className="text-[10px] text-gray-500">PIN: {app.pinCode}</div>
+                        </td>
 
-                      <td className="p-4 space-y-1">
-                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] font-semibold">
-                          {app.salesExperience}
-                        </span>
-                        <div className="text-[10px] text-gray-500">
-                          {app.hasBike ? '🛵 Bike Owned' : '❌ No Bike'}
-                        </div>
-                      </td>
+                        {/* Experience & Bike */}
+                        <td className="p-4 space-y-1">
+                          <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-[10px] font-semibold">
+                            {app.salesExperience}
+                          </span>
+                          <div className="text-[10px] text-gray-500">
+                            {app.hasBike ? '🛵 Bike Owned' : '❌ No Bike'}
+                          </div>
+                        </td>
 
-                      <td className="p-4">
-                        {getStatusBadge(app.status)}
-                      </td>
-
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/admin/recruitment/applications/${app.id}`}
-                            className="p-1.5 bg-gold-100 text-gold-800 rounded-lg hover:bg-gold-200 transition-colors"
-                            title="View Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Link>
-
-                          <a
-                            href={`tel:${app.mobileNumber}`}
-                            className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg hover:bg-emerald-200 transition-colors"
-                            title="Call Candidate"
-                          >
-                            <Phone className="w-4 h-4" />
-                          </a>
-
-                          {app.status !== 'SELECTED' && (
-                            <button
-                              onClick={() => handleStatusChange(app.id, 'SELECTED')}
-                              className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-semibold hover:bg-emerald-700 transition-colors"
-                            >
-                              Hire
-                            </button>
+                        {/* Status Badge & Interview Note */}
+                        <td className="p-4 space-y-1">
+                          {getStatusBadge(app.status)}
+                          {app.interviewDate && (
+                            <p className="text-[10px] text-amber-700 font-semibold flex items-center gap-1">
+                              <Calendar className="w-3 h-3" /> {app.interviewDate} @ {app.interviewTime}
+                            </p>
                           )}
+                        </td>
 
-                          {app.status !== 'REJECTED' && (
+                        {/* Functional Action Buttons */}
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            
+                            {/* View Complete Profile */}
                             <button
-                              onClick={() => handleStatusChange(app.id, 'REJECTED')}
-                              className="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-[11px] font-semibold hover:bg-rose-700 transition-colors"
+                              onClick={() => setActiveCandidate(app)}
+                              className="p-1.5 bg-gold-100 text-gold-800 rounded-lg hover:bg-gold-200 transition-colors"
+                              title="View Applicant Profile"
                             >
-                              Reject
+                              <Eye className="w-4 h-4" />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+
+                            {/* Call Candidate */}
+                            <a
+                              href={`tel:${app.mobileNumber}`}
+                              className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg hover:bg-emerald-200 transition-colors"
+                              title="Call Candidate"
+                            >
+                              <Phone className="w-4 h-4" />
+                            </a>
+
+                            {/* WhatsApp Direct Chat */}
+                            <a
+                              href={`https://wa.me/91${app.whatsAppNumber || app.mobileNumber}?text=${encodeURIComponent(`Hi ${app.fullName}, regarding your application ${app.applicationNo} with Kamadhenu Honey Farms...`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors"
+                              title="WhatsApp Chat"
+                            >
+                              <MessageCircle className="w-4 h-4 text-green-600" />
+                            </a>
+
+                            {/* Schedule Interview Modal Trigger */}
+                            {app.status !== 'SELECTED' && app.status !== 'REJECTED' && (
+                              <button
+                                onClick={() => {
+                                  setInterviewModalApp(app);
+                                  setInterviewDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
+                                  setInterviewTime('11:00 AM');
+                                }}
+                                disabled={isProcessing}
+                                className="px-2.5 py-1 bg-amber-500 text-white rounded-lg text-[11px] font-semibold hover:bg-amber-600 transition-colors"
+                              >
+                                Interview
+                              </button>
+                            )}
+
+                            {/* Hire Button */}
+                            {app.status !== 'SELECTED' && (
+                              <button
+                                onClick={() => handleStatusChange(app.id, 'SELECTED')}
+                                disabled={isProcessing}
+                                className="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-semibold hover:bg-emerald-700 transition-colors"
+                              >
+                                Hire
+                              </button>
+                            )}
+
+                            {/* Reject Button */}
+                            {app.status !== 'REJECTED' && (
+                              <button
+                                onClick={() => handleStatusChange(app.id, 'REJECTED')}
+                                disabled={isProcessing}
+                                className="px-2.5 py-1 bg-rose-600 text-white rounded-lg text-[11px] font-semibold hover:bg-rose-700 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            )}
+
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -401,6 +555,137 @@ export default function AdminRecruitmentPage() {
         </div>
 
       </main>
+
+      {/* Schedule Interview Modal */}
+      {interviewModalApp && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border-2 border-amber-400 max-w-md w-full space-y-6 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-gold-200 pb-3">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-charcoal">Schedule Candidate Interview</h3>
+                <p className="text-xs text-gray-500">{interviewModalApp.fullName} ({interviewModalApp.applicationNo})</p>
+              </div>
+              <button onClick={() => setInterviewModalApp(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Interview Date *</label>
+                <input
+                  type="date"
+                  value={interviewDate}
+                  onChange={(e) => setInterviewDate(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gold-300 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Interview Time *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 11:00 AM IST"
+                  value={interviewTime}
+                  onChange={(e) => setInterviewTime(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gold-300 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1">Location / Video Call Link *</label>
+                <input
+                  type="text"
+                  placeholder="Google Meet Link or Phone Call"
+                  value={interviewLocation}
+                  onChange={(e) => setInterviewLocation(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl border border-gold-300 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setInterviewModalApp(null)}
+                className="flex-1 py-2.5 border border-gold-300 text-charcoal text-xs font-semibold rounded-xl hover:bg-gold-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  handleStatusChange(interviewModalApp.id, 'INTERVIEW_SCHEDULED', {
+                    date: interviewDate,
+                    time: interviewTime,
+                    location: interviewLocation,
+                  })
+                }
+                className="flex-1 py-2.5 bg-amber-500 text-white text-xs font-semibold rounded-xl hover:bg-amber-600 shadow-md"
+              >
+                Confirm & Dispatch Notifications
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Candidate Profile Modal */}
+      {activeCandidate && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border-2 border-gold-300 max-w-2xl w-full space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-gold-200 pb-3">
+              <div>
+                <span className="font-mono text-xs font-bold text-gold-700 bg-gold-100 px-2 py-0.5 rounded">{activeCandidate.applicationNo}</span>
+                <h3 className="text-xl font-serif font-bold text-charcoal mt-1">{activeCandidate.fullName}</h3>
+              </div>
+              <button onClick={() => setActiveCandidate(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="bg-gold-50/60 p-3.5 rounded-xl space-y-1">
+                <p className="text-gray-500 font-medium">Mobile / WhatsApp:</p>
+                <p className="font-bold text-charcoal">{activeCandidate.mobileNumber} / {activeCandidate.whatsAppNumber}</p>
+              </div>
+
+              <div className="bg-gold-50/60 p-3.5 rounded-xl space-y-1">
+                <p className="text-gray-500 font-medium">Email Address:</p>
+                <p className="font-bold text-charcoal">{activeCandidate.email}</p>
+              </div>
+
+              <div className="bg-gold-50/60 p-3.5 rounded-xl space-y-1">
+                <p className="text-gray-500 font-medium">Location:</p>
+                <p className="font-bold text-charcoal">{activeCandidate.city}, {activeCandidate.state} ({activeCandidate.pinCode})</p>
+              </div>
+
+              <div className="bg-gold-50/60 p-3.5 rounded-xl space-y-1">
+                <p className="text-gray-500 font-medium">Capabilities:</p>
+                <p className="font-bold text-charcoal">{activeCandidate.hasBike ? '🛵 Bike Owned' : 'No Bike'} | {activeCandidate.salesExperience}</p>
+              </div>
+            </div>
+
+            <div className="bg-gold-50/60 p-4 rounded-xl space-y-1.5 text-xs">
+              <p className="text-gray-500 font-medium">Why They Want To Join:</p>
+              <p className="text-charcoal italic">"{activeCandidate.whyJoin}"</p>
+            </div>
+
+            <div className="pt-2 flex justify-between items-center">
+              <Link
+                href={`/admin/recruitment/applications/${activeCandidate.id}`}
+                className="text-xs font-semibold text-gold-600 hover:underline flex items-center gap-1"
+              >
+                Open Full Dedicated Profile Page →
+              </Link>
+              <button
+                onClick={() => setActiveCandidate(null)}
+                className="px-5 py-2 bg-charcoal text-white text-xs font-semibold rounded-xl hover:bg-charcoal-dark"
+              >
+                Close Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
