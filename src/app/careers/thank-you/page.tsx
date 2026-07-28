@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, Home, ShoppingBag, PhoneCall, Sparkles } from 'lucide-react';
 
-export default function ThankYouPage() {
+function ThankYouContent() {
   const searchParams = useSearchParams();
   const appNo = searchParams.get('appNo') || 'KHF-2026-005';
   const name = searchParams.get('name') || 'Applicant';
@@ -87,5 +87,13 @@ export default function ThankYouPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ThankYouPage() {
+  return (
+    <Suspense fallback={<div className="py-20 text-center text-gold-600 font-semibold">Loading confirmation details...</div>}>
+      <ThankYouContent />
+    </Suspense>
   );
 }
