@@ -36,46 +36,70 @@ export interface ApplicationRecord {
   updatedAt: string;
 }
 
-// Persistent DB File Path for reliable environment persistence
-const DB_FILE_PATH = path.join(process.cwd(), 'prisma', 'persistent_applications.json');
+// Disk locations: local project dir and Vercel serverless writable /tmp
+const TMP_DB_PATH = path.join('/tmp', 'kamadhenu_applications.json');
+const LOCAL_DB_PATH = path.join(process.cwd(), 'prisma', 'persistent_applications.json');
+
+// Global memory cache to retain state across lambda re-use and hot reloads
+const globalStore = globalThis as unknown as {
+  __kamadhenu_apps__?: ApplicationRecord[];
+};
 
 function loadApplicationsFromDisk(): ApplicationRecord[] {
-  try {
-    if (fs.existsSync(DB_FILE_PATH)) {
-      const raw = fs.readFileSync(DB_FILE_PATH, 'utf8');
-      return JSON.parse(raw);
-    }
-  } catch (e) {
-    console.error('Failed to read database file:', e);
+  if (globalStore.__kamadhenu_apps__ && globalStore.__kamadhenu_apps__.length > 0) {
+    return globalStore.__kamadhenu_apps__;
   }
-  return [];
+
+  const pathsToTry = [TMP_DB_PATH, LOCAL_DB_PATH];
+
+  for (const filePath of pathsToTry) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          globalStore.__kamadhenu_apps__ = parsed;
+          return parsed;
+        }
+      }
+    } catch (e) {
+      // Continue checking next path
+    }
+  }
+
+  if (!globalStore.__kamadhenu_apps__) {
+    globalStore.__kamadhenu_apps__ = [];
+  }
+  return globalStore.__kamadhenu_apps__;
 }
 
 function saveApplicationsToDisk(apps: ApplicationRecord[]): void {
-  try {
-    const dir = path.dirname(DB_FILE_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+  globalStore.__kamadhenu_apps__ = apps;
+
+  const pathsToSave = [TMP_DB_PATH, LOCAL_DB_PATH];
+
+  for (const filePath of pathsToSave) {
+    try {
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, JSON.stringify(apps, null, 2), 'utf8');
+    } catch (e) {
+      // Catch read-only filesystem error on Vercel lambda gracefully
     }
-    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(apps, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Failed to save to database file:', e);
   }
 }
 
-// Clean in-memory DB initialized directly from disk storage (ZERO mock/dummy data)
-let dbApplications: ApplicationRecord[] = loadApplicationsFromDisk();
-
 export function getApplicationsStore(): ApplicationRecord[] {
-  dbApplications = loadApplicationsFromDisk();
-  return dbApplications;
+  return loadApplicationsFromDisk();
 }
 
 export function addApplicationStore(
   appData: Omit<ApplicationRecord, 'id' | 'applicationNo' | 'status' | 'rating' | 'whatsAppStatus' | 'notes' | 'createdAt' | 'updatedAt'>
 ): ApplicationRecord {
-  dbApplications = loadApplicationsFromDisk();
-  const count = dbApplications.length + 1;
+  const currentApps = loadApplicationsFromDisk();
+  const count = currentApps.length + 1;
   const numStr = String(count).padStart(3, '0');
   const applicationNo = `KHF-2026-${numStr}`;
   const id = `app_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -92,8 +116,8 @@ export function addApplicationStore(
     updatedAt: new Date().toISOString(),
   };
 
-  dbApplications.unshift(newApp);
-  saveApplicationsToDisk(dbApplications);
+  const updatedList = [newApp, ...currentApps];
+  saveApplicationsToDisk(updatedList);
   return newApp;
 }
 
@@ -102,38 +126,38 @@ export function updateApplicationStatusStore(
   status: ApplicationRecord['status'],
   interviewDetails?: { date?: string; time?: string; location?: string; link?: string }
 ): ApplicationRecord | null {
-  dbApplications = loadApplicationsFromDisk();
-  const idx = dbApplications.findIndex((a) => a.id === id);
+  const currentApps = loadApplicationsFromDisk();
+  const idx = currentApps.findIndex((a) => a.id === id);
   if (idx === -1) return null;
 
-  dbApplications[idx].status = status;
-  dbApplications[idx].updatedAt = new Date().toISOString();
+  currentApps[idx].status = status;
+  currentApps[idx].updatedAt = new Date().toISOString();
 
   if (interviewDetails) {
-    if (interviewDetails.date) dbApplications[idx].interviewDate = interviewDetails.date;
-    if (interviewDetails.time) dbApplications[idx].interviewTime = interviewDetails.time;
-    if (interviewDetails.location) dbApplications[idx].interviewLocation = interviewDetails.location;
-    if (interviewDetails.link) dbApplications[idx].interviewLink = interviewDetails.link;
+    if (interviewDetails.date) currentApps[idx].interviewDate = interviewDetails.date;
+    if (interviewDetails.time) currentApps[idx].interviewTime = interviewDetails.time;
+    if (interviewDetails.location) currentApps[idx].interviewLocation = interviewDetails.location;
+    if (interviewDetails.link) currentApps[idx].interviewLink = interviewDetails.link;
   }
 
-  saveApplicationsToDisk(dbApplications);
-  return dbApplications[idx];
+  saveApplicationsToDisk(currentApps);
+  return currentApps[idx];
 }
 
 export function updateApplicationWhatsAppStatusStore(id: string, whatsAppStatus: ApplicationRecord['whatsAppStatus']): ApplicationRecord | null {
-  dbApplications = loadApplicationsFromDisk();
-  const idx = dbApplications.findIndex((a) => a.id === id);
+  const currentApps = loadApplicationsFromDisk();
+  const idx = currentApps.findIndex((a) => a.id === id);
   if (idx === -1) return null;
 
-  dbApplications[idx].whatsAppStatus = whatsAppStatus;
-  dbApplications[idx].updatedAt = new Date().toISOString();
-  saveApplicationsToDisk(dbApplications);
-  return dbApplications[idx];
+  currentApps[idx].whatsAppStatus = whatsAppStatus;
+  currentApps[idx].updatedAt = new Date().toISOString();
+  saveApplicationsToDisk(currentApps);
+  return currentApps[idx];
 }
 
 export function addApplicationNoteStore(id: string, author: string, content: string): ApplicationRecord | null {
-  dbApplications = loadApplicationsFromDisk();
-  const idx = dbApplications.findIndex((a) => a.id === id);
+  const currentApps = loadApplicationsFromDisk();
+  const idx = currentApps.findIndex((a) => a.id === id);
   if (idx === -1) return null;
 
   const noteObj = {
@@ -143,15 +167,15 @@ export function addApplicationNoteStore(id: string, author: string, content: str
     createdAt: new Date().toISOString(),
   };
 
-  dbApplications[idx].notes.push(noteObj);
-  dbApplications[idx].updatedAt = new Date().toISOString();
-  saveApplicationsToDisk(dbApplications);
-  return dbApplications[idx];
+  currentApps[idx].notes.push(noteObj);
+  currentApps[idx].updatedAt = new Date().toISOString();
+  saveApplicationsToDisk(currentApps);
+  return currentApps[idx];
 }
 
 export function findDuplicateApplication(mobileNumber: string, email: string): boolean {
-  dbApplications = loadApplicationsFromDisk();
-  return dbApplications.some(
+  const currentApps = loadApplicationsFromDisk();
+  return currentApps.some(
     (a) => a.mobileNumber === mobileNumber || a.email.toLowerCase() === email.toLowerCase()
   );
 }
