@@ -1463,6 +1463,38 @@ header nav {
   transform: scale(1.1);
 }
 
+.mobile-nav, #mobileNavMenu {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #FAF6EE !important;
+  backdrop-filter: blur(15px) !important;
+  -webkit-backdrop-filter: blur(15px) !important;
+  z-index: 100000 !important;
+  display: none !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 80px 24px 40px !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(-100%) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.mobile-nav.active, #mobileNavMenu.active {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+
 .gallery-item:hover .gallery-item-info {
   opacity: 1;
   transform: translateY(0);

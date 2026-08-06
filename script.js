@@ -2112,14 +2112,17 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCart();
     initializeTestimonials();
     initializeUpcomingGallery();
-    initUpcomingParticles();
-    initUpcoming3DTilt();
-    initUpcomingEntrance();
 
-    // Initial triggers for animations
-    setTimeout(triggerScrollReveal, 400);
-    setTimeout(addTiltEffect, 800);
-    setTimeout(addDynamicLighting, 850);
+    // Disable heavy 3D tilt and continuous particle loops on mobile for 60fps smooth scrolling
+    if (window.innerWidth > 768) {
+      if (typeof initUpcomingParticles === 'function') initUpcomingParticles();
+      if (typeof initUpcoming3DTilt === 'function') initUpcoming3DTilt();
+      if (typeof initUpcomingEntrance === 'function') initUpcomingEntrance();
+
+      setTimeout(() => { if (typeof triggerScrollReveal === 'function') triggerScrollReveal(); }, 400);
+      setTimeout(() => { if (typeof addTiltEffect === 'function') addTiltEffect(); }, 800);
+      setTimeout(() => { if (typeof addDynamicLighting === 'function') addDynamicLighting(); }, 850);
+    }
   };
 
   initApp();
