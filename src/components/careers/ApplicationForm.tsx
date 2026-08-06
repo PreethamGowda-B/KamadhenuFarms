@@ -117,8 +117,14 @@ export default function ApplicationForm() {
         throw new Error(result.message || 'Failed to submit application.');
       }
 
-      // Redirect to thank you page with application number
-      router.push(`/careers/thank-you?appNo=${result.data.applicationNo}&name=${encodeURIComponent(result.data.fullName)}`);
+      // Redirect to thank you page with application number, candidate name, mobile, and position
+      const params = new URLSearchParams({
+        appNo: result.data.applicationNo,
+        name: result.data.fullName,
+        mobile: result.data.mobileNumber,
+        position: 'Sales Partner'
+      });
+      router.push(`/careers/thank-you?${params.toString()}`);
     } catch (err: any) {
       setServerError(err.message || 'Something went wrong. Please check your data and retry.');
     } finally {

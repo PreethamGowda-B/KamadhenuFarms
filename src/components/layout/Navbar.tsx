@@ -1,42 +1,57 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Menu, X, ArrowRight, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Menu, X, ArrowRight, Search, Home, ShoppingBag, Info, PhoneCall, HelpCircle, Briefcase } from 'lucide-react';
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-gold-300/30 transition-all duration-300">
+    <header className="sticky top-0 z-50 bg-cream-bg/90 backdrop-blur-md border-b border-gold-300/40 transition-all duration-300 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
           {/* Brand Logo */}
           <Link href="/careers" className="flex items-center space-x-3 group">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-gold-600 via-gold-400 to-gold-300 flex items-center justify-center text-2xl shadow-gold-glow group-hover:scale-105 transition-transform duration-300">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-gold-600 via-gold-400 to-gold-300 flex items-center justify-center text-xl sm:text-2xl shadow-gold-glow group-hover:scale-105 transition-transform duration-300">
               🍯
             </div>
             <div>
-              <span className="font-serif font-bold text-xl text-charcoal tracking-wide block leading-tight">
+              <span className="font-serif font-bold text-lg sm:text-xl text-charcoal tracking-wide block leading-tight">
                 Kamadhenu
               </span>
-              <span className="text-xs uppercase tracking-widest font-semibold text-gold-600 block">
+              <span className="text-[10px] sm:text-xs uppercase tracking-widest font-semibold text-gold-600 block">
                 Honey Farms • Careers
               </span>
             </div>
           </Link>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden lg:flex items-center space-x-7">
+            <Link href="/" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
+              Main Store
+            </Link>
             <Link href="/careers" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
               Careers Home
             </Link>
             <Link href="/careers/sales-agent" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
               Sales Partner Job
             </Link>
-            <Link href="/track" className="text-sm font-medium text-gold-700 hover:text-gold-900 transition-colors inline-flex items-center gap-1">
-              <Search className="w-3.5 h-3.5" /> Track Application
+            <Link href="/track" className="text-sm font-medium text-gold-700 hover:text-gold-900 transition-colors inline-flex items-center gap-1.5 font-semibold">
+              <Search className="w-4 h-4 text-gold-600" /> Track Application
             </Link>
             <Link href="/careers#faq" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
               FAQ
@@ -44,7 +59,7 @@ export default function Navbar() {
           </nav>
 
           {/* Action CTA */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-4">
             <Link
               href="/careers/apply"
               className="relative inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-gold-500 to-gold-600 rounded-full shadow-lg shadow-gold-500/25 hover:shadow-gold-500/40 hover:-translate-y-0.5 transition-all duration-300 group"
@@ -55,10 +70,19 @@ export default function Navbar() {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex md:hidden">
+          <div className="flex lg:hidden items-center space-x-2">
+            <Link
+              href="/careers/apply"
+              className="px-3.5 py-1.5 text-xs font-bold text-white bg-gold-600 rounded-full shadow-sm sm:hidden"
+            >
+              Apply
+            </Link>
             <button
+              type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-charcoal hover:text-gold-600 hover:bg-gold-50 focus:outline-none"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              className="p-2.5 rounded-xl text-charcoal bg-gold-100/60 hover:text-gold-700 hover:bg-gold-200/60 focus:outline-none focus:ring-2 focus:ring-gold-500 transition-colors"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -66,48 +90,102 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Drawer Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden glass-panel border-b border-gold-200 px-4 pt-2 pb-6 space-y-3">
-          <Link
-            href="/careers"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-charcoal hover:bg-gold-50 hover:text-gold-600"
-          >
-            Careers Home
-          </Link>
-          <Link
-            href="/careers/sales-agent"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-charcoal hover:bg-gold-50 hover:text-gold-600"
-          >
-            Sales Partner Job
-          </Link>
-          <Link
-            href="/track"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-gold-700 hover:bg-gold-50"
-          >
-            Track Application Status
-          </Link>
-          <Link
-            href="/careers#faq"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-md text-base font-medium text-charcoal hover:bg-gold-50 hover:text-gold-600"
-          >
-            FAQ
-          </Link>
-          <div className="pt-2">
-            <Link
-              href="/careers/apply"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center block px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-gold-500 to-gold-600 rounded-full shadow-md"
-            >
-              Apply Now
-            </Link>
+        <div className="lg:hidden fixed inset-x-0 top-20 bottom-0 bg-charcoal/40 backdrop-blur-sm z-50 flex flex-col justify-between">
+          <div className="bg-cream-bg border-b border-gold-300 shadow-2xl px-5 py-6 space-y-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
+            
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gold-600 px-3">Navigation Menu</span>
+              
+              <Link
+                href="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+              >
+                <Home className="w-5 h-5 text-gold-600" />
+                <span>Home (Main Store)</span>
+              </Link>
+              
+              <Link
+                href="/careers"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+              >
+                <Briefcase className="w-5 h-5 text-gold-600" />
+                <span>Careers Home</span>
+              </Link>
+
+              <Link
+                href="/careers/sales-agent"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+              >
+                <ShoppingBag className="w-5 h-5 text-gold-600" />
+                <span>Sales Partner Job</span>
+              </Link>
+
+              <Link
+                href="/track"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-gold-800 bg-gold-50 border border-gold-300 hover:bg-gold-100 transition-all active:scale-[0.98]"
+              >
+                <Search className="w-5 h-5 text-gold-600" />
+                <span>Track Application Status</span>
+              </Link>
+
+              <Link
+                href="/careers#faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+              >
+                <HelpCircle className="w-5 h-5 text-gold-600" />
+                <span>Frequently Asked Questions (FAQ)</span>
+              </Link>
+
+              <Link
+                href="/#about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+              >
+                <Info className="w-5 h-5 text-gold-600" />
+                <span>About Us</span>
+              </Link>
+
+              <Link
+                href="/#contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+              >
+                <PhoneCall className="w-5 h-5 text-gold-600" />
+                <span>Contact Us</span>
+              </Link>
+            </div>
+
+            <div className="pt-4 border-t border-gold-200 space-y-3">
+              <Link
+                href="/careers/apply"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-gold-500 to-gold-600 rounded-full shadow-lg shadow-gold-500/25 active:scale-95 transition-all"
+              >
+                <span>Apply for Sales Partner Job</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              <a
+                href="https://wa.me/919980114675"
+                target="_blank"
+                rel="noreferrer"
+                className="w-full text-center flex items-center justify-center gap-2 px-6 py-3 text-xs font-semibold text-charcoal bg-white border border-gold-300 rounded-full hover:bg-gold-50 transition-colors"
+              >
+                <span>Contact Recruitment on WhatsApp</span>
+              </a>
+            </div>
+
           </div>
         </div>
       )}
     </header>
   );
 }
+

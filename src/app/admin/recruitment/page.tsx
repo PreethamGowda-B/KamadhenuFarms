@@ -22,6 +22,7 @@ import {
   MessageCircle,
   Award,
   Loader2,
+  Download,
   X
 } from 'lucide-react';
 import { ApplicationRecord } from '@/lib/store';
@@ -174,6 +175,70 @@ export default function AdminRecruitmentPage() {
     return matchesSearch && matchesStatus && matchesCity && matchesExp && matchesBike;
   });
 
+  const handleExportCSV = () => {
+    if (filteredApps.length === 0) {
+      showToast('No applications found matching your criteria to export.', 'error');
+      return;
+    }
+
+    const headers = [
+      'Application ID',
+      'Full Name',
+      'Mobile Number',
+      'WhatsApp Number',
+      'Email',
+      'Gender',
+      'Age',
+      'City',
+      'State',
+      'Pin Code',
+      'Has Bike',
+      'Driving License',
+      'Sales Experience',
+      'Occupation',
+      'Preferred Sales Area',
+      'Status',
+      'Applied Date',
+    ];
+
+    const csvRows = [
+      headers.join(','),
+      ...filteredApps.map((a) =>
+        [
+          a.applicationNo,
+          `"${(a.fullName || '').replace(/"/g, '""')}"`,
+          a.mobileNumber,
+          a.whatsAppNumber || a.mobileNumber,
+          a.email,
+          a.gender,
+          a.age,
+          `"${(a.city || '').replace(/"/g, '""')}"`,
+          `"${(a.state || '').replace(/"/g, '""')}"`,
+          a.pinCode,
+          a.hasBike ? 'Yes' : 'No',
+          a.hasDrivingLicense ? 'Yes' : 'No',
+          `"${(a.salesExperience || '').replace(/"/g, '""')}"`,
+          `"${(a.currentOccupation || '').replace(/"/g, '""')}"`,
+          `"${(a.preferredSalesArea || '').replace(/"/g, '""')}"`,
+          a.status,
+          new Date(a.createdAt).toLocaleString(),
+        ].join(',')
+      ),
+    ];
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Kamadhenu_Applications_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Successfully exported ${filteredApps.length} candidate record(s) to CSV!`);
+  };
+
   const getStatusBadge = (status: ApplicationRecord['status']) => {
     switch (status) {
       case 'APPLIED':
@@ -298,12 +363,22 @@ export default function AdminRecruitmentPage() {
             <p className="text-xs text-gray-600 mt-1">Real-time candidate tracking, WhatsApp notifications, and recruitment metrics.</p>
           </div>
 
-          <Link
-            href="/admin/recruitment/analytics"
-            className="inline-flex items-center px-4 py-2 bg-gold-500 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-gold-600 transition-colors shrink-0"
-          >
-            <TrendingUp className="w-4 h-4 mr-1.5" /> View Analytics Charts
-          </Link>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-emerald-700 active:scale-95 transition-all"
+            >
+              <Download className="w-4 h-4 mr-1.5" /> Export Applications (CSV)
+            </button>
+
+            <Link
+              href="/admin/recruitment/analytics"
+              className="inline-flex items-center px-4 py-2 bg-gold-500 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-gold-600 transition-colors"
+            >
+              <TrendingUp className="w-4 h-4 mr-1.5" /> View Analytics Charts
+            </Link>
+          </div>
         </div>
 
         {/* Database-Driven Dynamic Metrics Cards */}
