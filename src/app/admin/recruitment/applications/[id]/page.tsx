@@ -40,6 +40,7 @@ export default function ApplicationDetailPage() {
   const [newNote, setNewNote] = useState('');
   const [emailSending, setEmailSending] = useState(false);
   const [emailSuccess, setEmailSuccess] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ title: string; url: string } | null>(null);
 
   useEffect(() => {
     fetchApp();
@@ -255,14 +256,13 @@ export default function ApplicationDetailPage() {
                 <p className="text-[11px] text-gray-500 mt-1">Uploaded PDF / Word Resume</p>
               </div>
               {app.resumeUrl ? (
-                <a
-                  href={app.resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5"
+                <button
+                  type="button"
+                  onClick={() => setViewingDoc({ title: 'Resume / CV', url: app.resumeUrl! })}
+                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> View / Download Resume
-                </a>
+                </button>
               ) : (
                 <span className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded text-center">No resume uploaded</span>
               )}
@@ -277,14 +277,13 @@ export default function ApplicationDetailPage() {
                 <p className="text-[11px] text-gray-500 mt-1">Identity Verification Document</p>
               </div>
               {app.aadhaarUrl ? (
-                <a
-                  href={app.aadhaarUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5"
+                <button
+                  type="button"
+                  onClick={() => setViewingDoc({ title: 'Aadhaar ID Proof', url: app.aadhaarUrl! })}
+                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> View Aadhaar Document
-                </a>
+                </button>
               ) : (
                 <span className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded text-center">No Aadhaar uploaded</span>
               )}
@@ -299,14 +298,13 @@ export default function ApplicationDetailPage() {
                 <p className="text-[11px] text-gray-500 mt-1">Passport / Headshot Photo</p>
               </div>
               {app.profilePhotoUrl ? (
-                <a
-                  href={app.profilePhotoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5"
+                <button
+                  type="button"
+                  onClick={() => setViewingDoc({ title: 'Candidate Photo', url: app.profilePhotoUrl! })}
+                  className="w-full py-2 px-3 bg-gold-500 text-white font-semibold text-xs rounded-xl hover:bg-gold-600 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <ExternalLink className="w-3.5 h-3.5" /> View Profile Photo
-                </a>
+                </button>
               ) : (
                 <span className="text-[11px] text-gray-400 italic bg-gray-50 p-2 rounded text-center">No photo uploaded</span>
               )}
@@ -428,6 +426,68 @@ export default function ApplicationDetailPage() {
         </div>
 
       </div>
+
+      {/* Interactive Document / Photo Modal Popup */}
+      {viewingDoc && (
+        <div className="fixed inset-0 z-50 bg-charcoal/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border-2 border-gold-300 overflow-hidden animate-fadeIn">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-cream-bg border-b border-gold-300 flex items-center justify-between">
+              <h4 className="font-serif font-bold text-lg text-charcoal flex items-center gap-2">
+                <FileText className="w-5 h-5 text-gold-600" /> {viewingDoc.title}
+              </h4>
+              <div className="flex items-center gap-3">
+                <a
+                  href={viewingDoc.url}
+                  download={`Candidate_${viewingDoc.title.replace(/\s+/g, '_')}`}
+                  className="px-3 py-1.5 bg-gold-500 text-white rounded-xl text-xs font-semibold hover:bg-gold-600 transition-colors flex items-center gap-1"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download File
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setViewingDoc(null)}
+                  className="p-1.5 rounded-full hover:bg-gold-200 text-charcoal transition-colors font-bold text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body / Media Render */}
+            <div className="p-6 overflow-auto flex-1 flex items-center justify-center bg-cream-soft/50 min-h-[350px]">
+              {viewingDoc.url.startsWith('data:image/') || viewingDoc.url.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i) ? (
+                <img
+                  src={viewingDoc.url}
+                  alt={viewingDoc.title}
+                  className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-md border border-gold-200"
+                />
+              ) : viewingDoc.url.startsWith('data:application/pdf') || viewingDoc.url.match(/\.pdf$/i) ? (
+                <iframe
+                  src={viewingDoc.url}
+                  title={viewingDoc.title}
+                  className="w-full h-[65vh] rounded-xl border border-gold-300 shadow-sm"
+                />
+              ) : (
+                <div className="text-center space-y-4 py-8">
+                  <p className="text-sm font-semibold text-charcoal">Document Preview</p>
+                  <p className="text-xs text-gray-500 max-w-md">This document formatted file is ready for download or view.</p>
+                  <a
+                    href={viewingDoc.url}
+                    download={`Candidate_${viewingDoc.title.replace(/\s+/g, '_')}`}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-gold-600 text-white font-bold text-xs rounded-xl shadow-md hover:bg-gold-700 transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> Download / Save Document
+                  </a>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

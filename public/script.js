@@ -1,5 +1,9 @@
-/* Instant Preloader Removal to guarantee immediate navigation without delays */
+/* Instant Preloader Removal and body scroll unlock to guarantee immediate scrolling */
 (function removePreloaderFast() {
+  if (typeof document !== 'undefined') {
+    document.body.classList.remove('overflow-hidden');
+    document.body.style.overflow = 'auto';
+  }
   const p = document.getElementById('preloader') || document.querySelector('.preloader');
   if (p) {
     p.style.display = 'none';
