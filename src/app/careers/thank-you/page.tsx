@@ -31,9 +31,28 @@ function ThankYouContent() {
     } catch (e) {}
   }, []);
 
-  const handleCopyId = () => {
+  const handleCopyId = async () => {
     if (copied) return;
-    navigator.clipboard.writeText(appNo);
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(appNo);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = appNo;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        textArea.style.top = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+    } catch (e) {
+      console.warn('Copy failed:', e);
+    }
+
     setCopied(true);
     setShowToast(true);
 
