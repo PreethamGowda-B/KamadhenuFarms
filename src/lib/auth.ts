@@ -80,8 +80,7 @@ export function verifyJwt(token: string): AdminPayload | null {
 
 // Password Verification against default admin or hashed password
 export function verifyAdminPassword(password: string): boolean {
-  // Default seeded admin password: KamadhenuAdmin#2026
-  return password === 'KamadhenuAdmin#2026';
+  return password === 'Preethu@4959';
 }
 
 export function getAdminSessionFromRequest(req: NextRequest): AdminPayload | null {
