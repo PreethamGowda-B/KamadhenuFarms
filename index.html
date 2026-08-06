@@ -76,6 +76,17 @@
        Premium Preloader
        ========================================================================== -->
   <div id="preloader" class="preloader">
+    <script>
+      (function() {
+        try {
+          if (sessionStorage.getItem('khf_visited')) {
+            document.write('<style>#preloader, .preloader { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }</style>');
+          } else {
+            sessionStorage.setItem('khf_visited', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <div class="preloader-content">
       <div class="honey-spinner"></div>
       <h2 class="preloader-text">KAMADHENU <span style="color:var(--primary-gold);">HONEY FARMS</span></h2>

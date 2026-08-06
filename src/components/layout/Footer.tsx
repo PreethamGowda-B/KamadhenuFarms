@@ -33,6 +33,16 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2.5 text-sm text-gray-300">
               <li>
+                <a
+                  href="https://www.kamadhenuhoneyfarms.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-gold-400 transition-colors font-semibold text-gold-400"
+                >
+                  Main Store & Honey Products 🛍️
+                </a>
+              </li>
+              <li>
                 <Link href="/careers" className="hover:text-gold-400 transition-colors">
                   Careers Landing Page
                 </Link>

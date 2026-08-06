@@ -41,9 +41,14 @@ export default function Navbar() {
 
           {/* Desktop Nav Links */}
           <nav className="hidden lg:flex items-center space-x-7">
-            <Link href="/" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
-              Main Store
-            </Link>
+            <a
+              href="https://www.kamadhenuhoneyfarms.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-semibold text-gold-700 hover:text-gold-900 transition-colors flex items-center gap-1"
+            >
+              Main Store 🛍️
+            </a>
             <Link href="/careers" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
               Careers Home
             </Link>
@@ -98,14 +103,16 @@ export default function Navbar() {
             <div className="space-y-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-gold-600 px-3">Navigation Menu</span>
               
-              <Link
-                href="/"
+              <a
+                href="https://www.kamadhenuhoneyfarms.in"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-bold text-gold-700 hover:bg-gold-100/70 transition-all active:scale-[0.98]"
               >
                 <Home className="w-5 h-5 text-gold-600" />
-                <span>Home (Main Store)</span>
-              </Link>
+                <span>Main Store (kamadhenuhoneyfarms.in) 🛍️</span>
+              </a>
               
               <Link
                 href="/careers"

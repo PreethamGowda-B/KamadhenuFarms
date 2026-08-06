@@ -1,6 +1,14 @@
-/* ==========================================================================
-   Kamadhenu Honey Farms - Premium Luxury E-Commerce Script
-   ========================================================================== */
+/* Instant Preloader Removal to guarantee immediate navigation without delays */
+(function removePreloaderFast() {
+  const p = document.getElementById('preloader') || document.querySelector('.preloader');
+  if (p) {
+    p.style.display = 'none';
+    p.style.opacity = '0';
+    p.style.visibility = 'hidden';
+    p.style.pointerEvents = 'none';
+    if (p.parentNode) p.parentNode.removeChild(p);
+  }
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
   // Global App State
