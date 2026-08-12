@@ -46,7 +46,8 @@ export async function GET() {
   }
 
   if (apps.length === 0) {
-    apps = getApplicationsStore();
+    // Normalize: ensure every record from the local fallback store has notes: []
+    apps = getApplicationsStore().map((a) => ({ ...a, notes: a.notes ?? [] }));
   }
 
   // Compute live dynamic statistics directly from database

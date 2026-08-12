@@ -392,14 +392,14 @@ export default function ApplicationDetailPage() {
           {/* Internal Notes Section */}
           <div className="md:col-span-2 glass-panel p-6 rounded-3xl border border-gold-300 space-y-4">
             <h3 className="text-lg font-serif font-bold text-charcoal flex items-center gap-2 border-b border-gold-200 pb-3">
-              <MessageSquare className="w-5 h-5 text-gold-600" /> Internal Hiring Notes ({app.notes.length})
+              <MessageSquare className="w-5 h-5 text-gold-600" /> Internal Hiring Notes ({(app.notes || []).length})
             </h3>
 
             <div className="space-y-3">
-              {app.notes.length === 0 ? (
+              {(app.notes || []).length === 0 ? (
                 <p className="text-xs text-gray-500 italic">No internal notes added yet.</p>
               ) : (
-                app.notes.map((note) => (
+                (app.notes || []).map((note) => (
                   <div key={note.id} className="bg-white p-3.5 rounded-xl border border-gold-200 text-xs space-y-1">
                     <div className="flex justify-between text-gray-500 font-semibold">
                       <span>{note.author}</span>
