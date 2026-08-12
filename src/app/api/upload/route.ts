@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || 'kamadhenuhoneyfarms';
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || 'kcr1lyfv';
     const apiKey = process.env.CLOUDINARY_API_KEY || '112225381679784';
     const apiSecret = process.env.CLOUDINARY_API_SECRET || 'kLQ6QF5R9g-yV7VyhOArLKm5XLg';
 
