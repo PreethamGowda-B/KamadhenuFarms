@@ -30,7 +30,9 @@ import {
   Check,
   X,
   FileText,
-  User
+  User,
+  ArrowLeft,
+  LayoutDashboard
 } from 'lucide-react';
 import { ShopRecord } from '@/lib/store';
 
@@ -311,7 +313,14 @@ export default function AdminShopsPage() {
           <p className="text-xs text-gray-600 mt-1">Track retail shops, automated reorder cycles, field sales orders, and repeat honey purchases.</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/recruitment"
+            className="px-4 py-2.5 bg-white text-gray-700 hover:text-charcoal text-xs font-semibold rounded-xl border border-gold-300 hover:bg-gold-50 shadow-sm transition-all flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4 text-gold-600" /> Back to Admin Portal
+          </Link>
+
           <button
             onClick={() => setShowAddShopModal(true)}
             className="px-4 py-2.5 bg-gold-600 text-white text-xs font-semibold rounded-xl hover:bg-gold-700 shadow-luxury transition-all flex items-center gap-2"
