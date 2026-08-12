@@ -248,7 +248,11 @@ export default function AdminRecruitmentPage() {
       case 'INTERVIEW_SCHEDULED':
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Interview Scheduled</span>;
       case 'SELECTED':
-        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Hired / Selected</span>;
+        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Selected</span>;
+      case 'HIRED':
+        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">Hired & Onboarded</span>;
+      case 'EXITED':
+        return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">Auth Revoked</span>;
       case 'REJECTED':
         return <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">Rejected</span>;
     }

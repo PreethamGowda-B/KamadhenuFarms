@@ -12,7 +12,19 @@ enum ApplicationStatus {
   REVIEWED
   INTERVIEW_SCHEDULED
   SELECTED
+  HIRED
   REJECTED
+  EXITED
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  DETAILS_PENDING
+  DOCUMENTS_GENERATED
+  AWAITING_APPROVAL
+  DOCUMENTS_SENT
+  ONBOARDING_COMPLETED
+  AUTHORIZATION_REVOKED
 }
 
 enum WhatsAppStatus {
@@ -57,8 +69,24 @@ model Application {
   interviewLink         String?
 
   whatsAppStatus        WhatsAppStatus    @default(NOT_SENT)
-  
+
+  // Candidate Onboarding & Field Authorization
+  onboardingStatus      OnboardingStatus  @default(NOT_STARTED)
+  joiningDate           String?
+  workingTerritory      String?
+  commissionRate        String?           @default("₹100/kg - ₹150/kg")
+  commissionMin         Float?            @default(100)
+  commissionMax         Float?            @default(150)
+  payoutFrequency       String?           @default("Weekly")
+  reportingManager      String?
+  engagementType        String?           @default("Sales Executive / Sales Partner")
+  additionalTerms       String?
+  authValidFrom         String?
+  authValidUntil        String?
+  isAuthActive          Boolean           @default(true)
+
   notes                 ApplicationNote[]
+  onboardingDocuments   OnboardingDocument[]
   auditLogs             AuditLog[]
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
@@ -67,6 +95,29 @@ model Application {
   @@index([email])
   @@index([status])
   @@index([city])
+}
+
+model OnboardingDocument {
+  id              String      @id @default(cuid())
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  docType         String      // OFFER_LETTER, AUTHORIZATION_LETTER, COMMISSION_POLICY, PRICE_CATALOGUE, SALES_GUIDELINES, CODE_OF_CONDUCT, COMPLETE_ONBOARDING_PACK
+  documentNo      String
+  title           String
+  version         Int         @default(1)
+  status          String      @default("DRAFT") // DRAFT, APPROVED, SENT
+  validFrom       String?
+  validUntil      String?
+  contentSnapshot String      // JSON string of document fields snapshot
+  createdBy       String
+  approvedBy      String?
+  approvedAt      DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([applicationId])
+  @@index([docType])
 }
 
 model ApplicationNote {

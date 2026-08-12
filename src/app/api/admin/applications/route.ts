@@ -24,7 +24,7 @@ export async function GET() {
     try {
       const dbApps = await prisma.application.findMany({
         orderBy: { createdAt: 'desc' },
-        include: { notes: true },
+        include: { notes: true, onboardingDocuments: true },
       });
 
       if (dbApps && dbApps.length > 0) {

@@ -23,13 +23,15 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { ApplicationRecord } from '@/lib/store';
+import OnboardingModule from '@/components/admin/OnboardingModule';
 
 const STAGES: { key: ApplicationRecord['status']; label: string }[] = [
   { key: 'APPLIED', label: '1. Applied' },
   { key: 'REVIEWED', label: '2. Reviewed' },
   { key: 'INTERVIEW_SCHEDULED', label: '3. Interview Scheduled' },
-  { key: 'SELECTED', label: '4. Selected / Hired' },
-  { key: 'REJECTED', label: '5. Rejected' },
+  { key: 'SELECTED', label: '4. Selected' },
+  { key: 'HIRED', label: '5. Hired & Onboarded' },
+  { key: 'REJECTED', label: '6. Rejected' },
 ];
 
 export default function ApplicationDetailPage() {
@@ -238,6 +240,9 @@ export default function ApplicationDetailPage() {
             </button>
           </div>
         </div>
+
+        {/* Candidate Onboarding & Official Document Suite */}
+        <OnboardingModule app={app} onUpdate={setApp} />
 
         {/* Uploaded Documents & Verification Section */}
         <div className="glass-panel p-6 rounded-3xl border-2 border-gold-300 space-y-4">

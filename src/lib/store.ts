@@ -1,6 +1,34 @@
 import fs from 'fs';
 import path from 'path';
 
+export type OnboardingStatusType = 
+  | 'NOT_STARTED' 
+  | 'DETAILS_PENDING' 
+  | 'DOCUMENTS_GENERATED' 
+  | 'AWAITING_APPROVAL' 
+  | 'DOCUMENTS_SENT' 
+  | 'ONBOARDING_COMPLETED' 
+  | 'AUTHORIZATION_REVOKED';
+
+export interface OnboardingDocumentRecord {
+  id: string;
+  applicationId: string;
+  docType: 'OFFER_LETTER' | 'AUTHORIZATION_LETTER' | 'COMMISSION_POLICY' | 'PRICE_CATALOGUE' | 'SALES_GUIDELINES' | 'CODE_OF_CONDUCT' | 'COMPLETE_ONBOARDING_PACK';
+  documentNo: string;
+  title: string;
+  version: number;
+  status: 'DRAFT' | 'APPROVED' | 'SENT';
+  validFrom?: string;
+  validUntil?: string;
+  contentSnapshot: string;
+  createdBy: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  sentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApplicationRecord {
   id: string;
   applicationNo: string;
@@ -24,13 +52,30 @@ export interface ApplicationRecord {
   profilePhotoUrl?: string;
   whyJoin: string;
   declarationAccepted: boolean;
-  status: 'APPLIED' | 'REVIEWED' | 'INTERVIEW_SCHEDULED' | 'SELECTED' | 'REJECTED';
+  status: 'APPLIED' | 'REVIEWED' | 'INTERVIEW_SCHEDULED' | 'SELECTED' | 'HIRED' | 'REJECTED' | 'EXITED';
   rating: number;
   interviewDate?: string;
   interviewTime?: string;
   interviewLocation?: string;
   interviewLink?: string;
   whatsAppStatus: 'NOT_SENT' | 'SENT' | 'FAILED';
+
+  // Onboarding & Field Authorization Fields
+  onboardingStatus?: OnboardingStatusType;
+  joiningDate?: string;
+  workingTerritory?: string;
+  commissionRate?: string;
+  commissionMin?: number;
+  commissionMax?: number;
+  payoutFrequency?: string;
+  reportingManager?: string;
+  engagementType?: string;
+  additionalTerms?: string;
+  authValidFrom?: string;
+  authValidUntil?: string;
+  isAuthActive?: boolean;
+
+  onboardingDocuments?: OnboardingDocumentRecord[];
   notes: { id: string; author: string; content: string; createdAt: string }[];
   createdAt: string;
   updatedAt: string;
