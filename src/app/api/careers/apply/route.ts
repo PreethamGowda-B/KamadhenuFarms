@@ -58,6 +58,20 @@ export async function POST(req: NextRequest) {
     }
 
     const data = validationResult.data;
+
+    // 2b. Reject base64 data URLs — files must be uploaded to Cloudinary first
+    // A base64 data URL would make the body 3–6MB, exceeding Vercel's 4.5MB limit
+    const isDataUrl = (url?: string | null) => url?.startsWith('data:');
+    if (isDataUrl(data.resumeUrl) || isDataUrl(data.aadhaarUrl) || isDataUrl(data.profilePhotoUrl)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'File upload failed. Please re-upload your documents and try submitting again.',
+        },
+        { status: 400 }
+      );
+    }
+
     const cleanEmail = data.email.toLowerCase().trim();
     const cleanMobile = data.mobileNumber.trim();
     const cleanWhatsApp = (data.whatsAppNumber || data.mobileNumber).trim();
