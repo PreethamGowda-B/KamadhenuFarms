@@ -22,15 +22,15 @@ export async function GET() {
   // Query Neon PostgreSQL via Prisma if DATABASE_URL is set
   if (process.env.DATABASE_URL) {
     try {
-      const dbApps = await (prisma as any).application.findMany({
+      const dbApps = await prisma.application.findMany({
         orderBy: { createdAt: 'desc' },
-        include: { notes: true, onboardingDocuments: true },
+        include: { notes: true },
       });
 
       if (dbApps && dbApps.length > 0) {
-        apps = dbApps.map((a: any) => ({
+        apps = dbApps.map((a) => ({
           ...a,
-          notes: (a.notes || []).map((n: any) => ({ ...n, createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString() })),
+          notes: (a.notes || []).map((n) => ({ ...n, createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString() })),
           createdAt: a.createdAt ? new Date(a.createdAt).toISOString() : new Date().toISOString(),
           updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : new Date().toISOString(),
         })) as unknown as ApplicationRecord[];
