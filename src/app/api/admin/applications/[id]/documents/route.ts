@@ -27,7 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     if (process.env.DATABASE_URL) {
       try {
-        documents = await prisma.onboardingDocument.findMany({
+        documents = await (prisma as any).onboardingDocument.findMany({
           where: { applicationId: id },
           orderBy: { createdAt: 'desc' },
         });
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let candidate: any = null;
     if (process.env.DATABASE_URL) {
       try {
-        candidate = await prisma.application.findUnique({ where: { id } });
+        candidate = await (prisma as any).application.findUnique({ where: { id } });
       } catch (e) {}
     }
     if (!candidate) {
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let nextVersion = 1;
     if (process.env.DATABASE_URL) {
       try {
-        const existing = await prisma.onboardingDocument.findMany({
+        const existing = await (prisma as any).onboardingDocument.findMany({
           where: { applicationId: id, docType },
           orderBy: { version: 'desc' },
         });
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let createdDoc: any = null;
     if (process.env.DATABASE_URL) {
       try {
-        createdDoc = await prisma.onboardingDocument.create({
+        createdDoc = await (prisma as any).onboardingDocument.create({
           data: {
             applicationId: id,
             docType,
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         });
 
         // Update candidate onboarding status to DOCUMENTS_GENERATED
-        await prisma.application.update({
+        await (prisma as any).application.update({
           where: { id },
           data: { onboardingStatus: 'DOCUMENTS_GENERATED' },
         });
@@ -227,7 +227,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     let updatedDoc: any = null;
     if (process.env.DATABASE_URL) {
       try {
-        updatedDoc = await prisma.onboardingDocument.update({
+        updatedDoc = await (prisma as any).onboardingDocument.update({
           where: { id: documentId },
           data: {
             status,
@@ -238,7 +238,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
         // Update onboarding status
         if (status === 'APPROVED') {
-          await prisma.application.update({
+          await (prisma as any).application.update({
             where: { id },
             data: { onboardingStatus: 'AWAITING_APPROVAL' },
           });

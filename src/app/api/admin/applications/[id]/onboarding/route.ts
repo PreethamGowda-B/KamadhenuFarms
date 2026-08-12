@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let candidate: any = null;
     if (process.env.DATABASE_URL) {
       try {
-        candidate = await prisma.application.findUnique({ where: { id } });
+        candidate = await (prisma as any).application.findUnique({ where: { id } });
       } catch (e) {}
     }
     if (!candidate) {
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     let updated: any = null;
     if (process.env.DATABASE_URL) {
       try {
-        updated = await prisma.application.update({
+        updated = await (prisma as any).application.update({
           where: { id },
           data: updatePayload,
           include: { onboardingDocuments: true },

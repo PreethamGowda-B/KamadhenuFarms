@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (process.env.DATABASE_URL) {
       try {
-        updatedCandidate = await prisma.application.update({
+        updatedCandidate = await (prisma as any).application.update({
           where: { id },
           data: {
             isAuthActive: false,
