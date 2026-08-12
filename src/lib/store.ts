@@ -10,6 +10,82 @@ export type OnboardingStatusType =
   | 'ONBOARDING_COMPLETED' 
   | 'AUTHORIZATION_REVOKED';
 
+export type ShopStatusType = 
+  | 'ACTIVE' 
+  | 'FOLLOW_UP_DUE' 
+  | 'ORDER_CONFIRMED' 
+  | 'WAITING_FOR_RESPONSE' 
+  | 'INACTIVE' 
+  | 'CLOSED';
+
+export type FollowUpResultType = 
+  | 'NEEDS_STOCK' 
+  | 'ORDER_CONFIRMED' 
+  | 'DOESNT_NEED_STOCK_NOW' 
+  | 'CALL_LATER' 
+  | 'NO_RESPONSE' 
+  | 'NOT_INTERESTED' 
+  | 'SHOP_CLOSED' 
+  | 'OTHER';
+
+export interface ShopOrderRecord {
+  id: string;
+  shopId: string;
+  orderNo: string;
+  orderDate: string;
+  product: string;
+  quantity: number;
+  kg: number;
+  orderValue: number;
+  paymentStatus: string;
+  deliveryStatus: string;
+  salesExecutive?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface ShopFollowUpRecord {
+  id: string;
+  shopId: string;
+  author: string;
+  date: string;
+  type: string;
+  result: FollowUpResultType;
+  notes?: string;
+  nextFollowUpDate?: string;
+  createdAt: string;
+}
+
+export interface ShopRecord {
+  id: string;
+  shopNo: string;
+  shopName: string;
+  contactPerson: string;
+  contactNumber: string;
+  email?: string;
+  address: string;
+  area: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  assignedSalesExecutiveId?: string;
+  assignedSalesExecutiveName?: string;
+  status: ShopStatusType;
+  reorderIntervalDays: number;
+  nextFollowUpDate?: string;
+  firstOrderDate?: string;
+  lastOrderDate?: string;
+  lastOrderQuantity?: number;
+  totalOrders: number;
+  totalKgPurchased: number;
+  totalPurchaseValue: number;
+  notes?: string;
+  orders?: ShopOrderRecord[];
+  followUps?: ShopFollowUpRecord[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OnboardingDocumentRecord {
   id: string;
   applicationId: string;

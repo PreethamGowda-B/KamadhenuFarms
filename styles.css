@@ -4854,3 +4854,30 @@ body.overflow-hidden {
   overflow: hidden !important;
 }
 
+/* ==========================================================================
+   Mobile Hardware Acceleration & Performance Overrides
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root {
+    --luxury-shadow: 0 4px 16px rgba(182, 133, 47, 0.08);
+    --glass-shadow: 0 4px 16px rgba(46, 46, 46, 0.06);
+    --soft-shadow: 0 4px 12px rgba(46, 46, 46, 0.04);
+  }
+
+  header.scrolled {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .btn-glass {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* Hardware accelerated compositing layers on touch devices */
+  .product-card, .glass-card, .upcoming-card, .hero-media {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+  }
+}
+

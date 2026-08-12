@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import { CheckCircle2, Home, Copy, Check, Search, Sparkles, MessageCircle, Send, ArrowRight } from 'lucide-react';
 
 const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/FIkkmWXnCJS6O50Pc8Q4lY?s=cl&p=a&mlu=4';
@@ -21,14 +20,15 @@ function ThankYouContent() {
   const [hasJoinedGroup, setHasJoinedGroup] = useState(false);
 
   useEffect(() => {
-    try {
+    import('canvas-confetti').then((confettiModule) => {
+      const confetti = confettiModule.default;
       confetti({
-        particleCount: 100,
-        spread: 70,
+        particleCount: 80,
+        spread: 60,
         origin: { y: 0.6 },
         colors: ['#D8A64F', '#B6852F', '#F3E7D0', '#2E2E2E', '#25D366'],
       });
-    } catch (e) {}
+    }).catch(() => {});
   }, []);
 
   const handleCopyId = async () => {

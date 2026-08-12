@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
         html: getApplicantConfirmationTemplate(data.fullName, newRecord.applicationNo),
       }),
       sendEmail({
-        to: 'careers@kamadhenuhoneyfarms.com',
+        to: process.env.ADMIN_NOTIFICATION_EMAIL || 'kamadhenuhoneyfarms@gmail.com',
         subject: `🚨 New Candidate Application: ${data.fullName} (${data.city})`,
         html: getAdminNotificationTemplate(data.fullName, newRecord.applicationNo, data.city, cleanMobile),
       }),

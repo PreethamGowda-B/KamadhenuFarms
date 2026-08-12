@@ -2,19 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell 
-} from 'recharts';
-import { ArrowLeft, Users, TrendingUp, Award, MapPin, Filter } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { ArrowLeft, Award, Loader2 } from 'lucide-react';
 import { ApplicationRecord } from '@/lib/store';
+
+const RecruitmentCharts = dynamic(() => import('@/components/admin/RecruitmentCharts'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-72 glass-panel rounded-3xl border border-gold-300 flex items-center justify-center text-xs text-gray-500">
+      <Loader2 className="w-5 h-5 animate-spin text-gold-600 mr-2" /> Loading interactive charts...
+    </div>
+  ),
+});
 
 export default function RecruitmentAnalyticsPage() {
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
@@ -32,7 +31,6 @@ export default function RecruitmentAnalyticsPage() {
   const hired = applications.filter((a) => a.status === 'SELECTED').length;
   const shortlisted = applications.filter((a) => a.status === 'INTERVIEW_SCHEDULED' || a.status === 'REVIEWED').length;
   const rejected = applications.filter((a) => a.status === 'REJECTED').length;
-  const applied = applications.filter((a) => a.status === 'APPLIED').length;
 
   // City Data Aggregation
   const cityCounts: Record<string, number> = {};
@@ -67,7 +65,6 @@ export default function RecruitmentAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-cream-bg p-6 sm:p-10 space-y-8">
-      
       {/* Header */}
       <div className="max-w-7xl mx-auto space-y-4">
         <Link href="/admin/recruitment" className="text-xs font-semibold text-gold-600 hover:underline inline-flex items-center gap-1">
@@ -101,74 +98,26 @@ export default function RecruitmentAnalyticsPage() {
           </div>
         </div>
 
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-          
-          {/* Monthly Applications Chart */}
-          <div className="glass-panel p-6 rounded-3xl border border-gold-300">
-            <h3 className="text-lg font-serif font-bold text-charcoal mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-gold-600" /> Monthly Application Growth
-            </h3>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData}>
-                  <XAxis dataKey="month" stroke="#4A4A4A" fontSize={12} />
-                  <YAxis stroke="#4A4A4A" fontSize={12} />
-                  <Tooltip contentStyle={{ backgroundColor: '#F8F5EF', borderRadius: '12px', border: '1px solid #D8A64F' }} />
-                  <Bar dataKey="count" fill="#D8A64F" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Dynamically Loaded Charts Component */}
+        <RecruitmentCharts monthlyData={monthlyData} cityData={cityData} colors={COLORS} />
+
+        {/* Hiring Funnel Stage breakdown */}
+        <div className="glass-panel p-6 rounded-3xl border border-gold-300 mt-8">
+          <h3 className="text-lg font-serif font-bold text-charcoal mb-6 flex items-center gap-2">
+            <Award className="w-5 h-5 text-gold-600" /> Hiring Funnel Progression
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            {funnelData.map((stage, idx) => (
+              <div key={stage.stage} className="bg-gold-50/70 p-5 rounded-2xl border border-gold-200 text-center relative">
+                <span className="text-[10px] uppercase font-bold text-gold-700 tracking-wider">Stage {idx + 1}</span>
+                <p className="text-sm font-semibold text-charcoal mt-1">{stage.stage}</p>
+                <p className="text-2xl font-bold text-gold-600 mt-2">{stage.count} <span className="text-xs text-gray-500 font-normal">candidates</span></p>
+              </div>
+            ))}
           </div>
-
-          {/* Applications by City Chart */}
-          <div className="glass-panel p-6 rounded-3xl border border-gold-300">
-            <h3 className="text-lg font-serif font-bold text-charcoal mb-4 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-gold-600" /> Candidate Distribution by City
-            </h3>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={cityData.length > 0 ? cityData : [{ name: 'Bangalore', applications: 1 }]}
-                    dataKey="applications"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    label={(entry) => `${entry.name} (${entry.applications})`}
-                  >
-                    {cityData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: '#F8F5EF', borderRadius: '12px', border: '1px solid #D8A64F' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Hiring Funnel Stage breakdown */}
-          <div className="lg:col-span-2 glass-panel p-6 rounded-3xl border border-gold-300">
-            <h3 className="text-lg font-serif font-bold text-charcoal mb-6 flex items-center gap-2">
-              <Award className="w-5 h-5 text-gold-600" /> Hiring Funnel Progression
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              {funnelData.map((stage, idx) => (
-                <div key={stage.stage} className="bg-gold-50/70 p-5 rounded-2xl border border-gold-200 text-center relative">
-                  <span className="text-[10px] uppercase font-bold text-gold-700 tracking-wider">Stage {idx + 1}</span>
-                  <p className="text-sm font-semibold text-charcoal mt-1">{stage.stage}</p>
-                  <p className="text-2xl font-bold text-gold-600 mt-2">{stage.count} <span className="text-xs text-gray-500 font-normal">candidates</span></p>
-                </div>
-              ))}
-            </div>
-          </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

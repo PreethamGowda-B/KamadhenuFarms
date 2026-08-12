@@ -129,13 +129,115 @@ model ApplicationNote {
   createdAt     DateTime    @default(now())
 }
 
+enum ShopStatus {
+  ACTIVE
+  FOLLOW_UP_DUE
+  ORDER_CONFIRMED
+  WAITING_FOR_RESPONSE
+  INACTIVE
+  CLOSED
+}
+
+enum FollowUpResult {
+  NEEDS_STOCK
+  ORDER_CONFIRMED
+  DOESNT_NEED_STOCK_NOW
+  CALL_LATER
+  NO_RESPONSE
+  NOT_INTERESTED
+  SHOP_CLOSED
+  OTHER
+}
+
 model AuditLog {
   id            String       @id @default(cuid())
   applicationId String?
   application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  shopId        String?
   adminEmail    String
   action        String
   details       String?
   ipAddress     String?
   createdAt     DateTime     @default(now())
+}
+
+model Shop {
+  id                         String            @id @default(cuid())
+  shopNo                     String            @unique // e.g. KHF-SHOP-001
+  shopName                   String
+  contactPerson              String
+  contactNumber              String
+  email                      String?
+  address                    String
+  area                       String
+  city                       String
+  state                      String
+  pinCode                    String
+  
+  assignedSalesExecutiveId   String?           // Application ID of assigned Hired Sales Executive
+  assignedSalesExecutiveName String?           // Cached display name of Sales Executive
+  
+  status                     ShopStatus        @default(ACTIVE)
+  reorderIntervalDays        Int               @default(30)
+  nextFollowUpDate           DateTime?
+  firstOrderDate             DateTime?
+  lastOrderDate              DateTime?
+  lastOrderQuantity          Float?            @default(0)
+  
+  totalOrders                Int               @default(0)
+  totalKgPurchased           Float             @default(0)
+  totalPurchaseValue         Float             @default(0)
+  notes                      String?
+  
+  orders                     ShopOrder[]
+  followUps                  ShopFollowUp[]
+
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
+
+  @@index([contactNumber])
+  @@index([shopName])
+  @@index([status])
+  @@index([nextFollowUpDate])
+  @@index([lastOrderDate])
+  @@index([assignedSalesExecutiveId])
+  @@index([city])
+}
+
+model ShopOrder {
+  id              String      @id @default(cuid())
+  shopId          String
+  shop            Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderNo         String      @unique // e.g. ORD-2026-001
+  orderDate       DateTime    @default(now())
+  product         String      // e.g. Pure Raw Honey 1kg, Dry Fruits Honey 500g
+  quantity        Int         // Number of jars/units
+  kg              Float       // Total weight in kilograms
+  orderValue      Float       // Total INR amount
+  paymentStatus   String      @default("PAID") // PAID, PENDING, PARTIAL
+  deliveryStatus  String      @default("DELIVERED") // DELIVERED, PENDING, DISPATCHED
+  salesExecutive  String?     // Name of Executive who took the order
+  notes           String?
+  createdAt       DateTime    @default(now())
+
+  @@index([shopId])
+  @@index([orderDate])
+  @@index([paymentStatus])
+}
+
+model ShopFollowUp {
+  id               String         @id @default(cuid())
+  shopId           String
+  shop             Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  author           String         // Admin or Sales Executive Name
+  date             DateTime       @default(now())
+  type             String         @default("CALL") // CALL, WHATSAPP, VISIT, OTHER
+  result           FollowUpResult
+  notes            String?
+  nextFollowUpDate DateTime?
+  createdAt        DateTime       @default(now())
+
+  @@index([shopId])
+  @@index([result])
+  @@index([date])
 }

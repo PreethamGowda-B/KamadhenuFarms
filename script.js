@@ -1237,17 +1237,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const addTiltEffect = () => {
+    if (window.innerWidth < 768) return;
     document.querySelectorAll('.product-card, .glass-card').forEach(card => {
+      let ticking = false;
       card.addEventListener('mousemove', (e) => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateX = ((y - centerY) / centerY) * -4;
-        const rotateY = ((x - centerX) / centerX) * 4;
-        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
-      });
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -4;
+            const rotateY = ((x - centerX) / centerX) * 4;
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }, { passive: true });
       card.addEventListener('mouseleave', () => {
         card.style.transform = '';
       });
@@ -1258,6 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const heroContent = document.querySelector('.hero-content');
   let isHeroScrolling = false;
   window.addEventListener('scroll', () => {
+    if (window.innerWidth < 768) return;
     if (!isHeroScrolling) {
       window.requestAnimationFrame(() => {
         const scrollY = window.scrollY;
@@ -1278,17 +1287,25 @@ document.addEventListener('DOMContentLoaded', () => {
      Dynamic Glare & 3D Lighting Effects
      ========================================================================== */
   const addDynamicLighting = () => {
+    if (window.innerWidth < 768) return;
     const cards = document.querySelectorAll('.product-card, .glass-card, .benefit-card');
     
     cards.forEach(card => {
+      let ticking = false;
       card.addEventListener('mousemove', e => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        card.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
-        card.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
-      });
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            card.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
+            card.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }, { passive: true });
     });
   };
 
@@ -1346,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const initUpcoming3DTilt = () => {
     const cards = document.querySelectorAll('.upcoming-card');
     if (!cards.length) return;
-    if (window.matchMedia('(max-width: 992px)').matches) return;
+    if (window.innerWidth < 768 || window.matchMedia('(max-width: 992px)').matches) return;
 
     const MAX_TILT  = 10;
     const MAX_SHIFT = 6;
@@ -1381,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const progress =  Math.hypot(dx / rect.width, dy / rect.height);
           applyTilt(rx, ry, progress);
         });
-      });
+      }, { passive: true });
 
       card.addEventListener('mouseenter', () => { card.style.transition = 'none'; });
 
@@ -1396,6 +1413,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ---- Floating Gold Particle Canvas ---- */
   const initUpcomingParticles = () => {
+    if (window.innerWidth < 768) return; // Skip heavy canvas loop on mobile
     const section = document.querySelector('.upcoming-products');
     if (!section) return;
 
@@ -1440,15 +1458,12 @@ document.addEventListener('DOMContentLoaded', () => {
       draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-        ctx.fillStyle   = this.gold ? `rgba(216,166,79,${this.alpha})` : `rgba(255,220,120,${this.alpha * 0.6})`;
-        ctx.shadowBlur  = 8;
-        ctx.shadowColor = this.gold ? 'rgba(216,166,79,0.5)' : 'rgba(255,200,80,0.3)';
+        ctx.fillStyle = this.gold ? `rgba(216,166,79,${this.alpha})` : `rgba(255,220,120,${this.alpha * 0.6})`;
         ctx.fill();
-        ctx.shadowBlur  = 0;
       }
     }
 
-    const particles = Array.from({ length: 55 }, () => new Particle());
+    const particles = Array.from({ length: 25 }, () => new Particle());
     let rafId;
 
     const loop = () => {
