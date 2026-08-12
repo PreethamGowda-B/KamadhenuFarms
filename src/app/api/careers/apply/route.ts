@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
                 resumeUrl: data.resumeUrl || null,
                 aadhaarUrl: data.aadhaarUrl || null,
                 profilePhotoUrl: data.profilePhotoUrl || null,
-                whyJoin: data.whyJoin.trim(),
+                whyJoin: (data.whyJoin || '').trim(),
                 declarationAccepted: Boolean(data.declarationAccepted),
                 status: 'APPLIED',
               },
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
         pinCode: data.pinCode.trim(),
         currentOccupation: data.currentOccupation.trim(),
         preferredSalesArea: data.preferredSalesArea.trim(),
-        whyJoin: data.whyJoin.trim(),
+        whyJoin: (data.whyJoin || '').trim(),
       });
     } else {
       // Sync local store cache
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
         pinCode: data.pinCode.trim(),
         currentOccupation: data.currentOccupation.trim(),
         preferredSalesArea: data.preferredSalesArea.trim(),
-        whyJoin: data.whyJoin.trim(),
+        whyJoin: (data.whyJoin || '').trim(),
       });
     }
 

@@ -30,7 +30,7 @@ export const documentsSchema = z.object({
 });
 
 export const finalStepSchema = z.object({
-  whyJoin: z.string().min(20, 'Please write at least 20 characters explaining why you wish to join'),
+  whyJoin: z.string().optional().default(''),
   declarationAccepted: z.boolean().refine((val: boolean) => val === true, {
     message: 'You must accept the declaration to submit your application',
   }),

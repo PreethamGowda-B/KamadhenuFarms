@@ -588,7 +588,7 @@ export default function ApplicationForm() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-charcoal mb-1">
-                    Why do you want to join Kamadhenu Honey Farm? *
+                    Why do you want to join Kamadhenu Honey Farm? (Optional)
                   </label>
                   <textarea
                     rows={4}
