@@ -150,9 +150,10 @@ export default async function VerificationPage({ params }: Props) {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="bg-gray-100 px-6 py-4 border-t border-gray-200 text-center text-xs text-gray-500">
-          Kamadhenu Honey Farms | Reg. Off Mandya, Karnataka | Support: +91 98765 43210
+        <div className="bg-gray-100 px-6 py-4 border-t border-gray-200 text-center text-xs text-gray-500 space-y-0.5">
+          <p className="font-semibold text-gray-700">Kamadhenu Honey Farms — Official Apiary Products & Retail Distribution</p>
+          <p>Farm Addr: Cholanayakanahalli, Magadi Main Road, Thavarekere, Bangalore Urban - 562130</p>
+          <p>Email: kamadhenuhoneyfarms@gmail.com | Phone: +91 9980114675 / +91 9535134351</p>
         </div>
 
       </div>

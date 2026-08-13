@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 import { logAdminAction } from '@/lib/audit';
 import { getApplicationsStore } from '@/lib/store';
+import { DocTypeKey, DocumentSnapshotData, generateDocumentHtml } from '@/lib/onboarding/templates';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -76,6 +77,55 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           data: updatePayload,
           include: { onboardingDocuments: true },
         });
+
+        // Re-generate contentSnapshot for all existing documents with new Joining Date & params
+        if (updated.onboardingDocuments && updated.onboardingDocuments.length > 0) {
+          for (const doc of updated.onboardingDocuments) {
+            const snapshotData: DocumentSnapshotData = {
+              applicationId: updated.id,
+              applicationNo: updated.applicationNo,
+              fullName: updated.fullName,
+              mobileNumber: updated.mobileNumber,
+              email: updated.email,
+              address: updated.city,
+              city: updated.city,
+              state: updated.state || 'Karnataka',
+              pinCode: updated.pinCode || '562130',
+              joiningDate: updated.joiningDate || joiningDate,
+              workingTerritory: updated.workingTerritory || workingTerritory,
+              commissionRate: updated.commissionRate || '₹100/kg - ₹150/kg',
+              commissionMin: updated.commissionMin || 100,
+              commissionMax: updated.commissionMax || 150,
+              payoutFrequency: updated.payoutFrequency || 'Weekly',
+              reportingManager: updated.reportingManager || reportingManager,
+              engagementType: updated.engagementType || engagementType,
+              additionalTerms: updated.additionalTerms || undefined,
+              validFrom: updated.authValidFrom || updated.joiningDate,
+              validUntil: updated.authValidUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              documentNo: doc.documentNo,
+              issueDate: doc.createdAt ? new Date(doc.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              version: doc.version,
+              isAuthActive: updated.isAuthActive !== false,
+            };
+
+            const newHtml = generateDocumentHtml(doc.docType as DocTypeKey, snapshotData);
+
+            await (prisma as any).onboardingDocument.update({
+              where: { id: doc.id },
+              data: {
+                validFrom: snapshotData.validFrom,
+                validUntil: snapshotData.validUntil,
+                contentSnapshot: JSON.stringify({ snapshotData, html: newHtml }),
+              },
+            });
+          }
+
+          // Refetch updated list with refreshed document snapshots
+          updated = await (prisma as any).application.findUnique({
+            where: { id },
+            include: { onboardingDocuments: true },
+          });
+        }
       } catch (dbErr) {
         console.error('Prisma update onboarding failed:', dbErr);
       }

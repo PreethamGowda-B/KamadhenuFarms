@@ -80,8 +80,41 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
     }
   };
 
+  function printDocumentHtml(html: string, title: string) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups in your browser to print or save PDF.');
+      return;
+    }
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @page { size: A4; margin: 15mm; }
+            body { font-family: sans-serif; margin: 0; padding: 20px; color: #2d3748; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          ${html}
+          <script>
+            window.onload = function() {
+              setTimeout(function() { window.print(); }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  }
+
   const handleConfirmHire = async () => {
     try {
+      // 1. Mark status as HIRED permanently
       const res = await fetch('/api/admin/applications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -89,7 +122,44 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
       });
       const json = await res.json();
       if (json.success) {
-        onUpdate({ ...app, status: 'HIRED', onboardingStatus: 'DETAILS_PENDING' });
+        // 2. Auto-save onboarding parameters with sensible defaults
+        const defaultParams = {
+          joiningDate: formData.joiningDate || new Date().toISOString().split('T')[0],
+          workingTerritory: formData.workingTerritory || app.city || 'Bangalore',
+          reportingManager: formData.reportingManager || 'Area Sales Manager',
+          engagementType: formData.engagementType || 'Sales Executive / Sales Partner',
+          commissionRate: formData.commissionRate || '₹100/kg - ₹150/kg',
+          commissionMin: formData.commissionMin || 100,
+          commissionMax: formData.commissionMax || 150,
+          payoutFrequency: formData.payoutFrequency || 'Weekly',
+          additionalTerms: formData.additionalTerms || '',
+          authValidFrom: formData.authValidFrom || new Date().toISOString().split('T')[0],
+          authValidUntil: formData.authValidUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        };
+
+        const onboardingRes = await fetch(`/api/admin/applications/${app.id}/onboarding`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(defaultParams),
+        });
+
+        const onboardingJson = await onboardingRes.json();
+        const updatedCandidate = onboardingJson.success ? onboardingJson.data : { ...app, status: 'HIRED', onboardingStatus: 'DETAILS_PENDING' };
+        onUpdate(updatedCandidate);
+
+        // 3. Auto-generate key documents so offer letter & authorization are immediately ready
+        const keyDocs: DocTypeKey[] = ['OFFER_LETTER', 'AUTHORIZATION_LETTER', 'COMMISSION_POLICY', 'PRICE_CATALOGUE'];
+        for (const dType of keyDocs) {
+          try {
+            await fetch(`/api/admin/applications/${app.id}/documents`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ docType: dType }),
+            });
+          } catch (e) {}
+        }
+
+        await fetchDocuments();
       }
     } catch (e) {
       alert('Failed to confirm hire');

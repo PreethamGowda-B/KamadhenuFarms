@@ -55,10 +55,10 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
           Pure Raw Natural Honey & Farm Fresh Apiary Products
         </p>
         <p style="margin: 2px 0 0 0; font-size: 10px; color: #718096;">
-          Reg. Off: #42 Apiary Estate, NH-7, Mandya District, Karnataka - 571401 | GSTIN: 29AAAFK1234F1Z0 | FSSAI: 11223344000567
+          Farm Address: Cholanayakanahalli, Magadi Main Road, Thavarekere, Bangalore Urban, Bangalore South - 562130
         </p>
         <p style="margin: 2px 0 0 0; font-size: 10px; color: #718096;">
-          Email: contact@kamadhenuhoneyfarms.in | Phone: +91 98765 43210 | Web: www.kamadhenuhoneyfarms.in
+          Email: kamadhenuhoneyfarms@gmail.com | Phone: +91 9980114675 / +91 9535134351 | Web: www.kamadhenuhoneyfarms.in
         </p>
       </div>
       <div style="text-align: right; min-width: 110px;">
@@ -328,39 +328,18 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
             </thead>
             <tbody>
               <tr>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Kamadhenu Raw Multiflora Honey</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">250g Glass Jar</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">₹180</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #276749;">₹130</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">24 Jars (1 Box)</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 12px;">Kamadhenu Pure Raw Multiflora Honey</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">1 KG Glass Jar</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #b8860b;">₹999</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #276749; font-size: 13px;">₹550 / KG</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">12 Jars (1 Box)</td>
               </tr>
-              <tr style="background: #f7fafc;">
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Kamadhenu Raw Multiflora Honey</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">500g Glass Jar</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">₹340</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #276749;">₹250</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">12 Jars (1 Box)</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Kamadhenu Raw Multiflora Honey</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">1 KG Glass Jar</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">₹650</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #276749;">₹480</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">12 Jars (1 Box)</td>
-              </tr>
-              <tr style="background: #f7fafc;">
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Kamadhenu Wild Mustard Honey</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">500g Glass Jar</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">₹390</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #276749;">₹290</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">12 Jars</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Bulk Commercial Honey Bucket</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">25 KG Food Grade Bucket</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">₹12,500</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #276749;">₹9,250</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">1 Bucket</td>
+              <tr style="background: #fcfbf7;">
+                <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; font-size: 12px;">Kamadhenu Dry Fruits Honey</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">1 KG Glass Jar</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #b8860b;">₹1200</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold; color: #276749; font-size: 13px;">₹650 / KG</td>
+                <td style="padding: 10px; border: 1px solid #e2e8f0;">12 Jars (1 Box)</td>
               </tr>
             </tbody>
           </table>
