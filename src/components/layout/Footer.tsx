@@ -18,7 +18,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-300 leading-relaxed">
-              100% Pure, Raw, Unprocessed Farm Honey direct from our bee boxes in Taverekere, Magadi Road, Bangalore. Empowering local sales partners across Karnataka.
+              Pure Raw Honey direct from our bee boxes in Taverekere, Magadi Road, Bangalore. Empowering local sales executives across Karnataka.
             </p>
             <div className="flex items-center gap-2 text-xs text-gold-400 font-medium">
               <Award className="w-4 h-4 text-gold-500" />

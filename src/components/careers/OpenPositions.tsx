@@ -48,7 +48,7 @@ export default function OpenPositions() {
                 </div>
 
                 <p className="text-sm text-gray-600 max-w-xl leading-relaxed">
-                  Promote and sell Kamadhenu 100% Pure Raw Honey to households, apartment complexes, retail stores, and organic shops across your district in Karnataka.
+                  Promote and sell Kamadhenu Pure Raw Honey to households, apartment complexes, retail stores, and grocery shops across your district in Karnataka.
                 </p>
 
                 {/* Metadata Pills */}

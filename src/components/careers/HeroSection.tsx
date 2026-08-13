@@ -41,7 +41,7 @@ export default function HeroSection() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-lg sm:text-xl text-charcoal-light leading-relaxed max-w-2xl mx-auto font-normal"
           >
-            Help us deliver 100% pure, natural, raw farm honey across Karnataka & India. Earn high commissions, enjoy flexible working hours, and grow with a trusted direct-from-farm brand.
+            Help us deliver Pure Raw Honey across Karnataka & India. Earn high commissions, enjoy flexible working hours, and grow with a trusted direct-from-farm brand.
           </motion.p>
 
           {/* Call to Action Buttons */}

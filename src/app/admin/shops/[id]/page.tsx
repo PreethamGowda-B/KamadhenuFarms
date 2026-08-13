@@ -242,7 +242,7 @@ export default function ShopDetailPage() {
             <button
               onClick={() => {
                 setShowWhatsAppModal(true);
-                setWhatsAppText(`Hi ${shop.contactPerson}, this is Kamadhenu Honey Farms 🐝. Your shop (${shop.shopName}) previously purchased our 100% pure raw honey products. We wanted to check whether you need fresh stock this month. Please let us know your required quantity and we will arrange prompt delivery! 🍯`);
+                setWhatsAppText(`Hi ${shop.contactPerson}, this is Kamadhenu Honey Farms 🐝. Your shop (${shop.shopName}) previously purchased our Pure Raw Honey products. We wanted to check whether you need fresh stock this month. Please let us know your required quantity and we will arrange prompt delivery! 🍯`);
               }}
               className="px-3.5 py-2.5 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700 transition-colors inline-flex items-center gap-1.5"
             >

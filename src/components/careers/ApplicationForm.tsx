@@ -607,7 +607,7 @@ export default function ApplicationForm() {
                       className="mt-1 w-4 h-4 accent-gold-600 rounded"
                     />
                     <span className="text-xs text-gray-700 leading-relaxed">
-                      I hereby declare that all information provided in this application is true and correct. I agree to uphold Kamadhenu Honey Farm's 100% pure raw product quality principles.
+                      I hereby declare that all information provided in this application is true and correct. I agree to uphold Kamadhenu Honey Farm's Pure Raw Honey product quality principles.
                     </span>
                   </label>
                   {errors.declarationAccepted && (

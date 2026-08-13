@@ -246,7 +246,7 @@ export default function AdminShopsPage() {
 
   const openWhatsAppDrawer = (shop: ShopRecord) => {
     setShowWhatsAppModal(shop);
-    const msg = `Hi ${shop.contactPerson}, this is Kamadhenu Honey Farms 🐝. Your shop (${shop.shopName}) previously purchased our 100% pure raw honey products. We wanted to check whether you need fresh stock this month. Please let us know your required quantity and we will arrange prompt delivery! 🍯`;
+    const msg = `Hi ${shop.contactPerson}, this is Kamadhenu Honey Farms 🐝. Your shop (${shop.shopName}) previously purchased our Pure Raw Honey products. We wanted to check whether you need fresh stock this month. Please let us know your required quantity and we will arrange prompt delivery! 🍯`;
     setWhatsAppText(msg);
   };
 

@@ -65,7 +65,7 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
           KAMADHENU HONEY FARMS
         </h1>
         <p style="margin: 3px 0 0 0; font-size: 11px; color: #b8860b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
-          Pure Raw Natural Honey & Farm Fresh Apiary Products
+          Pure Raw Honey & Farm Fresh Apiary Products
         </p>
         <p style="margin: 2px 0 0 0; font-size: 10px; color: #718096;">
           Farm Address: Cholanayakanahalli, Magadi Main Road, Thavarekere, Bangalore Urban, Bangalore South - 562130
@@ -173,7 +173,7 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
 
           <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">4. Scope of Duties & Strict Payment Policy</h4>
           <ul>
-            <li>Promote Kamadhenu Pure Raw Natural Honey products to retail shops, grocery stores, supermarkets, distributors, and potential customers.</li>
+            <li>Promote Kamadhenu Pure Raw Honey products to retail shops, grocery stores, supermarkets, distributors, and potential customers.</li>
             <li>Submit shop visit logs and order requirements to company management daily by 7:00 PM.</li>
             <li><strong>Strict Company Payment Policy:</strong> All customer payments must be remitted directly to official Kamadhenu Honey Farms company bank accounts or official company UPI/QR codes. Sales Executives are strictly prohibited from receiving or collecting money into personal accounts, personal UPI IDs, or personal wallets.</li>
           </ul>
@@ -329,7 +329,7 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
           ${metaHeaderHtml('Official Product & Price Catalogue', data.documentNo)}
 
           <p style="background: #fffaf0; border: 1px solid #fbd38d; padding: 10px; border-radius: 6px; font-size: 11px; color: #744210;">
-            <strong>Official Product Guarantee:</strong> All Kamadhenu Honey Farms products consist of 100% Pure Raw Natural Honey directly harvested from verified apiaries. Free from added sugars, synthetic syrups, or unapproved additives.
+            <strong>Official Product Guarantee:</strong> All Kamadhenu Honey Farms products consist of Pure Raw Honey directly harvested from verified apiaries. Free from added sugars, synthetic syrups, or unapproved additives.
           </p>
 
           <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">Official Retail & Wholesale Pricing Structure (2026)</h4>
