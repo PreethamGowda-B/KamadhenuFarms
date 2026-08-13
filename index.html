@@ -154,24 +154,85 @@
     </div>
   </header>
 
-  <!-- Mobile Fullscreen Navigation Overlay -->
+  <!-- Mobile Premium Navigation Top Sheet -->
   <div class="mobile-nav" id="mobileNavMenu">
-    <button class="mobile-nav-close" onclick="window.toggleMobileNav && window.toggleMobileNav(event)" aria-label="Close menu" style="position: absolute; top: 20px; right: 20px; background: rgba(216, 166, 79, 0.2); border: 1px solid var(--primary-gold); border-radius: 50%; width: 44px; height: 44px; font-size: 24px; color: var(--luxury-charcoal); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100002;">
-      &times;
-    </button>
-    <ul>
-      <li><a href="#home">Home</a></li>
-      <li><a href="#about">About Us</a></li>
-      <li><a href="#products">Our Honey</a></li>
-      <li><a href="#benefits">Benefits</a></li>
-      <li><a href="#gallery">Gallery</a></li>
-      <li><a href="#reviews">Reviews</a></li>
-      <li><a href="#contact">Contact</a></li>
-      <li><a href="/careers" style="color:var(--primary-gold); font-weight:700;">Careers & Field Sales 🍯</a></li>
-      <li><a href="#" class="open-tracker-btn">Track Order</a></li>
-    </ul>
-    <div class="mobile-nav-cta">
-      <a href="https://wa.me/919980114675" class="btn btn-gold" style="width: 100%; justify-content: center; padding: 14px 24px;">Order on WhatsApp</a>
+    <div class="mobile-nav-container">
+      <!-- Header inside drawer -->
+      <div class="mobile-nav-header">
+        <div class="mobile-nav-brand">
+          <span class="brand-icon">🍯</span>
+          <div class="brand-titles">
+            <span class="brand-main">KAMADHENU</span>
+            <span class="brand-sub">HONEY FARMS</span>
+          </div>
+        </div>
+        <button class="mobile-nav-close" onclick="window.toggleMobileNav && window.toggleMobileNav(event)" aria-label="Close menu">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Menu content grid/sections -->
+      <div class="mobile-nav-body">
+        <div class="mobile-nav-section">
+          <span class="mobile-nav-section-title">EXPLORE OUR FARM</span>
+          <div class="mobile-nav-grid">
+            <a href="#home" class="mobile-nav-item">
+              <span class="nav-icon">🏡</span>
+              <span>Home</span>
+            </a>
+            <a href="#about" class="mobile-nav-item">
+              <span class="nav-icon">🐝</span>
+              <span>About Us</span>
+            </a>
+            <a href="#products" class="mobile-nav-item">
+              <span class="nav-icon">🍯</span>
+              <span>Pure Raw Honey</span>
+            </a>
+            <a href="#benefits" class="mobile-nav-item">
+              <span class="nav-icon">✨</span>
+              <span>Benefits</span>
+            </a>
+            <a href="#gallery" class="mobile-nav-item">
+              <span class="nav-icon">🖼️</span>
+              <span>Gallery</span>
+            </a>
+            <a href="#reviews" class="mobile-nav-item">
+              <span class="nav-icon">⭐</span>
+              <span>Reviews</span>
+            </a>
+            <a href="#contact" class="mobile-nav-item">
+              <span class="nav-icon">📞</span>
+              <span>Contact</span>
+            </a>
+            <a href="#" class="mobile-nav-item open-tracker-btn">
+              <span class="nav-icon">📦</span>
+              <span>Track Order</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="mobile-nav-section">
+          <span class="mobile-nav-section-title">CAREERS & FIELD SALES</span>
+          <div class="mobile-nav-list">
+            <a href="/careers" class="mobile-nav-item highlight-item">
+              <span class="nav-icon">💼</span>
+              <div class="item-text">
+                <span class="item-title">Careers & Sales Executive Job</span>
+                <span class="item-badge">Hiring Now • Apply Online</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom action button -->
+      <div class="mobile-nav-footer">
+        <a href="https://wa.me/919980114675" class="btn btn-gold mobile-nav-btn">
+          <span>💬 Order on WhatsApp</span>
+        </a>
+      </div>
     </div>
   </div>
 
