@@ -46,7 +46,7 @@ export async function GET() {
   }
 
   if (apps.length === 0) {
-    // Normalize: ensure every record from the local fallback store has notes: []
+    // Normalize: ensure every record from local fallback store has notes: []
     apps = getApplicationsStore().map((a) => ({ ...a, notes: a.notes ?? [] }));
   }
 
@@ -56,7 +56,7 @@ export async function GET() {
     (a) => new Date(a.createdAt).toDateString() === new Date().toDateString()
   ).length;
   const shortlisted = apps.filter((a) => a.status === 'INTERVIEW_SCHEDULED' || a.status === 'REVIEWED').length;
-  const hired = apps.filter((a) => a.status === 'SELECTED').length;
+  const hired = apps.filter((a) => a.status === 'SELECTED' || a.status === 'HIRED').length;
   const rejected = apps.filter((a) => a.status === 'REJECTED').length;
   const conversionRate = total > 0 ? Math.round((hired / total) * 100) : 0;
 
