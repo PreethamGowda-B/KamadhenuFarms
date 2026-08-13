@@ -144,8 +144,8 @@
           <a href="tel:9980114675" class="btn btn-gold" style="padding: 8px 16px;">Call</a>
         </div>
 
-        <!-- Mobile hamburger menu -->
-        <div class="hamburger" id="navHamburger">
+        <!-- Mobile hamburger menu (3-line icon) -->
+        <div class="hamburger" id="navHamburger" role="button" aria-label="Toggle Navigation Menu" tabindex="0" onclick="window.toggleMobileNav && window.toggleMobileNav(event)" ontouchstart="window.toggleMobileNav && window.toggleMobileNav(event)">
           <span></span>
           <span></span>
           <span></span>
@@ -156,6 +156,9 @@
 
   <!-- Mobile Fullscreen Navigation Overlay -->
   <div class="mobile-nav" id="mobileNavMenu">
+    <button class="mobile-nav-close" onclick="window.toggleMobileNav && window.toggleMobileNav(event)" aria-label="Close menu" style="position: absolute; top: 20px; right: 20px; background: rgba(216, 166, 79, 0.2); border: 1px solid var(--primary-gold); border-radius: 50%; width: 44px; height: 44px; font-size: 24px; color: var(--luxury-charcoal); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100002;">
+      &times;
+    </button>
     <ul>
       <li><a href="#home">Home</a></li>
       <li><a href="#about">About Us</a></li>
@@ -164,11 +167,11 @@
       <li><a href="#gallery">Gallery</a></li>
       <li><a href="#reviews">Reviews</a></li>
       <li><a href="#contact">Contact</a></li>
-      <li><a href="/careers" style="color:var(--primary-gold); font-weight:700;">Careers & Partner Program 🍯</a></li>
+      <li><a href="/careers" style="color:var(--primary-gold); font-weight:700;">Careers & Field Sales 🍯</a></li>
       <li><a href="#" class="open-tracker-btn">Track Order</a></li>
     </ul>
     <div class="mobile-nav-cta">
-      <a href="https://wa.me/919980114675" class="btn btn-gold">Order on WhatsApp</a>
+      <a href="https://wa.me/919980114675" class="btn btn-gold" style="width: 100%; justify-content: center; padding: 14px 24px;">Order on WhatsApp</a>
     </div>
   </div>
 

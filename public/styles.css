@@ -4768,7 +4768,7 @@ body:not(.loaded) {
   backdrop-filter: blur(15px) !important;
   -webkit-backdrop-filter: blur(15px) !important;
   z-index: 100000 !important;
-  display: none !important;
+  display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
   align-items: center !important;
@@ -4777,7 +4777,7 @@ body:not(.loaded) {
   visibility: hidden !important;
   pointer-events: none !important;
   transform: translateY(-100%) !important;
-  transition: opacity 0.3s ease, transform 0.3s ease !important;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0.35s ease !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
 }
