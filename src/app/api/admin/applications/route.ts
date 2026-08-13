@@ -126,13 +126,36 @@ export async function PATCH(req: NextRequest) {
       logAdminAction(author || 'admin@kamadhenuhoneyfarms.in', `STATUS_CHANGE_${status}`, id, `New Status: ${status}`, ip);
 
       // Dispatches on Status Changes
-      if (status === 'SELECTED') {
-        const emailHtml = getHiredSelectionTemplate(updated.fullName, updated.applicationNo);
-        await sendEmail({
-          to: updated.email,
-          subject: `Congratulations! Selected as Sales Executive (Field Sales) - Kamadhenu Honey Farms (${updated.applicationNo})`,
-          html: emailHtml,
-        });
+      if (status === 'HIRED' || status === 'SELECTED') {
+        const isAlreadySent = updated.hiringEmailStatus === 'SENT';
+        let emailDelivered = false;
+
+        if (!isAlreadySent) {
+          try {
+            const emailHtml = getHiredSelectionTemplate(updated.fullName, updated.applicationNo);
+            const emailResult = await sendEmail({
+              to: updated.email,
+              subject: `Congratulations! Selected as Sales Executive (Field Sales) - Kamadhenu Honey Farms (${updated.applicationNo})`,
+              html: emailHtml,
+            });
+
+            emailDelivered = emailResult.success;
+
+            if (process.env.DATABASE_URL) {
+              try {
+                await (prisma as any).application.update({
+                  where: { id },
+                  data: {
+                    hiringEmailStatus: emailDelivered ? 'SENT' : 'FAILED',
+                    hiringEmailSentAt: emailDelivered ? new Date() : null,
+                  },
+                });
+              } catch (e) {}
+            }
+          } catch (mailErr) {
+            console.error('Failed to send hiring confirmation email:', mailErr);
+          }
+        }
 
         const waRes = await sendWhatsAppMessage({
           to: updated.whatsAppNumber || updated.mobileNumber,

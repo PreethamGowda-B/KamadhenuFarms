@@ -101,6 +101,9 @@ export interface OnboardingDocumentRecord {
   approvedBy?: string;
   approvedAt?: string;
   sentAt?: string;
+  sentTo?: string;
+  sentBy?: string;
+  sentStatus?: 'NOT_SENT' | 'SENT' | 'FAILED';
   createdAt: string;
   updatedAt: string;
 }
@@ -150,6 +153,9 @@ export interface ApplicationRecord {
   authValidFrom?: string;
   authValidUntil?: string;
   isAuthActive?: boolean;
+
+  hiringEmailStatus?: 'NOT_SENT' | 'SENT' | 'FAILED';
+  hiringEmailSentAt?: string;
 
   onboardingDocuments?: OnboardingDocumentRecord[];
   notes: { id: string; author: string; content: string; createdAt: string }[];

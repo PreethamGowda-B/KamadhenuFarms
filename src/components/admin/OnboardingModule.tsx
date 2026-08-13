@@ -372,7 +372,7 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
             { label: '1. Hired', active: true },
             { label: '2. Details Filled', active: !!app.joiningDate && !!app.workingTerritory },
             { label: '3. Docs Generated', active: documents.length > 0 },
-            { label: '4. Approved', active: documents.some((d) => d.status === 'APPROVED') },
+            { label: '4. Approved', active: documents.some((d) => d.status === 'APPROVED' || d.status === 'SENT') },
             { label: '5. Sent to Candidate', active: app.onboardingStatus === 'DOCUMENTS_SENT' || app.onboardingStatus === 'ONBOARDING_COMPLETED' },
             { label: '6. Active Executive', active: !isRevoked && app.onboardingStatus === 'ONBOARDING_COMPLETED' },
           ].map((st, i) => (
@@ -387,6 +387,39 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
               {st.label}
             </div>
           ))}
+        </div>
+
+        {/* Section 18: Admin Communication Status Badges */}
+        <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-gray-700">Hiring Email Status:</span>
+            {app.hiringEmailStatus === 'SENT' ? (
+              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                ✓ Sent {app.hiringEmailSentAt ? `(${new Date(app.hiringEmailSentAt).toLocaleDateString('en-GB')})` : ''}
+              </span>
+            ) : app.hiringEmailStatus === 'FAILED' ? (
+              <span className="px-2.5 py-0.5 bg-rose-100 text-rose-800 font-bold rounded-full border border-rose-300 inline-flex items-center gap-1">
+                ⚠ Delivery Failed
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 font-medium rounded-full border border-gray-300">
+                — Not Sent
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-gray-700">Onboarding Documents Status:</span>
+            {app.onboardingStatus === 'DOCUMENTS_SENT' || documents.some((d) => d.status === 'SENT') ? (
+              <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                ✓ Dispatched to Candidate ({app.email})
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-semibold rounded-full border border-amber-300">
+                — Awaiting Approval & Dispatch
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

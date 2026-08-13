@@ -85,6 +85,9 @@ model Application {
   authValidUntil        String?
   isAuthActive          Boolean           @default(true)
 
+  hiringEmailStatus     String?           @default("NOT_SENT") // NOT_SENT, SENT, FAILED
+  hiringEmailSentAt     DateTime?
+
   notes                 ApplicationNote[]
   onboardingDocuments   OnboardingDocument[]
   auditLogs             AuditLog[]
@@ -113,6 +116,9 @@ model OnboardingDocument {
   approvedBy      String?
   approvedAt      DateTime?
   sentAt          DateTime?
+  sentTo          String?
+  sentBy          String?
+  sentStatus      String?     @default("NOT_SENT") // NOT_SENT, SENT, FAILED
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
