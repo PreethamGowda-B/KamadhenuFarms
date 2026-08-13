@@ -74,7 +74,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button (3-Line Hamburger Icon) */}
           <div className="flex lg:hidden items-center space-x-2">
             <Link
               href="/careers/apply"
@@ -87,9 +87,9 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
-              className="p-2.5 rounded-xl text-charcoal bg-gold-100/60 hover:text-gold-700 hover:bg-gold-200/60 focus:outline-none focus:ring-2 focus:ring-gold-500 transition-colors"
+              className="p-2.5 rounded-xl text-charcoal bg-gold-100/80 hover:text-gold-700 hover:bg-gold-200/80 focus:outline-none focus:ring-2 focus:ring-gold-500 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-6 h-6 text-gold-900" /> : <Menu className="w-6 h-6 text-gold-900" />}
             </button>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Drawer Overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-x-0 top-20 bottom-0 bg-charcoal/40 backdrop-blur-sm z-50 flex flex-col justify-between">
+        <div className="lg:hidden fixed inset-x-0 top-20 bottom-0 bg-charcoal/50 backdrop-blur-md z-50 flex flex-col justify-between">
           <div className="bg-cream-bg border-b border-gold-300 shadow-2xl px-5 py-6 space-y-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
             
             <div className="space-y-1">
@@ -108,63 +108,63 @@ export default function Navbar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-bold text-gold-700 hover:bg-gold-100/70 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-base font-bold text-gold-700 hover:bg-gold-100/70 transition-all active:scale-[0.98]"
               >
-                <Home className="w-5 h-5 text-gold-600" />
+                <Home className="w-5 h-5 text-gold-600 shrink-0" />
                 <span>Main Store (kamadhenuhoneyfarms.in) 🛍️</span>
               </a>
               
               <Link
                 href="/careers"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
               >
-                <Briefcase className="w-5 h-5 text-gold-600" />
+                <Briefcase className="w-5 h-5 text-gold-600 shrink-0" />
                 <span>Careers Home</span>
               </Link>
 
               <Link
                 href="/careers/sales-agent"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
               >
-                <ShoppingBag className="w-5 h-5 text-gold-600" />
-                <span>Sales Partner Job</span>
+                <ShoppingBag className="w-5 h-5 text-gold-600 shrink-0" />
+                <span>Sales Executive Job</span>
               </Link>
 
               <Link
                 href="/track"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-gold-800 bg-gold-50 border border-gold-300 hover:bg-gold-100 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-base font-semibold text-gold-800 bg-gold-50 border border-gold-300 hover:bg-gold-100 transition-all active:scale-[0.98]"
               >
-                <Search className="w-5 h-5 text-gold-600" />
+                <Search className="w-5 h-5 text-gold-600 shrink-0" />
                 <span>Track Application Status</span>
               </Link>
 
               <Link
                 href="/careers#faq"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
               >
-                <HelpCircle className="w-5 h-5 text-gold-600" />
+                <HelpCircle className="w-5 h-5 text-gold-600 shrink-0" />
                 <span>Frequently Asked Questions (FAQ)</span>
               </Link>
 
               <Link
                 href="/#about"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
               >
-                <Info className="w-5 h-5 text-gold-600" />
+                <Info className="w-5 h-5 text-gold-600 shrink-0" />
                 <span>About Us</span>
               </Link>
 
               <Link
                 href="/#contact"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
+                className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-base font-semibold text-charcoal hover:bg-gold-100/70 hover:text-gold-700 transition-all active:scale-[0.98]"
               >
-                <PhoneCall className="w-5 h-5 text-gold-600" />
+                <PhoneCall className="w-5 h-5 text-gold-600 shrink-0" />
                 <span>Contact Us</span>
               </Link>
             </div>
@@ -175,7 +175,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white bg-gradient-to-r from-gold-500 to-gold-600 rounded-full shadow-lg shadow-gold-500/25 active:scale-95 transition-all"
               >
-                <span>Apply for Sales Partner Job</span>
+                <span>Apply for Sales Executive Job</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
 
