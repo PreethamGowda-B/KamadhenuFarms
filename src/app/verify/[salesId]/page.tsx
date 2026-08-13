@@ -118,7 +118,7 @@ export default async function VerificationPage({ params }: Props) {
                 <div className="flex justify-between items-center border-b border-amber-200 pb-3">
                   <span className="text-xs font-semibold text-gray-500">Designated Position</span>
                   <span className="text-sm font-semibold text-gray-800">
-                    {candidate.engagementType || 'Sales Executive'}
+                    {candidate.engagementType || 'Sales Executive (Field Sales)'}
                   </span>
                 </div>
 

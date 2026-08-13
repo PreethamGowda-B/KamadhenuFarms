@@ -39,6 +39,19 @@ export function getVerificationUrl(applicationNo: string): string {
   return `/verify/${salesId}`;
 }
 
+export function calculateValidUntil(validFromStr: string): string {
+  const d = new Date(validFromStr);
+  if (isNaN(d.getTime())) {
+    const today = new Date();
+    today.setFullYear(today.getFullYear() + 1);
+    today.setDate(today.getDate() - 1);
+    return today.toISOString().split('T')[0];
+  }
+  d.setFullYear(d.getFullYear() + 1);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
 export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshotData): string {
   const verificationPath = getVerificationUrl(data.applicationNo);
   const qrcodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
@@ -87,22 +100,18 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
 
   const candidateInfoBox = `
     <div style="background: #faf8f2; border: 1px solid #edd99b; border-radius: 6px; padding: 14px; margin-bottom: 20px; font-size: 11px; color: #2d3748;">
-      <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: bold; color: #b8860b; text-transform: uppercase; border-bottom: 1px solid #ebd48e; pb: 4px;">Candidate & Engagement Profile</h3>
+      <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: bold; color: #b8860b; text-transform: uppercase; border-bottom: 1px solid #ebd48e; padding-bottom: 4px;">Sales Executive Profile</h3>
       <table style="width: 100%; border-collapse: collapse; line-height: 1.6;">
         <tr>
           <td style="width: 50%; vertical-align: top;">
             <strong>Full Name:</strong> ${data.fullName}<br/>
-            <strong>Application ID:</strong> ${data.applicationNo}<br/>
-            <strong>Contact Phone:</strong> ${data.mobileNumber}<br/>
-            <strong>Email:</strong> ${data.email}<br/>
-            <strong>Residential Address:</strong> ${data.address}, ${data.city}, ${data.state} - ${data.pinCode}
+            <strong>Sales ID / Application ID:</strong> ${data.applicationNo}<br/>
+            <strong>Designated Role:</strong> ${data.engagementType}
           </td>
           <td style="width: 50%; vertical-align: top;">
-            <strong>Role / Position:</strong> ${data.engagementType}<br/>
-            <strong>Joining Date:</strong> ${data.joiningDate}<br/>
             <strong>Working Territory:</strong> ${data.workingTerritory}<br/>
-            <strong>Reporting Manager:</strong> ${data.reportingManager}<br/>
-            <strong>Payout Frequency:</strong> ${data.payoutFrequency}
+            <strong>Joining Date:</strong> ${data.joiningDate}<br/>
+            <strong>Reporting Manager:</strong> ${data.reportingManager}
           </td>
         </tr>
       </table>
@@ -115,7 +124,7 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
         <p style="margin-bottom: 45px; color: #718096; font-style: italic;">Candidate Signature & Acceptance</p>
         <div style="border-top: 1px dashed #718096; padding-top: 6px;">
           <strong>${data.fullName}</strong><br/>
-          <span>Candidate / Sales Executive</span><br/>
+          <span>${data.engagementType}</span><br/>
           <span>Date: ________________________</span>
         </div>
       </div>
@@ -147,26 +156,26 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
 
           <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">1. Role & Territory</h4>
           <p>
-            You will be responsible for sales distribution, store onboardings, and order management across your assigned working territory:
+            You will be responsible for sales lead generation, store outreach, order collection, and retail relationship management across your assigned working territory:
             <strong>${data.workingTerritory}</strong>. You will report directly to <strong>${data.reportingManager}</strong>.
           </p>
 
           <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">2. Date of Joining & Probation</h4>
           <p>
-            Your effective joining date is <strong>${data.joiningDate}</strong>. You will be on a probation period of 60 days during which your sales targets and shop onboarding consistency will be reviewed.
+            Your effective joining date is <strong>${data.joiningDate}</strong>. You will be on a probation period of 60 days during which your sales consistency and retailer onboarding performance will be reviewed.
           </p>
 
-          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">3. Remuneration & Commission</h4>
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">3. Remuneration & Commission Structure</h4>
           <p>
-            Your performance compensation is governed by the official Kamadhenu Honey Farms Commission Policy, with a tier rate of 
-            <strong>${data.commissionRate}</strong> paid on a <strong>${data.payoutFrequency}</strong> cycle.
+            Your performance compensation is governed by the official Kamadhenu Honey Farms Commission Policy, with a tier rate ranging from 
+            <strong>${data.commissionRate}</strong> paid on a <strong>${data.payoutFrequency}</strong> cycle for verified and fully paid customer orders.
           </p>
 
-          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">4. Duties & Expectations</h4>
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">4. Scope of Duties & Strict Payment Policy</h4>
           <ul>
-            <li>Promote Kamadhenu Raw Natural Honey products to retail grocers, organic outlets, and supermarkets.</li>
-            <li>Maintain daily store visit logs and submit sales reports daily by 7:00 PM.</li>
-            <li>Ensure payment receipts are collected strictly via official Kamadhenu Honey Farms channels.</li>
+            <li>Promote Kamadhenu Pure Raw Natural Honey products to retail shops, grocery stores, supermarkets, distributors, and potential customers.</li>
+            <li>Submit shop visit logs and order requirements to company management daily by 7:00 PM.</li>
+            <li><strong>Strict Company Payment Policy:</strong> All customer payments must be remitted directly to official Kamadhenu Honey Farms company bank accounts or official company UPI/QR codes. Sales Executives are strictly prohibited from receiving or collecting money into personal accounts, personal UPI IDs, or personal wallets.</li>
           </ul>
 
           ${data.additionalTerms ? `
@@ -201,11 +210,7 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
           </p>
 
           <p style="text-align: justify;">
-            This is to certify that <strong>${data.fullName}</strong> (Holding Sales ID: <strong>${data.applicationNo}</strong>) is an officially authorized Sales Executive representing <strong>Kamadhenu Honey Farms</strong>.
-          </p>
-
-          <p style="text-align: justify;">
-            The authorized representative is empowered to visit retail outlets, supermarkets, grocers, and distributors to present official product catalogues, collect orders, and facilitate retail partnerships across the designated territory:
+            This is to certify that <strong>${data.fullName}</strong> (Holding Sales ID: <strong>${data.applicationNo}</strong>) is an officially authorized <strong>${data.engagementType}</strong> representing <strong>Kamadhenu Honey Farms</strong>.
           </p>
 
           <div style="background: #fffaf0; border: 1px solid #fbd38d; padding: 14px; border-radius: 6px; margin: 16px 0;">
@@ -215,32 +220,43 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
                 <td><strong>Sales ID:</strong> ${data.applicationNo}</td>
               </tr>
               <tr>
+                <td><strong>Designated Role:</strong> ${data.engagementType}</td>
                 <td><strong>Working Territory:</strong> ${data.workingTerritory}</td>
-                <td><strong>Status:</strong> ${isRevoked ? 'REVOKED' : 'ACTIVE'}</td>
               </tr>
               <tr>
-                <td><strong>Validity Start Date:</strong> ${data.validFrom}</td>
-                <td><strong>Validity Expiry Date:</strong> ${data.validUntil}</td>
+                <td><strong>Authorization Start Date:</strong> ${data.validFrom}</td>
+                <td><strong>Authorization Expiry Date:</strong> ${data.validUntil}</td>
               </tr>
             </table>
           </div>
 
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 6px; font-size: 12px; text-transform: uppercase;">Authorized Scope of Duties</h4>
+          <ul style="margin-top: 4px; padding-left: 20px;">
+            <li>Visit retail outlets, supermarkets, grocery stores, distributors, and potential commercial clients.</li>
+            <li>Present official product information, samples, and authorized price catalogues.</li>
+            <li>Collect retailer product requirements and submit order details to Kamadhenu Honey Farms management for confirmation and fulfillment.</li>
+          </ul>
+
+          <h4 style="color: #c53030; margin-top: 14px; margin-bottom: 6px; font-size: 12px; text-transform: uppercase;">Explicit Operational Limitations</h4>
+          <ul style="margin-top: 4px; padding-left: 20px; color: #742a2a;">
+            <li>NOT authorized to collect payments into personal bank accounts, personal UPI IDs, or wallets.</li>
+            <li>NOT authorized to collect cash payments on behalf of the company.</li>
+            <li>NOT authorized to alter official company pricing, grant unauthorized discounts, or promise unapproved credit.</li>
+            <li>NOT authorized to execute contracts or represent self as owner, partner, or director.</li>
+          </ul>
+
           <div style="display: flex; gap: 20px; align-items: center; background: #f7fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px;">
             <div>
-              <img src="${qrcodeApiUrl}" alt="Verification QR Code" style="width: 120px; height: 120px; border: 1px solid #cbd5e0; border-radius: 4px;" />
+              <img src="${qrcodeApiUrl}" alt="Verification QR Code" style="width: 110px; height: 110px; border: 1px solid #cbd5e0; border-radius: 4px;" />
             </div>
             <div style="font-size: 11px;">
-              <h4 style="margin: 0 0 6px 0; font-size: 12px; color: #b8860b;">Instant Field Verification System</h4>
-              <p style="margin: 0 0 6px 0;">Shop owners and distributors can verify the real-time authenticity of this authorization letter by scanning the QR code above or visiting:</p>
+              <h4 style="margin: 0 0 6px 0; font-size: 12px; color: #b8860b;">Digital QR Verification System</h4>
+              <p style="margin: 0 0 6px 0;">Retailers and distributors can instantly verify the real-time active status of this representative by scanning the QR code or visiting:</p>
               <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #2b6cb0;">
                 https://kamadhenuhoneyfarms.in${verificationPath}
               </code>
             </div>
           </div>
-
-          <p style="font-size: 10px; color: #718096; margin-top: 20px; font-style: italic;">
-            Notice: This authorization letter remains the property of Kamadhenu Honey Farms and must be surrendered immediately upon cessation of engagement or revocation. Payments must strictly be deposited to official company bank/UPI accounts only.
-          </p>
 
           ${signatureSectionHtml}
         </div>
@@ -256,48 +272,49 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
 
           <p>
             This document outlines the official commission policy governing sales executed by 
-            <strong>${data.fullName}</strong> on behalf of <strong>Kamadhenu Honey Farms</strong>.
+            <strong>${data.fullName}</strong> as a <strong>${data.engagementType}</strong> on behalf of <strong>Kamadhenu Honey Farms</strong>.
           </p>
 
-          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">1. Standard Commission Tier Structure</h4>
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">1. Tiered Volume Commission Structure</h4>
+          <p>Commission is calculated on total verified monthly sales volume achieved in kilograms:</p>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px;">
             <thead>
               <tr style="background: #d4af37; color: #fff; text-align: left;">
-                <th style="padding: 8px; border: 1px solid #b8860b;">Sales Volume (Monthly)</th>
+                <th style="padding: 8px; border: 1px solid #b8860b;">Monthly Volume Tier</th>
                 <th style="padding: 8px; border: 1px solid #b8860b;">Commission Rate (Per KG)</th>
-                <th style="padding: 8px; border: 1px solid #b8860b;">Eligibility Criteria</th>
+                <th style="padding: 8px; border: 1px solid #b8860b;">Eligibility Condition</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td style="padding: 8px; border: 1px solid #e2e8f0;">Up to 250 KG</td>
                 <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #2b6cb0;">₹${data.commissionMin || 100} / KG</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">Confirmed Paid Sales</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">Confirmed & Fully Paid Sales</td>
               </tr>
               <tr style="background: #f7fafc;">
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">251 KG - 500 KG</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">251 KG – 500 KG</td>
                 <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #2b6cb0;">₹125 / KG</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">Confirmed Paid Sales</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">Confirmed & Fully Paid Sales</td>
               </tr>
               <tr>
                 <td style="padding: 8px; border: 1px solid #e2e8f0;">Above 500 KG</td>
                 <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold; color: #2b6cb0;">₹${data.commissionMax || 150} / KG</td>
-                <td style="padding: 8px; border: 1px solid #e2e8f0;">Confirmed Paid Sales + Target Bonus</td>
+                <td style="padding: 8px; border: 1px solid #e2e8f0;">Confirmed & Fully Paid Sales</td>
               </tr>
             </tbody>
           </table>
 
-          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">2. Payout Frequency & Processing</h4>
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">2. Payout Processing & Qualification</h4>
           <p>
-            Commission is calculated weekly on all verified payments received by Sunday midnight and dispatches on the following 
-            <strong>${data.payoutFrequency}</strong> cycle directly to the salesperson's designated bank account.
+            Commission is calculated weekly on all company-verified payments received by Sunday midnight and dispatched on the 
+            <strong>${data.payoutFrequency}</strong> cycle directly to the representative's designated bank account.
           </p>
 
-          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">3. Eligibility & Return Policy (Strict Clause)</h4>
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">3. Order Validity & Clawback Clause</h4>
           <ul>
-            <li><strong>Confirmed Paid Sales Only:</strong> Commission is payable strictly on orders where full payment has been received and confirmed in Kamadhenu Honey Farms accounts.</li>
-            <li><strong>Cancelled / Returned Orders:</strong> No commission is earned or payable on cancelled orders, returned goods, or unpaid credit defaults.</li>
-            <li><strong>Adjustment / Clawback:</strong> If an order is returned or defaulted after commission payout, the commission amount will be adjusted in the subsequent week's payout.</li>
+            <li><strong>Confirmed Paid Orders Only:</strong> Commission applies strictly to orders where full payment has been confirmed in company bank accounts.</li>
+            <li><strong>Exclusions:</strong> Cancelled, returned, unpaid, fraudulent, or defaulted orders do not earn commission.</li>
+            <li><strong>Clawback Provision:</strong> If a previously paid order is later returned or defaulted, the paid commission will be adjusted in the subsequent payout cycle.</li>
           </ul>
 
           ${signatureSectionHtml}
@@ -312,10 +329,10 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
           ${metaHeaderHtml('Official Product & Price Catalogue', data.documentNo)}
 
           <p style="background: #fffaf0; border: 1px solid #fbd38d; padding: 10px; border-radius: 6px; font-size: 11px; color: #744210;">
-            <strong>Product Guarantee:</strong> All Kamadhenu Honey Farms products consist of 100% Pure Raw Natural Honey directly harvested from verified apiaries. Unfiltered, unheated, and free from added sugars or synthetic syrups.
+            <strong>Official Product Guarantee:</strong> All Kamadhenu Honey Farms products consist of 100% Pure Raw Natural Honey directly harvested from verified apiaries. Free from added sugars, synthetic syrups, or unapproved additives.
           </p>
 
-          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">Retail & Wholesale Pricing Structure (2026)</h4>
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">Official Retail & Wholesale Pricing Structure (2026)</h4>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11px;">
             <thead>
               <tr style="background: #d4af37; color: #fff; text-align: left;">
@@ -362,25 +379,23 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
 
           <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">1. Daily Field Routine & Target Visits</h4>
           <p>
-            Sales Executives are required to execute a minimum of <strong>15 to 20 retail shop visits</strong> daily within 
-            <strong>${data.workingTerritory}</strong>.
+            Full-time Sales Executives are expected to target approximately <strong>15 to 20 shop visits</strong> per working day within 
+            <strong>${data.workingTerritory}</strong>. Part-time or flexible Sales Executives will have visit expectations based on their agreed availability, territory, and target plan.
           </p>
 
           <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">2. End-of-Day Sales Report Submission</h4>
           <p>
-            Every sales executive must submit an End-of-Day (EOD) sales summary by <strong>7:00 PM</strong> daily containing:
+            Sales Executives must submit an End-of-Day (EOD) sales report by <strong>7:00 PM</strong> containing:
           </p>
           <ul>
-            <li>Total stores visited and new store onboardings.</li>
-            <li>Orders collected (Quantity in KG and variant breakdown).</li>
-            <li>Payment receipts or transaction references.</li>
-            <li>Stock replenishment feedback and retailer complaints, if any.</li>
+            <li>Retail shops visited and new store leads.</li>
+            <li>Collected order requirements (KG weight and product variant breakdown).</li>
+            <li>Customer order references submitted for company confirmation.</li>
           </ul>
 
-          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">3. Payment Collection Protocol</h4>
+          <h4 style="color: #b8860b; margin-top: 16px; margin-bottom: 8px; font-size: 13px; text-transform: uppercase;">3. Company Payment Collection Protocol</h4>
           <p>
-            All store order payments must be collected exclusively using official Kamadhenu Honey Farms QR codes or direct bank transfer. 
-            Cash collection is permitted only when backed by an official physical money receipt issued immediately to the retailer.
+            All customer order payments must be made directly by the customer to official Kamadhenu Honey Farms bank accounts or official company UPI/QR codes. Sales Executives must never accept payments into personal accounts, personal UPI IDs, or wallets.
           </p>
 
           ${signatureSectionHtml}
@@ -396,17 +411,17 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
           ${candidateInfoBox}
 
           <p style="background: #fff5f5; border-left: 4px solid #e53e3e; padding: 12px; font-weight: bold; color: #9b2c2c;">
-            Mandatory Compliance Document: Violation of any code listed below shall result in immediate revocation of authorization and legal termination of engagement.
+            Mandatory Compliance Document: Violation of these requirements may result in immediate suspension or revocation of sales authorization and termination of the engagement, subject to applicable company policy and law.
           </p>
 
           <ol style="line-height: 1.8;">
-            <li><strong>No Personal Financial Collections:</strong> Do not collect customer or retailer payments into a personal bank account or personal UPI ID under any circumstances.</li>
+            <li><strong>Zero Personal Financial Collections:</strong> Do not collect customer or retailer payments into a personal bank account, personal UPI ID, or wallet under any circumstances.</li>
+            <li><strong>Zero Cash Collection:</strong> All customer payments must be remitted directly to official Kamadhenu Honey Farms accounts.</li>
             <li><strong>No Unauthorized Price Alteration:</strong> Do not modify company product prices, wholesale rates, or MRP without explicit written approval from management.</li>
-            <li><strong>No False Product Claims:</strong> Do not make unsubstantiated medical guarantees or false quality claims (e.g. claiming uncertified organic status). Stick to official product packaging claims.</li>
+            <li><strong>No False Product Claims:</strong> Do not make unsubstantiated medical guarantees or false quality claims (e.g. claiming uncertified organic status). Stick strictly to official product specifications.</li>
             <li><strong>No Unauthorized Discounts or Credit Promises:</strong> Do not promise unauthorized discounts or unapproved credit terms to retailers.</li>
-            <li><strong>No Misrepresentation:</strong> Do not represent yourself as the owner, director, or partner of Kamadhenu Honey Farms. Represent yourself accurately as an Authorized Sales Executive.</li>
+            <li><strong>No Misrepresentation:</strong> Do not represent yourself as the owner, director, or partner of Kamadhenu Honey Farms. Represent yourself accurately as an authorized Sales Executive.</li>
             <li><strong>Protection of Client Information:</strong> Maintain strict confidentiality regarding retailer lists, distributor contacts, and sales figures.</li>
-            <li><strong>Return of Company Assets:</strong> Return all product samples, POS banners, authorization badges, and marketing material immediately upon demand or termination.</li>
             <li><strong>Adherence to Official Workflow:</strong> Follow established sales reporting, order entry, and customer feedback processes.</li>
           </ol>
 

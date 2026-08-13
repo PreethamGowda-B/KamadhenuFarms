@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 import { logAdminAction } from '@/lib/audit';
 import { getApplicationsStore } from '@/lib/store';
-import { DocTypeKey, DocumentSnapshotData, generateDocumentHtml } from '@/lib/onboarding/templates';
+import { DocTypeKey, DocumentSnapshotData, generateDocumentHtml, calculateValidUntil } from '@/lib/onboarding/templates';
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -54,6 +54,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const newOnboardingStatus = missingFields.length === 0 ? 'DETAILS_PENDING' : 'NOT_STARTED';
 
+    const validFromDate = authValidFrom || joiningDate || new Date().toISOString().split('T')[0];
+    const validUntilDate = authValidUntil || calculateValidUntil(validFromDate);
+
     const updatePayload = {
       joiningDate: joiningDate || null,
       workingTerritory: workingTerritory || null,
@@ -62,10 +65,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       commissionMax: commissionMax ? parseFloat(commissionMax) : 150,
       payoutFrequency: payoutFrequency || 'Weekly',
       reportingManager: reportingManager || null,
-      engagementType: engagementType || 'Sales Executive / Sales Partner',
+      engagementType: engagementType || 'Sales Executive (Field Sales)',
       additionalTerms: additionalTerms || null,
-      authValidFrom: authValidFrom || joiningDate || new Date().toISOString().split('T')[0],
-      authValidUntil: authValidUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      authValidFrom: validFromDate,
+      authValidUntil: validUntilDate,
       onboardingStatus: newOnboardingStatus as any,
     };
 
@@ -78,9 +81,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           include: { onboardingDocuments: true },
         });
 
-        // Re-generate contentSnapshot for all existing documents with new Joining Date & params
+        // Re-generate or create new document versions for existing documents
         if (updated.onboardingDocuments && updated.onboardingDocuments.length > 0) {
           for (const doc of updated.onboardingDocuments) {
+            const nextVersion = doc.status === 'APPROVED' || doc.status === 'SENT' ? doc.version + 1 : doc.version;
+            const docNoCode = doc.docType.replace(/_/g, '').substring(0, 5);
+            const documentNo = `DOC-${updated.applicationNo}-${docNoCode}-V${nextVersion}`;
+
             const snapshotData: DocumentSnapshotData = {
               applicationId: updated.id,
               applicationNo: updated.applicationNo,
@@ -98,29 +105,49 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
               commissionMax: updated.commissionMax || 150,
               payoutFrequency: updated.payoutFrequency || 'Weekly',
               reportingManager: updated.reportingManager || reportingManager,
-              engagementType: updated.engagementType || engagementType,
+              engagementType: updated.engagementType || 'Sales Executive (Field Sales)',
               additionalTerms: updated.additionalTerms || undefined,
-              validFrom: updated.authValidFrom || updated.joiningDate,
-              validUntil: updated.authValidUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              documentNo: doc.documentNo,
-              issueDate: doc.createdAt ? new Date(doc.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-              version: doc.version,
+              validFrom: updated.authValidFrom,
+              validUntil: updated.authValidUntil,
+              documentNo,
+              issueDate: new Date().toISOString().split('T')[0],
+              version: nextVersion,
               isAuthActive: updated.isAuthActive !== false,
             };
 
             const newHtml = generateDocumentHtml(doc.docType as DocTypeKey, snapshotData);
 
-            await (prisma as any).onboardingDocument.update({
-              where: { id: doc.id },
-              data: {
-                validFrom: snapshotData.validFrom,
-                validUntil: snapshotData.validUntil,
-                contentSnapshot: JSON.stringify({ snapshotData, html: newHtml }),
-              },
-            });
+            if (doc.status === 'APPROVED' || doc.status === 'SENT') {
+              // Preserve historical version and create new version
+              await (prisma as any).onboardingDocument.create({
+                data: {
+                  applicationId: id,
+                  docType: doc.docType,
+                  documentNo,
+                  title: doc.title,
+                  version: nextVersion,
+                  status: 'DRAFT',
+                  validFrom: snapshotData.validFrom,
+                  validUntil: snapshotData.validUntil,
+                  contentSnapshot: JSON.stringify({ snapshotData, html: newHtml }),
+                  createdBy: session.email,
+                },
+              });
+            } else {
+              // Update DRAFT version
+              await (prisma as any).onboardingDocument.update({
+                where: { id: doc.id },
+                data: {
+                  documentNo,
+                  validFrom: snapshotData.validFrom,
+                  validUntil: snapshotData.validUntil,
+                  contentSnapshot: JSON.stringify({ snapshotData, html: newHtml }),
+                },
+              });
+            }
           }
 
-          // Refetch updated list with refreshed document snapshots
+          // Refetch updated list with refreshed documents
           updated = await (prisma as any).application.findUnique({
             where: { id },
             include: { onboardingDocuments: true },

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 import { logAdminAction } from '@/lib/audit';
 import { getApplicationsStore } from '@/lib/store';
-import { DocTypeKey, DocumentSnapshotData, generateDocumentHtml } from '@/lib/onboarding/templates';
+import { DocTypeKey, DocumentSnapshotData, generateDocumentHtml, calculateValidUntil } from '@/lib/onboarding/templates';
 
 const DOC_TITLES: Record<DocTypeKey, string> = {
   OFFER_LETTER: 'Offer & Sales Engagement Letter',
@@ -118,6 +118,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const documentNo = `DOC-${candidate.applicationNo}-${docNoCode}-V${nextVersion}`;
     const issueDate = new Date().toISOString().split('T')[0];
 
+    const validFromDate = candidate.authValidFrom || candidate.joiningDate || new Date().toISOString().split('T')[0];
+    const validUntilDate = candidate.authValidUntil || calculateValidUntil(validFromDate);
+
     const snapshotData: DocumentSnapshotData = {
       applicationId: candidate.id,
       applicationNo: candidate.applicationNo,
@@ -127,18 +130,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       address: candidate.city,
       city: candidate.city,
       state: candidate.state || 'Karnataka',
-      pinCode: candidate.pinCode || '570001',
-      joiningDate: candidate.joiningDate,
-      workingTerritory: candidate.workingTerritory,
+      pinCode: candidate.pinCode || '562130',
+      joiningDate: candidate.joiningDate || validFromDate,
+      workingTerritory: candidate.workingTerritory || candidate.city || 'Bangalore',
       commissionRate: candidate.commissionRate || '₹100/kg - ₹150/kg',
       commissionMin: candidate.commissionMin || 100,
       commissionMax: candidate.commissionMax || 150,
       payoutFrequency: candidate.payoutFrequency || 'Weekly',
-      reportingManager: candidate.reportingManager,
-      engagementType: candidate.engagementType || 'Sales Executive / Sales Partner',
+      reportingManager: candidate.reportingManager || 'Area Sales Manager',
+      engagementType: candidate.engagementType || 'Sales Executive (Field Sales)',
       additionalTerms: candidate.additionalTerms || undefined,
-      validFrom: candidate.authValidFrom || candidate.joiningDate,
-      validUntil: candidate.authValidUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      validFrom: validFromDate,
+      validUntil: validUntilDate,
       documentNo,
       issueDate,
       version: nextVersion,

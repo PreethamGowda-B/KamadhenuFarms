@@ -58,7 +58,7 @@ export async function GET(
       applicationNo: foundApp.applicationNo,
       fullName: foundApp.fullName,
       status: foundApp.status,
-      position: 'Field Sales Partner / Sales Agent',
+      position: 'Sales Executive (Field Sales)',
       interviewDate: foundApp.interviewDate || null,
       interviewTime: foundApp.interviewTime || null,
       interviewLocation: foundApp.interviewLocation || null,

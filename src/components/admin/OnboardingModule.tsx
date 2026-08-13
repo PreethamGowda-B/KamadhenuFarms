@@ -22,7 +22,7 @@ import {
   Check
 } from 'lucide-react';
 import { ApplicationRecord, OnboardingDocumentRecord, OnboardingStatusType } from '@/lib/store';
-import { DocTypeKey, getVerificationUrl } from '@/lib/onboarding/templates';
+import { DocTypeKey, getVerificationUrl, calculateValidUntil } from '@/lib/onboarding/templates';
 import { printDocumentHtml, downloadDocumentHtml } from '@/lib/onboarding/pdfGenerator';
 
 interface Props {
@@ -126,15 +126,14 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
         const defaultParams = {
           joiningDate: formData.joiningDate || new Date().toISOString().split('T')[0],
           workingTerritory: formData.workingTerritory || app.city || 'Bangalore',
-          reportingManager: formData.reportingManager || 'Area Sales Manager',
-          engagementType: formData.engagementType || 'Sales Executive / Sales Partner',
+          engagementType: formData.engagementType || 'Sales Executive (Field Sales)',
           commissionRate: formData.commissionRate || '₹100/kg - ₹150/kg',
           commissionMin: formData.commissionMin || 100,
           commissionMax: formData.commissionMax || 150,
           payoutFrequency: formData.payoutFrequency || 'Weekly',
           additionalTerms: formData.additionalTerms || '',
-          authValidFrom: formData.authValidFrom || new Date().toISOString().split('T')[0],
-          authValidUntil: formData.authValidUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          authValidFrom: formData.authValidFrom || formData.joiningDate || new Date().toISOString().split('T')[0],
+          authValidUntil: formData.authValidUntil || calculateValidUntil(formData.authValidFrom || formData.joiningDate || new Date().toISOString().split('T')[0]),
         };
 
         const onboardingRes = await fetch(`/api/admin/applications/${app.id}/onboarding`, {
@@ -461,26 +460,26 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
           </div>
 
           <div>
-            <label className="block font-bold text-gray-700 mb-1">Engagement Type</label>
+            <label className="block font-bold text-gray-700 mb-1">Engagement Designation *</label>
             <select
               value={formData.engagementType}
               onChange={(e) => setFormData({ ...formData, engagementType: e.target.value })}
-              className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500"
+              className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500 font-bold text-amber-900"
             >
-              <option value="Full-Time Sales Executive">Full-Time Sales Executive</option>
-              <option value="Sales Partner / Agent">Sales Partner / Agent</option>
-              <option value="Independent Sales Representative">Independent Sales Representative</option>
+              <option value="Sales Executive (Field Sales)">Sales Executive (Field Sales)</option>
+              <option value="Senior Sales Executive (Field Sales)">Senior Sales Executive (Field Sales)</option>
+              <option value="Area Sales Executive">Area Sales Executive</option>
             </select>
           </div>
 
           <div>
-            <label className="block font-bold text-gray-700 mb-1">Commission Rate Range</label>
+            <label className="block font-bold text-gray-700 mb-1">Commission Rate Structure</label>
             <input
               type="text"
               value={formData.commissionRate}
               onChange={(e) => setFormData({ ...formData, commissionRate: e.target.value })}
-              className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500"
-              placeholder="₹100/kg - ₹150/kg"
+              className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500 font-semibold"
+              placeholder="₹100/kg - ₹150/kg (Tiered)"
             />
           </div>
 
@@ -491,10 +490,43 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
               onChange={(e) => setFormData({ ...formData, payoutFrequency: e.target.value })}
               className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500"
             >
-              <option value="Weekly on Mondays">Weekly on Mondays</option>
+              <option value="Weekly">Weekly (Every Monday)</option>
               <option value="Bi-Weekly">Bi-Weekly</option>
-              <option value="Monthly on 5th">Monthly on 5th</option>
+              <option value="Monthly">Monthly</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block font-bold text-gray-700 mb-1">Authorization Start Date *</label>
+            <input
+              type="date"
+              value={formData.authValidFrom}
+              onChange={(e) => {
+                const newFrom = e.target.value;
+                const d = new Date(newFrom);
+                if (!isNaN(d.getTime())) {
+                  d.setFullYear(d.getFullYear() + 1);
+                  d.setDate(d.getDate() - 1);
+                  const newUntil = d.toISOString().split('T')[0];
+                  setFormData({ ...formData, authValidFrom: newFrom, authValidUntil: newUntil });
+                } else {
+                  setFormData({ ...formData, authValidFrom: newFrom });
+                }
+              }}
+              className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-gray-700 mb-1">Authorization Expiry Date (1 Year) *</label>
+            <input
+              type="date"
+              value={formData.authValidUntil}
+              onChange={(e) => setFormData({ ...formData, authValidUntil: e.target.value })}
+              className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500"
+              required
+            />
           </div>
 
           <div>

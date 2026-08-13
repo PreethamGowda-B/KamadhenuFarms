@@ -79,7 +79,7 @@ model Application {
   commissionMax         Float?            @default(150)
   payoutFrequency       String?           @default("Weekly")
   reportingManager      String?
-  engagementType        String?           @default("Sales Executive / Sales Partner")
+  engagementType        String?           @default("Sales Executive (Field Sales)")
   additionalTerms       String?
   authValidFrom         String?
   authValidUntil        String?
