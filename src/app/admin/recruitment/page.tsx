@@ -168,7 +168,11 @@ export default function AdminRecruitmentPage() {
       app.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.applicationNo.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === 'ALL' || app.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      app.status === statusFilter ||
+      ((statusFilter === 'HIRED' || statusFilter === 'SELECTED') && (app.status === 'SELECTED' || app.status === 'HIRED'));
+
     const matchesCity = cityFilter === 'ALL' || app.city === cityFilter;
     const matchesExp = expFilter === 'ALL' || app.salesExperience === expFilter;
     const matchesBike = bikeFilter === 'ALL' || (bikeFilter === 'YES' ? app.hasBike : !app.hasBike);
@@ -311,9 +315,9 @@ export default function AdminRecruitmentPage() {
             </button>
 
             <button
-              onClick={() => setStatusFilter('SELECTED')}
+              onClick={() => setStatusFilter('HIRED')}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                statusFilter === 'SELECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
+                statusFilter === 'HIRED' || statusFilter === 'SELECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
               }`}
             >
               <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Hired Agents</span>
@@ -593,8 +597,8 @@ export default function AdminRecruitmentPage() {
                               <MessageCircle className="w-4 h-4 text-green-600" />
                             </a>
 
-                            {/* Schedule Interview Modal Trigger */}
-                            {app.status !== 'SELECTED' && app.status !== 'REJECTED' && (
+                            {/* Schedule Interview Modal Trigger (Only if not already hired or rejected) */}
+                            {app.status !== 'SELECTED' && app.status !== 'HIRED' && app.status !== 'REJECTED' && (
                               <button
                                 onClick={() => {
                                   setInterviewModalApp(app);
@@ -608,8 +612,8 @@ export default function AdminRecruitmentPage() {
                               </button>
                             )}
 
-                            {/* Hire Button */}
-                            {app.status !== 'SELECTED' && (
+                            {/* Hire & Start Onboarding Button (Only if not already hired) */}
+                            {app.status !== 'SELECTED' && app.status !== 'HIRED' && (
                               <button
                                 onClick={() => handleStatusChange(app.id, 'SELECTED')}
                                 disabled={isProcessing}
@@ -619,8 +623,18 @@ export default function AdminRecruitmentPage() {
                               </button>
                             )}
 
-                            {/* Reject Button */}
-                            {app.status !== 'REJECTED' && (
+                            {/* For Hired & Onboarded Candidates: Show Onboarding Pack Action */}
+                            {(app.status === 'SELECTED' || app.status === 'HIRED') && (
+                              <Link
+                                href={`/admin/recruitment/applications/${app.id}`}
+                                className="px-2.5 py-1 bg-gold-600 text-white rounded-lg text-[11px] font-semibold hover:bg-gold-700 transition-colors shadow-sm"
+                              >
+                                Onboarding Pack 📄
+                              </Link>
+                            )}
+
+                            {/* Reject Button (Only if not already hired) */}
+                            {app.status !== 'REJECTED' && app.status !== 'SELECTED' && app.status !== 'HIRED' && (
                               <button
                                 onClick={() => handleStatusChange(app.id, 'REJECTED')}
                                 disabled={isProcessing}
