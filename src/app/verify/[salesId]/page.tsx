@@ -126,7 +126,7 @@ export default async function VerificationPage({ params }: Props) {
                   <span className="text-xs font-semibold text-gray-500">Authorization Valid Until</span>
                   <span className="text-sm font-semibold text-gray-900 flex items-center gap-1">
                     <Calendar className="w-4 h-4 text-amber-600" />
-                    {candidate.authValidUntil || 'Valid for 1 Year'}
+                    {candidate.authValidUntil || 'Valid for 6 Months'}
                   </span>
                 </div>
               </div>

@@ -429,7 +429,18 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
             <input
               type="date"
               value={formData.joiningDate}
-              onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })}
+              onChange={(e) => {
+                const newJoining = e.target.value;
+                const d = new Date(newJoining);
+                if (!isNaN(d.getTime())) {
+                  d.setMonth(d.getMonth() + 6);
+                  d.setDate(d.getDate() - 1);
+                  const newUntil = d.toISOString().split('T')[0];
+                  setFormData({ ...formData, joiningDate: newJoining, authValidFrom: newJoining, authValidUntil: newUntil });
+                } else {
+                  setFormData({ ...formData, joiningDate: newJoining });
+                }
+              }}
               className="w-full px-3 py-2 border border-amber-300 rounded-xl bg-white focus:outline-none focus:border-amber-500"
               required
             />
@@ -505,7 +516,7 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
                 const newFrom = e.target.value;
                 const d = new Date(newFrom);
                 if (!isNaN(d.getTime())) {
-                  d.setFullYear(d.getFullYear() + 1);
+                  d.setMonth(d.getMonth() + 6);
                   d.setDate(d.getDate() - 1);
                   const newUntil = d.toISOString().split('T')[0];
                   setFormData({ ...formData, authValidFrom: newFrom, authValidUntil: newUntil });
@@ -519,7 +530,7 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
           </div>
 
           <div>
-            <label className="block font-bold text-gray-700 mb-1">Authorization Expiry Date (1 Year) *</label>
+            <label className="block font-bold text-gray-700 mb-1">Authorization Expiry Date (6 Months) *</label>
             <input
               type="date"
               value={formData.authValidUntil}

@@ -130,7 +130,7 @@ export async function PATCH(req: NextRequest) {
         const emailHtml = getHiredSelectionTemplate(updated.fullName, updated.applicationNo);
         await sendEmail({
           to: updated.email,
-          subject: `Congratulations! Selected as Sales Partner - Kamadhenu Honey Farms (${updated.applicationNo})`,
+          subject: `Congratulations! Selected as Sales Executive (Field Sales) - Kamadhenu Honey Farms (${updated.applicationNo})`,
           html: emailHtml,
         });
 

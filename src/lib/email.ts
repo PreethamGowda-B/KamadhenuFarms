@@ -49,7 +49,7 @@ export function getApplicantConfirmationTemplate(applicantName: string, applicat
         <hr style="border: 0; border-top: 1px solid #F3E2B6; margin: 20px 0;" />
         <h2 style="color: #2E2E2E; font-size: 20px;">Application Received!</h2>
         <p>Dear <strong>${applicantName}</strong>,</p>
-        <p>Thank you for applying to join the <strong>Kamadhenu Honey Farm Sales Partner Network</strong>. We have successfully received your application!</p>
+        <p>Thank you for applying to join <strong>Kamadhenu Honey Farms</strong> as a <strong>Sales Executive (Field Sales)</strong>. We have successfully received your application!</p>
         <div style="background-color: #FDF9F0; border-left: 4px solid #D8A64F; padding: 15px; margin: 20px 0; border-radius: 4px;">
           <p style="margin: 0; font-size: 14px; color: #4A3113;"><strong>Application Reference Number:</strong></p>
           <p style="margin: 5px 0 0 0; font-size: 22px; font-weight: bold; color: #B6852F;">${applicationNo}</p>
@@ -92,10 +92,10 @@ export function getHiredSelectionTemplate(applicantName: string, applicationNo: 
       <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 30px; border: 1px solid #10B981;">
         <div style="text-align: center; margin-bottom: 20px;">
           <h1 style="color: #059669; margin: 0; font-size: 26px;">🎉 Congratulations & Welcome Aboard!</h1>
-          <p style="color: #047857; font-size: 14px; margin-top: 5px;">Kamadhenu Honey Farms Sales Partner Program</p>
+          <p style="color: #047857; font-size: 14px; margin-top: 5px;">Kamadhenu Honey Farms Field Sales Program</p>
         </div>
         <p>Dear <strong>${applicantName}</strong>,</p>
-        <p>We are thrilled to inform you that you have been officially selected as a <strong>Sales Partner</strong> for <strong>Kamadhenu Honey Farms</strong> (Ref: <strong>${applicationNo}</strong>)!</p>
+        <p>We are thrilled to inform you that you have been officially selected as a <strong>Sales Executive (Field Sales)</strong> for <strong>Kamadhenu Honey Farms</strong> (Ref: <strong>${applicationNo}</strong>)!</p>
         
         <div style="background-color: #ECFDF5; border-left: 4px solid #10B981; padding: 16px; margin: 20px 0; border-radius: 6px;">
           <h4 style="margin: 0 0 8px 0; color: #065F46;">Joining Summary & Terms:</h4>
@@ -126,7 +126,7 @@ export function getPoliteRejectionTemplate(applicantName: string, applicationNo:
       <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 30px; border: 1px solid #E5E7EB;">
         <h2 style="color: #1F2937; margin-top: 0;">Application Status Update (${applicationNo})</h2>
         <p>Dear <strong>${applicantName}</strong>,</p>
-        <p>Thank you for your interest in joining Kamadhenu Honey Farms as a Sales Partner and taking the time to submit your credentials.</p>
+        <p>Thank you for your interest in joining Kamadhenu Honey Farms as a Sales Executive (Field Sales) and taking the time to submit your credentials.</p>
         <p>After a thorough review of our current territory coverage and distribution capacity, we regret to inform you that we are unable to advance your application at this time.</p>
         <p>We will retain your application in our talent database should suitable opportunities open up in your region in the future.</p>
         <p>We sincerely appreciate your interest in our farm and wish you great success in your career endeavors.</p>

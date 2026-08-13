@@ -16,7 +16,7 @@ export async function sendWhatsAppMessage({ to, name, type, details }: WhatsAppP
   let messageText = '';
 
   if (type === 'HIRED') {
-    messageText = `Congratulations ${name}! You have been selected as a Sales Partner at Kamadhenu Honey Farm. Please check your email for complete joining instructions and product onboarding materials.`;
+    messageText = `Congratulations ${name}! You have been selected as a Sales Executive (Field Sales) at Kamadhenu Honey Farm. Please check your email for complete joining instructions and product onboarding materials.`;
   } else if (type === 'REJECTED') {
     messageText = `Thank you for applying to Kamadhenu Honey Farm. After careful consideration, we are unable to move forward at this time. We appreciate your interest and wish you all the best.`;
   } else if (type === 'INTERVIEW_SCHEDULED') {

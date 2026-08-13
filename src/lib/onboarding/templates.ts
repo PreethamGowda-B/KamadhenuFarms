@@ -39,23 +39,28 @@ export function getVerificationUrl(applicationNo: string): string {
   return `/verify/${salesId}`;
 }
 
+export function getFullVerificationUrl(applicationNo: string): string {
+  const salesId = applicationNo.replace(/[^a-zA-Z0-9-]/g, '');
+  return `https://www.kamadhenuhoneyfarms.in/verify/${salesId}`;
+}
+
 export function calculateValidUntil(validFromStr: string): string {
   const d = new Date(validFromStr);
   if (isNaN(d.getTime())) {
     const today = new Date();
-    today.setFullYear(today.getFullYear() + 1);
+    today.setMonth(today.getMonth() + 6);
     today.setDate(today.getDate() - 1);
     return today.toISOString().split('T')[0];
   }
-  d.setFullYear(d.getFullYear() + 1);
+  d.setMonth(d.getMonth() + 6);
   d.setDate(d.getDate() - 1);
   return d.toISOString().split('T')[0];
 }
 
 export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshotData): string {
-  const verificationPath = getVerificationUrl(data.applicationNo);
-  const qrcodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
-    `https://kamadhenuhoneyfarms.in${verificationPath}`
+  const fullProductionUrl = getFullVerificationUrl(data.applicationNo);
+  const qrcodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(
+    fullProductionUrl
   )}`;
 
   const companyHeaderHtml = `
@@ -245,15 +250,15 @@ export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshot
             <li>NOT authorized to execute contracts or represent self as owner, partner, or director.</li>
           </ul>
 
-          <div style="display: flex; gap: 20px; align-items: center; background: #f7fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px;">
-            <div>
-              <img src="${qrcodeApiUrl}" alt="Verification QR Code" style="width: 110px; height: 110px; border: 1px solid #cbd5e0; border-radius: 4px;" />
+          <div style="display: flex; gap: 20px; align-items: center; background: #ffffff; padding: 18px; border-radius: 8px; border: 2px solid #d4af37; margin-top: 20px; page-break-inside: avoid;">
+            <div style="background: #ffffff; padding: 6px; border: 1px solid #cbd5e0; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center;">
+              <img src="${qrcodeApiUrl}" alt="Verification QR Code" width="130" height="130" style="width: 130px; height: 130px; display: block; image-rendering: pixelated; object-fit: contain;" />
             </div>
             <div style="font-size: 11px;">
-              <h4 style="margin: 0 0 6px 0; font-size: 12px; color: #b8860b;">Digital QR Verification System</h4>
-              <p style="margin: 0 0 6px 0;">Retailers and distributors can instantly verify the real-time active status of this representative by scanning the QR code or visiting:</p>
-              <code style="background: #edf2f7; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: #2b6cb0;">
-                https://kamadhenuhoneyfarms.in${verificationPath}
+              <h4 style="margin: 0 0 6px 0; font-size: 13px; font-weight: bold; color: #b8860b;">Official Live QR Verification System</h4>
+              <p style="margin: 0 0 8px 0; line-height: 1.5; color: #4a5568;">Retailers, grocery store owners, and commercial buyers can instantly verify the real-time authenticity and active authorization status of this representative by scanning the QR code with any smartphone camera or visiting:</p>
+              <code style="background: #fffaf0; border: 1px solid #fbd38d; padding: 5px 10px; border-radius: 4px; font-weight: bold; color: #975a16; font-size: 11px; display: inline-block;">
+                ${fullProductionUrl}
               </code>
             </div>
           </div>
