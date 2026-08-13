@@ -44,17 +44,48 @@ export function getFullVerificationUrl(applicationNo: string): string {
   return `https://www.kamadhenuhoneyfarms.in/verify/${salesId}`;
 }
 
-export function calculateValidUntil(validFromStr: string): string {
-  const d = new Date(validFromStr);
-  if (isNaN(d.getTime())) {
-    const today = new Date();
-    today.setMonth(today.getMonth() + 6);
-    today.setDate(today.getDate() - 1);
-    return today.toISOString().split('T')[0];
+export function parseDateString(str?: string): Date {
+  if (!str) return new Date();
+  const trimmed = str.trim();
+  
+  const monthNames: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+  };
+  
+  const parts = trimmed.split(/[\/\-\s]+/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return new Date(y, m, d);
+    } else {
+      const d = parseInt(parts[0], 10);
+      const mStr = parts[1].toLowerCase().substring(0, 3);
+      const m = monthNames[mStr] !== undefined ? monthNames[mStr] : parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      if (!isNaN(d) && !isNaN(m) && !isNaN(y)) return new Date(y, m, d);
+    }
   }
+
+  const parsed = new Date(trimmed);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
+
+export function formatDateFormatted(d: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
+
+export function calculateValidUntil(validFromStr: string): string {
+  const d = parseDateString(validFromStr);
   d.setMonth(d.getMonth() + 6);
   d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
+  return formatDateFormatted(d);
 }
 
 export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshotData): string {

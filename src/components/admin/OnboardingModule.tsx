@@ -52,7 +52,7 @@ export default function OnboardingModule({ app, onUpdate }: Props) {
     engagementType: app.engagementType || 'Full-Time Sales Executive',
     additionalTerms: app.additionalTerms || '',
     authValidFrom: app.authValidFrom || app.joiningDate || new Date().toISOString().split('T')[0],
-    authValidUntil: app.authValidUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    authValidUntil: app.authValidUntil || calculateValidUntil(app.authValidFrom || app.joiningDate || new Date().toISOString().split('T')[0]),
   });
 
   const [savingDetails, setSavingDetails] = useState(false);
