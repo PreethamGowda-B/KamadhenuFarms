@@ -4,9 +4,14 @@ interface EmailPayload {
   to: string;
   subject: string;
   html: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
 }
 
-export async function sendEmail({ to, subject, html }: EmailPayload): Promise<{ success: boolean; messageId?: string }> {
+export async function sendEmail({ to, subject, html, attachments }: EmailPayload): Promise<{ success: boolean; messageId?: string }> {
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
   const user = process.env.SMTP_USER || 'kamadhenuhoneyfarms@gmail.com';
   const pass = process.env.SMTP_PASS || 'narmnawnbgpauxil';
@@ -29,6 +34,7 @@ export async function sendEmail({ to, subject, html }: EmailPayload): Promise<{ 
         to,
         subject,
         html,
+        attachments,
       });
 
       console.log(`[EMAIL DISPATCH SUCCESS] Sent to: ${to} | Subject: ${subject} | MessageID: ${info.messageId}`);
