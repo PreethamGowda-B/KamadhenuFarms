@@ -179,26 +179,73 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             </ul>
           </div>
 
-          <!-- Attachments Banner -->
-          <div style="background-color: #ECFDF5; border-left: 5px solid #10B981; padding: 18px 20px; margin: 25px 0; border-radius: 10px; border: 1px solid #A7F3D0;">
-            <h4 style="margin: 0 0 8px 0; color: #065F46; font-size: 15px; font-family: Georgia, serif;">📎 7 Official Onboarding Documents Attached Below</h4>
-            <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.6;">
-              All 6 official onboarding letters, policy documents, and your Master Combined Onboarding Pack are attached directly to this email as downloadable files. You can open and save each document for your official records.
+          <!-- Direct PDF Print & View Hub Box -->
+          <div style="background: #FAF8F5; padding: 25px; border-radius: 14px; border: 1.5px solid #EACF8C; margin: 25px 0;">
+            <h4 style="color: #B6852F; font-size: 16px; margin: 0 0 12px 0; font-family: Georgia, serif; border-bottom: 1px solid #F0E6D2; padding-bottom: 8px;">
+              📄 View & Print Designed PDF Documents (7 Official Files)
+            </h4>
+            <p style="font-size: 13px; color: #4A4A4A; margin-bottom: 16px; line-height: 1.6;">
+              Click any link below to open, view, and save high-resolution, fully-formatted PDF copies of your official appointment & field authorization documents:
             </p>
-          </div>
-
-          <!-- Included Approved Document List -->
-          <div style="background: #FAF8F5; padding: 22px; border-radius: 12px; border: 1px solid #F0E6D2; margin: 25px 0;">
-            <h4 style="color: #B6852F; font-size: 15px; margin: 0 0 12px 0; font-family: Georgia, serif;">Official Document Set Attached (7 Files):</h4>
-            <ol style="line-height: 1.9; color: #4A4A4A; padding-left: 20px; margin: 0; font-size: 13px;">
-              <li>📜 <strong>1. Offer & Sales Engagement Letter</strong> (<code>1_Offer_Letter_${candidate.applicationNo}.html</code>)</li>
-              <li>🛡️ <strong>2. Official Sales Authorization Letter</strong> with Scannable QR Code (<code>2_Sales_Authorization_${candidate.applicationNo}.html</code>)</li>
-              <li>💵 <strong>3. Sales Commission Policy & Structure</strong> (<code>3_Commission_Policy_${candidate.applicationNo}.html</code>)</li>
-              <li>🍯 <strong>4. Product & Price Catalogue</strong> (<code>4_Product_Price_Catalogue_${candidate.applicationNo}.html</code>)</li>
-              <li>📊 <strong>5. Sales Reporting Guidelines</strong> (<code>5_Sales_Reporting_Guidelines_${candidate.applicationNo}.html</code>)</li>
-              <li>⚖️ <strong>6. Code of Conduct & Compliance</strong> (<code>6_Code_of_Conduct_${candidate.applicationNo}.html</code>)</li>
-              <li>📦 <strong>7. Complete Master Onboarding Pack</strong> (<code>7_Complete_Onboarding_Pack_${candidate.applicationNo}.html</code>)</li>
-            </ol>
+            
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <tr style="border-bottom: 1px solid #F0E6D2;">
+                <td style="padding: 10px 0; color: #2E2E2E;"><strong>📦 Complete Master Onboarding Pack (All 12 Pages Combined)</strong></td>
+                <td style="padding: 10px 0; text-align: right;">
+                  <a href="https://www.kamadhenuhoneyfarms.in/verify/${candidate.applicationNo}/document/COMPLETE_ONBOARDING_PACK?print=true" target="_blank" style="background: #B6852F; color: #ffffff; padding: 7px 16px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 12px; display: inline-block;">
+                    Open & Print PDF 📄
+                  </a>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #F0E6D2;">
+                <td style="padding: 9px 0; color: #2E2E2E;">📜 1. Offer & Sales Engagement Letter</td>
+                <td style="padding: 9px 0; text-align: right;">
+                  <a href="https://www.kamadhenuhoneyfarms.in/verify/${candidate.applicationNo}/document/OFFER_LETTER?print=true" target="_blank" style="background: #D8A64F; color: #ffffff; padding: 5px 12px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 11px; display: inline-block;">
+                    View PDF 📄
+                  </a>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #F0E6D2;">
+                <td style="padding: 9px 0; color: #2E2E2E;">🛡️ 2. Official Sales Authorization Letter (with QR Code)</td>
+                <td style="padding: 9px 0; text-align: right;">
+                  <a href="https://www.kamadhenuhoneyfarms.in/verify/${candidate.applicationNo}/document/AUTHORIZATION_LETTER?print=true" target="_blank" style="background: #D8A64F; color: #ffffff; padding: 5px 12px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 11px; display: inline-block;">
+                    View PDF 📄
+                  </a>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #F0E6D2;">
+                <td style="padding: 9px 0; color: #2E2E2E;">💵 3. Sales Commission Policy & Structure</td>
+                <td style="padding: 9px 0; text-align: right;">
+                  <a href="https://www.kamadhenuhoneyfarms.in/verify/${candidate.applicationNo}/document/COMMISSION_POLICY?print=true" target="_blank" style="background: #D8A64F; color: #ffffff; padding: 5px 12px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 11px; display: inline-block;">
+                    View PDF 📄
+                  </a>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #F0E6D2;">
+                <td style="padding: 9px 0; color: #2E2E2E;">🍯 4. Product & Price Catalogue</td>
+                <td style="padding: 9px 0; text-align: right;">
+                  <a href="https://www.kamadhenuhoneyfarms.in/verify/${candidate.applicationNo}/document/PRICE_CATALOGUE?print=true" target="_blank" style="background: #D8A64F; color: #ffffff; padding: 5px 12px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 11px; display: inline-block;">
+                    View PDF 📄
+                  </a>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #F0E6D2;">
+                <td style="padding: 9px 0; color: #2E2E2E;">📊 5. Sales Reporting & Field Guidelines</td>
+                <td style="padding: 9px 0; text-align: right;">
+                  <a href="https://www.kamadhenuhoneyfarms.in/verify/${candidate.applicationNo}/document/SALES_GUIDELINES?print=true" target="_blank" style="background: #D8A64F; color: #ffffff; padding: 5px 12px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 11px; display: inline-block;">
+                    View PDF 📄
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 9px 0; color: #2E2E2E;">⚖️ 6. Code of Conduct & Compliance</td>
+                <td style="padding: 9px 0; text-align: right;">
+                  <a href="https://www.kamadhenuhoneyfarms.in/verify/${candidate.applicationNo}/document/CODE_OF_CONDUCT?print=true" target="_blank" style="background: #D8A64F; color: #ffffff; padding: 5px 12px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 11px; display: inline-block;">
+                    View PDF 📄
+                  </a>
+                </td>
+              </tr>
+            </table>
           </div>
 
           <!-- Live QR Verification Button -->

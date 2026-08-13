@@ -131,6 +131,79 @@ export default async function VerificationPage({ params }: Props) {
                 </div>
               </div>
 
+              {/* Approved Documents Suite */}
+              <div className="bg-amber-100/60 rounded-2xl p-5 border border-amber-300 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-amber-700" /> Official Onboarding & Authorization Documents
+                  </h3>
+                  <span className="text-[10px] font-bold bg-amber-800 text-white px-2 py-0.5 rounded-full">
+                    Approved
+                  </span>
+                </div>
+                <p className="text-xs text-amber-950 leading-relaxed">
+                  View or print high-resolution official PDF documents for candidate appointment and field authorization:
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                  <a
+                    href={`/verify/${candidate.applicationNo}/document/COMPLETE_ONBOARDING_PACK?print=true`}
+                    target="_blank"
+                    className="col-span-1 sm:col-span-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white p-3 rounded-xl text-xs font-bold text-center shadow flex items-center justify-center gap-2 transition-all"
+                  >
+                    <span>📦</span> Complete Master Onboarding Pack (PDF / Print View)
+                  </a>
+
+                  <a
+                    href={`/verify/${candidate.applicationNo}/document/OFFER_LETTER?print=true`}
+                    target="_blank"
+                    className="bg-white hover:bg-amber-50 text-gray-800 border border-amber-300 p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all"
+                  >
+                    <span>📜</span> Offer & Sales Engagement Letter
+                  </a>
+
+                  <a
+                    href={`/verify/${candidate.applicationNo}/document/AUTHORIZATION_LETTER?print=true`}
+                    target="_blank"
+                    className="bg-white hover:bg-amber-50 text-gray-800 border border-amber-300 p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all"
+                  >
+                    <span>🛡️</span> Official Sales Authorization Letter
+                  </a>
+
+                  <a
+                    href={`/verify/${candidate.applicationNo}/document/COMMISSION_POLICY?print=true`}
+                    target="_blank"
+                    className="bg-white hover:bg-amber-50 text-gray-800 border border-amber-300 p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all"
+                  >
+                    <span>💵</span> Sales Commission Policy (₹100-₹150/kg)
+                  </a>
+
+                  <a
+                    href={`/verify/${candidate.applicationNo}/document/PRICE_CATALOGUE?print=true`}
+                    target="_blank"
+                    className="bg-white hover:bg-amber-50 text-gray-800 border border-amber-300 p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all"
+                  >
+                    <span>🍯</span> Product & Price Catalogue
+                  </a>
+
+                  <a
+                    href={`/verify/${candidate.applicationNo}/document/SALES_GUIDELINES?print=true`}
+                    target="_blank"
+                    className="bg-white hover:bg-amber-50 text-gray-800 border border-amber-300 p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all"
+                  >
+                    <span>📊</span> Sales Reporting & Field Guidelines
+                  </a>
+
+                  <a
+                    href={`/verify/${candidate.applicationNo}/document/CODE_OF_CONDUCT?print=true`}
+                    target="_blank"
+                    className="bg-white hover:bg-amber-50 text-gray-800 border border-amber-300 p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all"
+                  >
+                    <span>⚖️</span> Sales Executive Code of Conduct
+                  </a>
+                </div>
+              </div>
+
               {/* Security Warning Notice */}
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-[11px] text-gray-600 space-y-1">
                 <p className="font-bold text-gray-700">Official Notice to Retailers & Distributors:</p>
