@@ -122,7 +122,7 @@ export default function ApplicationForm() {
         appNo: result.data.applicationNo,
         name: result.data.fullName,
         mobile: result.data.mobileNumber,
-        position: 'Sales Partner'
+        position: 'Sales Executive (Field Sales)'
       });
       router.push(`/careers/thank-you?${params.toString()}`);
     } catch (err: any) {

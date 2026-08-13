@@ -53,7 +53,7 @@ export default function Navbar() {
               Careers Home
             </Link>
             <Link href="/careers/sales-agent" className="text-sm font-medium text-charcoal hover:text-gold-600 transition-colors">
-              Sales Partner Job
+              Sales Executive Job
             </Link>
             <Link href="/track" className="text-sm font-medium text-gold-700 hover:text-gold-900 transition-colors inline-flex items-center gap-1.5 font-semibold">
               <Search className="w-4 h-4 text-gold-600" /> Track Application

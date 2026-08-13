@@ -13,7 +13,7 @@ function ThankYouContent() {
   const appNo = searchParams.get('appNo') || 'KHF-2026-001';
   const fullName = searchParams.get('name') || 'Applicant';
   const mobile = searchParams.get('mobile') || 'N/A';
-  const position = searchParams.get('position') || 'Sales Partner';
+  const position = searchParams.get('position') || 'Sales Executive (Field Sales)';
 
   const [copied, setCopied] = useState(false);
   const [showToast, setShowToast] = useState(false);

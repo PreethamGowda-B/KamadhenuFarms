@@ -7,26 +7,31 @@ interface EmailPayload {
 }
 
 export async function sendEmail({ to, subject, html }: EmailPayload): Promise<{ success: boolean; messageId?: string }> {
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const user = process.env.SMTP_USER || 'kamadhenuhoneyfarms@gmail.com';
+  const pass = process.env.SMTP_PASS || 'narmnawnbgpauxil';
+
+  if (host && user && pass) {
     try {
       const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
+        host,
         port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
+        secure: false, // port 587 uses STARTTLS
+        requireTLS: true,
+        auth: { user, pass },
+        tls: {
+          rejectUnauthorized: false,
         },
       });
 
-      const senderEmail = process.env.SMTP_USER || 'careers@kamadhenuhoneyfarms.com';
       const info = await transporter.sendMail({
-        from: `"Kamadhenu Honey Farms Recruitment" <${senderEmail}>`,
+        from: `"Kamadhenu Honey Farms Recruitment" <${user}>`,
         to,
         subject,
         html,
       });
 
+      console.log(`[EMAIL DISPATCH SUCCESS] Sent to: ${to} | Subject: ${subject} | MessageID: ${info.messageId}`);
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error('Email Dispatch Error:', error);
@@ -47,23 +52,37 @@ export function getApplicantConfirmationTemplate(applicantName: string, applicat
           <p style="color: #6A471A; font-size: 14px; margin-top: 5px;">Pure Raw Honey Direct From Beekeepers</p>
         </div>
         <hr style="border: 0; border-top: 1px solid #F3E2B6; margin: 20px 0;" />
-        <h2 style="color: #2E2E2E; font-size: 20px;">Application Received!</h2>
+        <h2 style="color: #2E2E2E; font-size: 20px;">Application Received Successfully!</h2>
         <p>Dear <strong>${applicantName}</strong>,</p>
-        <p>Thank you for applying to join <strong>Kamadhenu Honey Farms</strong> as a <strong>Sales Executive (Field Sales)</strong>. We have successfully received your application!</p>
-        <div style="background-color: #FDF9F0; border-left: 4px solid #D8A64F; padding: 15px; margin: 20px 0; border-radius: 4px;">
-          <p style="margin: 0; font-size: 14px; color: #4A3113;"><strong>Application Reference Number:</strong></p>
-          <p style="margin: 5px 0 0 0; font-size: 22px; font-weight: bold; color: #B6852F;">${applicationNo}</p>
+        <p>Thank you for applying for the position of <strong>Sales Executive (Field Sales)</strong> at <strong>Kamadhenu Honey Farms</strong>. We have safely received your profile in our recruitment database.</p>
+        
+        <div style="background-color: #FDF9F0; border-left: 4px solid #D8A64F; padding: 16px; margin: 20px 0; border-radius: 8px;">
+          <p style="margin: 0; font-size: 13px; color: #4A3113;"><strong>Your Application ID:</strong></p>
+          <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #B6852F;">${applicationNo}</p>
         </div>
-        <h3 style="color: #B6852F; font-size: 16px;">Next Steps:</h3>
-        <ol style="line-height: 1.6; color: #4A4A4A;">
-          <li>Our recruitment team will review your credentials and sales background.</li>
-          <li>If shortlisted, you will receive a phone interview invitation within 24-48 hours.</li>
-          <li>Upon selection, product onboarding and sales materials will be dispatched.</li>
+
+        <div style="text-align: center; margin: 25px 0;">
+          <a href="https://kamadhenuhoneyfarms.in/track?id=${applicationNo}" style="background-color: #B6852F; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 10px; display: inline-block; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(182, 133, 47, 0.3);">
+            Track Application Status Live 🔍
+          </a>
+        </div>
+
+        <h3 style="color: #B6852F; font-size: 16px; margin-top: 25px;">Recruitment Process & Next Steps:</h3>
+        <ol style="line-height: 1.6; color: #4A4A4A; padding-left: 20px;">
+          <li>Our HR team will evaluate your retail sales experience and preferred territory.</li>
+          <li>If shortlisted, you will be invited for a phone interview within 24–48 hours.</li>
+          <li>Upon selection, your formal Offer Letter and Onboarding Pack will be issued.</li>
         </ol>
-        <p>If you have any urgent queries, reply to this email or WhatsApp us at <strong>+91 9980114675</strong>.</p>
+
         <hr style="border: 0; border-top: 1px solid #F3E2B6; margin: 25px 0;" />
-        <p style="font-size: 12px; color: #8F6321; text-align: center; margin: 0;">
-          Kamadhenu Honey Farms • Cholanayakanahalli, Magadi Main Road, Bangalore, KA 562130
+        <p style="font-size: 13px; color: #4A4A4A; margin-bottom: 5px;">Need assistance or have questions?</p>
+        <p style="font-size: 13px; color: #B6852F; margin: 0;">
+          📞 <strong>Phone / WhatsApp:</strong> +91 9980114675 / +91 9535134351<br/>
+          ✉️ <strong>Email:</strong> kamadhenuhoneyfarms@gmail.com
+        </p>
+        <hr style="border: 0; border-top: 1px solid #F3E2B6; margin: 20px 0;" />
+        <p style="font-size: 11px; color: #8F6321; text-align: center; margin: 0;">
+          Kamadhenu Honey Farms • Cholanayakanahalli, Magadi Main Road, Taverekere, Bangalore Urban, KA 562130
         </p>
       </div>
     </div>
