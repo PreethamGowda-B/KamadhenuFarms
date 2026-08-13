@@ -213,27 +213,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Universal delegated click & touchstart listeners to guarantee instant response
-  ['click', 'touchstart'].forEach((eventType) => {
-    document.addEventListener(eventType, (e) => {
-      const hamburgerBtn = e.target.closest('.hamburger, #navHamburger');
-      if (hamburgerBtn) {
-        window.toggleMobileNav(e);
-        return;
-      }
+  // Mobile Link Navigation & Smooth Scroll Handler
+  window.handleMobileNavLink = function(e, target) {
+    // Close mobile nav
+    const mobileNavEl = document.querySelector('.mobile-nav, #mobileNavMenu');
+    const allHamburgers = document.querySelectorAll('.hamburger, #navHamburger');
+    if (mobileNavEl) {
+      mobileNavEl.classList.remove('active');
+      document.body.classList.remove('overflow-hidden');
+    }
+    if (allHamburgers) {
+      allHamburgers.forEach(h => h.classList.remove('open'));
+    }
 
-      const mobileLink = e.target.closest('.mobile-nav a, #mobileNavMenu a, .mobile-nav-close');
-      if (mobileLink) {
-        const mobileNavEl = document.querySelector('.mobile-nav, #mobileNavMenu');
-        const allHamburgers = document.querySelectorAll('.hamburger, #navHamburger');
-        if (mobileNavEl && mobileNavEl.classList.contains('active')) {
-          allHamburgers.forEach(h => h.classList.remove('open'));
-          mobileNavEl.classList.remove('active');
-          document.body.classList.remove('overflow-hidden');
-        }
+    if (target === 'tracker') {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const openTrackerBtn = document.querySelector('.open-tracker-btn:not(.mobile-nav-item)');
+      if (openTrackerBtn) {
+        openTrackerBtn.click();
+      } else {
+        const trackerModal = document.querySelector('#trackerModal, .tracker-modal');
+        if (trackerModal) trackerModal.classList.add('active');
       }
-    }, { passive: false });
+      return;
+    }
+
+    if (target && target.startsWith('#')) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      const targetEl = document.querySelector(target);
+      if (targetEl) {
+        setTimeout(() => {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+      } else {
+        window.location.hash = target;
+      }
+      return;
+    }
+
+    if (target && !target.startsWith('#')) {
+      window.location.href = target;
+    }
+  };
+
+  // Universal delegated click listener for hamburger and mobile nav
+  document.addEventListener('click', (e) => {
+    const hamburgerBtn = e.target.closest('.hamburger, #navHamburger');
+    if (hamburgerBtn) {
+      window.toggleMobileNav(e);
+      return;
+    }
+
+    const mobileLink = e.target.closest('.mobile-nav a, #mobileNavMenu a, .mobile-nav-close');
+    if (mobileLink && !mobileLink.getAttribute('onclick')) {
+      const href = mobileLink.getAttribute('href');
+      if (href) {
+        window.handleMobileNavLink(e, href);
+      }
+    }
   });
+
+  // Touchstart listener strictly for hamburger button to guarantee instant mobile open
+  document.addEventListener('touchstart', (e) => {
+    const hamburgerBtn = e.target.closest('.hamburger, #navHamburger');
+    if (hamburgerBtn) {
+      window.toggleMobileNav(e);
+    }
+  }, { passive: false });
 
   /* ==========================================================================
      E-Commerce State Synchronization
