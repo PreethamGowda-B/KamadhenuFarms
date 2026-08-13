@@ -22,6 +22,9 @@ export async function GET() {
   // Query Neon PostgreSQL via Prisma if DATABASE_URL is set
   // NOTE: onboardingDocuments are NOT included here on purpose — they are heavy
   // and only needed on individual candidate profile pages (/api/admin/applications/[id]/documents)
+  let isDbQueried = false;
+
+  // Query Neon PostgreSQL via Prisma if DATABASE_URL is set
   if (process.env.DATABASE_URL) {
     try {
       const dbApps = await prisma.application.findMany({
@@ -29,24 +32,23 @@ export async function GET() {
         include: { notes: true },
       });
 
-      if (dbApps && dbApps.length > 0) {
-        apps = dbApps.map((a) => ({
-          ...a,
-          notes: (a.notes || []).map((n) => ({
-            ...n,
-            createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
-          })),
-          createdAt: a.createdAt ? new Date(a.createdAt).toISOString() : new Date().toISOString(),
-          updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : new Date().toISOString(),
-        })) as unknown as ApplicationRecord[];
-      }
+      apps = dbApps.map((a) => ({
+        ...a,
+        notes: (a.notes || []).map((n) => ({
+          ...n,
+          createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
+        })),
+        createdAt: a.createdAt ? new Date(a.createdAt).toISOString() : new Date().toISOString(),
+        updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : new Date().toISOString(),
+      })) as unknown as ApplicationRecord[];
+
+      isDbQueried = true;
     } catch (e) {
       console.error('Prisma query failed, falling back to local store:', e);
     }
   }
 
-  if (apps.length === 0) {
-    // Normalize: ensure every record from local fallback store has notes: []
+  if (!isDbQueried && apps.length === 0) {
     apps = getApplicationsStore().map((a) => ({ ...a, notes: a.notes ?? [] }));
   }
 
