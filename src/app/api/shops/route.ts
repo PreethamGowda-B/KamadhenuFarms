@@ -303,7 +303,7 @@ export async function POST(req: NextRequest) {
       });
 
       return { shop: newShop, shopCode };
-    });
+    }, { maxWait: 15000, timeout: 25000 });
 
     return NextResponse.json({
       success: true,
