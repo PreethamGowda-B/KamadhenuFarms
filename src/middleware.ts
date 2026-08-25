@@ -6,6 +6,41 @@ const SALES_COOKIE_NAME = 'khf_sales_token';
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.hostname;
+  const proto = req.headers.get('x-forwarded-proto');
+
+  // Handle CORS Preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.get('origin') || '*';
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, rsc, Next-Router-State-Tree, Next-Router-Prefetch, Next-Url, Accept',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+
+  // Force HTTPS in production to prevent CORS redirects during client fetch
+  if (proto === 'http' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+    return NextResponse.redirect(`https://${host}${req.nextUrl.pathname}${req.nextUrl.search}`, 301);
+  }
+
+  // Helper to add CORS headers to outgoing response
+  const setCorsHeaders = (res: NextResponse) => {
+    const origin = req.headers.get('origin');
+    if (origin) {
+      res.headers.set('Access-Control-Allow-Origin', origin);
+      res.headers.set('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.headers.set('Access-Control-Allow-Origin', '*');
+    }
+    res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, rsc, Next-Router-State-Tree, Next-Router-Prefetch, Next-Url, Accept');
+    return res;
+  };
 
   // 1. Check Subdomains
   const isAdminSubdomain = host.startsWith('admin.');
@@ -181,7 +216,11 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  if (pathname.startsWith('/api')) {
+    return setCorsHeaders(res);
+  }
+  return res;
 }
 
 export const config = {
