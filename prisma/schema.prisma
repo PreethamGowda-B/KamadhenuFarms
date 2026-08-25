@@ -7,6 +7,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  ADMIN
+  SALES_EXECUTIVE
+  EMPLOYEE
+  CANDIDATE
+}
+
 enum ApplicationStatus {
   APPLIED
   REVIEWED
@@ -61,6 +68,7 @@ model Application {
   declarationAccepted   Boolean           @default(true)
   
   status                ApplicationStatus @default(APPLIED)
+  role                  Role              @default(CANDIDATE)
   rating                Int?              @default(0)
   
   interviewDate         String?
@@ -91,12 +99,18 @@ model Application {
   notes                 ApplicationNote[]
   onboardingDocuments   OnboardingDocument[]
   auditLogs             AuditLog[]
+  
+  // Relations to CRM Shops & Visits
+  shops                 Shop[]            @relation("SalespersonShops")
+  shopVisits            ShopVisit[]       @relation("SalespersonVisits")
+
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
   @@index([mobileNumber])
   @@index([email])
   @@index([status])
+  @@index([role])
   @@index([city])
 }
 
@@ -167,24 +181,64 @@ model AuditLog {
   createdAt     DateTime     @default(now())
 }
 
+model ShopSequence {
+  id        Int      @id @default(1)
+  lastSeq   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
 model Shop {
   id                         String            @id @default(cuid())
-  shopNo                     String            @unique // e.g. KHF-SHOP-001
+  shopCode                   String            @unique // e.g. KHF-SHOP-000001
+  shopNo                     String?           // Backwards compatibility alias
   shopName                   String
-  contactPerson              String
-  contactNumber              String
+  ownerName                  String
+  contactPerson              String?           // Backwards compatibility alias
+  mobile                     String
+  contactNumber              String?           // Backwards compatibility alias
+  whatsapp                   String?
   email                      String?
   address                    String
   area                       String
   city                       String
-  state                      String
-  pinCode                    String
+  district                   String?
+  state                      String            @default("Karnataka")
+  pincode                    String
+  pinCode                    String?           // Backwards compatibility alias
   
-  assignedSalesExecutiveId   String?           // Application ID of assigned Hired Sales Executive
-  assignedSalesExecutiveName String?           // Cached display name of Sales Executive
+  latitude                   Float?
+  longitude                  Float?
+  mapsUrl                    String?
+  shopType                   String            @default("Grocery Store") // Grocery Store, Supermarket, Organic Store, Health Store, Dry Fruits Store, General Store, Department Store, Other
   
-  status                     ShopStatus        @default(ACTIVE)
+  frontImageUrl              String?
+  interiorImageUrl           String?
+  otherImageUrl              String?
+  
+  // Relational Salesperson Binding
+  salespersonId              String?
+  salesperson                Application?      @relation("SalespersonShops", fields: [salespersonId], references: [id], onDelete: SetNull)
+  salespersonSnapshotName    String?
+  salespersonSnapshotMobile  String?
+  assignedSalesExecutiveId   String?           // Backwards compatibility alias
+  assignedSalesExecutiveName String?           // Backwards compatibility alias
+  
+  responseStatus             String            @default("INTERESTED") // INTERESTED, ORDER_CONFIRMED, WANTS_SAMPLE, WANTS_TO_DISCUSS_LATER, NOT_INTERESTED
+  potential                  String            @default("MEDIUM")     // HIGH, MEDIUM, LOW
+  
+  paymentMethod              String            @default("PAYMENT_AT_DELIVERY") // PAYMENT_AT_DELIVERY, CASH, UPI, BANK_TRANSFER, CREDIT
+  creditPeriod               String?           // 7 Days, 15 Days, 30 Days, Custom
+  creditLimit                Float?            @default(0)
+  agreedPaymentDate          DateTime?
+  outstandingAmount          Float             @default(0)
+  totalBilledAmount          Float             @default(0)
+  totalPaidAmount            Float             @default(0)
+  
+  estimatedMonthlyKg         Float?            @default(0)
+  estimatedReorderCycleDays  Int               @default(30)
+  actualAvgReorderIntervalDays Float?
   reorderIntervalDays        Int               @default(30)
+  nextReorderDate            DateTime?
   nextFollowUpDate           DateTime?
   firstOrderDate             DateTime?
   lastOrderDate              DateTime?
@@ -195,40 +249,157 @@ model Shop {
   totalPurchaseValue         Float             @default(0)
   notes                      String?
   
+  status                     ShopStatus        @default(ACTIVE)
+  
+  requirements               ShopRequirement[]
   orders                     ShopOrder[]
+  payments                   ShopPayment[]
+  visits                     ShopVisit[]
+  reminders                  ShopReminder[]
+  activities                 ShopActivity[]
   followUps                  ShopFollowUp[]
 
   createdAt                  DateTime          @default(now())
   updatedAt                  DateTime          @updatedAt
 
-  @@index([contactNumber])
+  @@index([mobile])
   @@index([shopName])
   @@index([status])
-  @@index([nextFollowUpDate])
-  @@index([lastOrderDate])
-  @@index([assignedSalesExecutiveId])
+  @@index([salespersonId])
   @@index([city])
+  @@index([nextReorderDate])
+  @@index([nextFollowUpDate])
+}
+
+model ShopRequirement {
+  id                 String   @id @default(cuid())
+  shopId             String
+  shop               Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  productName        String   // Pure Honey – 500g, Pure Honey – 1kg, Dry Fruits Honey – 500g, Dry Fruits Honey – 1kg, Comb Honey in Glass Jar – 500g, Other product
+  interested         Boolean  @default(true)
+  firstOrderQuantity Int      @default(0)
+  monthlyQuantity    Int      @default(0)
+  reorderCycleDays   Int      @default(30)
+  createdAt          DateTime @default(now())
+
+  @@index([shopId])
 }
 
 model ShopOrder {
-  id              String      @id @default(cuid())
+  id              String          @id @default(cuid())
   shopId          String
-  shop            Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  orderNo         String      @unique // e.g. ORD-2026-001
-  orderDate       DateTime    @default(now())
-  product         String      // e.g. Pure Raw Honey 1kg, Dry Fruits Honey 500g
-  quantity        Int         // Number of jars/units
-  kg              Float       // Total weight in kilograms
-  orderValue      Float       // Total INR amount
-  paymentStatus   String      @default("PAID") // PAID, PENDING, PARTIAL
-  deliveryStatus  String      @default("DELIVERED") // DELIVERED, PENDING, DISPATCHED
-  salesExecutive  String?     // Name of Executive who took the order
+  shop            Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderNo         String          @unique // e.g. ORD-2026-000001
+  orderDate       DateTime        @default(now())
+  product         String?         // Summary text
+  quantity        Int?            @default(0)
+  kg              Float?          @default(0)
+  orderValue      Float?          @default(0)
+  totalAmount     Float           @default(0)
+  paymentMethod   String          @default("PAYMENT_AT_DELIVERY")
+  paymentStatus   String          @default("PENDING") // PAID, PARTIAL, PENDING, OVERDUE
+  deliveryStatus  String          @default("DELIVERED") // DELIVERED, PENDING, DISPATCHED
+  dueDate         DateTime?
+  salespersonId   String?
+  salesExecutive  String?
   notes           String?
-  createdAt       DateTime    @default(now())
+  
+  items           ShopOrderItem[]
+  payments        ShopPayment[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([shopId])
   @@index([orderDate])
   @@index([paymentStatus])
+}
+
+model ShopOrderItem {
+  id          String    @id @default(cuid())
+  orderId     String
+  order       ShopOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productName String
+  quantity    Int
+  unitPrice   Float
+  totalPrice  Float
+  kg          Float     @default(0)
+  
+  @@index([orderId])
+}
+
+model ShopPayment {
+  id            String     @id @default(cuid())
+  shopId        String
+  shop          Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderId       String?
+  order         ShopOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amount        Float
+  paymentDate   DateTime   @default(now())
+  paymentMethod String     @default("CASH") // CASH, UPI, BANK_TRANSFER, CHEQUE
+  reference     String?    // UPI Ref / UTR / Cheque No
+  notes         String?
+  recordedBy    String?    // Salesperson or Admin Name
+  createdAt     DateTime   @default(now())
+
+  @@index([shopId])
+  @@index([orderId])
+}
+
+model ShopVisit {
+  id               String       @id @default(cuid())
+  shopId           String
+  shop             Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  salespersonId    String?
+  salesperson      Application? @relation("SalespersonVisits", fields: [salespersonId], references: [id], onDelete: SetNull)
+  salespersonName  String
+  visitDate        DateTime     @default(now())
+  purpose          String       @default("ROUTINE_FOLLOW_UP") // NEW_ONBOARDING, REORDER_VISIT, PAYMENT_COLLECTION, SAMPLE_DROP, COMPLAINT_RESOLUTION, OTHER
+  discussion       String
+  orderTaken       Boolean      @default(false)
+  paymentCollected Float?       @default(0)
+  nextFollowUpDate DateTime?
+  imageUrl         String?
+  notes            String?
+  createdAt        DateTime     @default(now())
+
+  @@index([shopId])
+  @@index([salespersonId])
+  @@index([visitDate])
+}
+
+model ShopReminder {
+  id           String    @id @default(cuid())
+  shopId       String
+  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  reminderType String    // REORDER_COMING_SOON, REORDER_DUE_TODAY, REORDER_OVERDUE, PAYMENT_DUE, PAYMENT_OVERDUE, CUSTOM
+  dueDate      DateTime
+  status       String    @default("PENDING") // PENDING, CONTACTED, SNOOZED, COMPLETED
+  notes        String?
+  snoozedUntil DateTime?
+  contactedAt  DateTime?
+  contactedBy  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([shopId])
+  @@index([dueDate])
+  @@index([status])
+}
+
+model ShopActivity {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId       String?
+  userName     String?
+  activityType String   // REGISTRATION, ORDER_PLACED, PAYMENT_RECORDED, VISIT_LOGGED, REMINDER_UPDATED, STATUS_CHANGED, NOTE_ADDED
+  description  String
+  metadata     String?  // JSON metadata
+  createdAt    DateTime @default(now())
+
+  @@index([shopId])
+  @@index([createdAt])
 }
 
 model ShopFollowUp {
@@ -246,4 +417,18 @@ model ShopFollowUp {
   @@index([shopId])
   @@index([result])
   @@index([date])
+}
+
+model AdminNotification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  type        String   @default("NEW_SHOP") // NEW_SHOP, OVERDUE_REORDER, OVERDUE_PAYMENT, HIGH_VALUE_ORDER
+  link        String?
+  isRead      Boolean  @default(false)
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
 }

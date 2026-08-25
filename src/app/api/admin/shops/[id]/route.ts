@@ -6,18 +6,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   try {
     const id = params.id;
 
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ success: false, message: 'Database not available' }, { status: 500 });
-    }
-
-    const shop = await (prisma as any).shop.findUnique({
-      where: { id },
+    const shop = await prisma.shop.findFirst({
+      where: {
+        OR: [{ id }, { shopCode: id }, { shopNo: id }],
+      },
       include: {
+        requirements: true,
         orders: {
           orderBy: { orderDate: 'desc' },
+          include: {
+            items: true,
+            payments: true,
+          },
         },
-        followUps: {
-          orderBy: { date: 'desc' },
+        payments: {
+          orderBy: { paymentDate: 'desc' },
+        },
+        visits: {
+          orderBy: { visitDate: 'desc' },
+        },
+        reminders: {
+          orderBy: { dueDate: 'asc' },
+        },
+        activities: {
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+        },
+        salesperson: {
+          select: {
+            id: true,
+            applicationNo: true,
+            fullName: true,
+            mobileNumber: true,
+            workingTerritory: true,
+            profilePhotoUrl: true,
+          },
         },
       },
     });
@@ -29,6 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({
       success: true,
       data: shop,
+      shop,
     });
   } catch (error: any) {
     console.error('GET /api/admin/shops/[id] error:', error);
@@ -40,71 +64,70 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   try {
     const id = params.id;
     const body = await req.json();
-    const {
-      status,
-      reorderIntervalDays,
-      assignedSalesExecutiveId,
-      assignedSalesExecutiveName,
-      shopName,
-      contactPerson,
-      contactNumber,
-      email,
-      address,
-      area,
-      city,
-      pinCode,
-      notes,
-      snoozeDays,
-    } = body;
 
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ success: false, message: 'Database not available' }, { status: 500 });
-    }
-
-    const currentShop = await (prisma as any).shop.findUnique({ where: { id } });
+    const currentShop = await prisma.shop.findFirst({
+      where: { OR: [{ id }, { shopCode: id }] },
+    });
     if (!currentShop) {
       return NextResponse.json({ success: false, message: 'Shop not found' }, { status: 404 });
     }
 
     const updateData: any = {};
+    if (body.shopName) updateData.shopName = body.shopName.trim();
+    if (body.ownerName || body.contactPerson) {
+      const name = (body.ownerName || body.contactPerson).trim();
+      updateData.ownerName = name;
+      updateData.contactPerson = name;
+    }
+    if (body.mobile || body.contactNumber) {
+      const mob = (body.mobile || body.contactNumber).trim();
+      updateData.mobile = mob;
+      updateData.contactNumber = mob;
+    }
+    if (body.whatsapp !== undefined) updateData.whatsapp = body.whatsapp ? body.whatsapp.trim() : null;
+    if (body.email !== undefined) updateData.email = body.email ? body.email.trim() : null;
+    if (body.address) updateData.address = body.address.trim();
+    if (body.area) updateData.area = body.area.trim();
+    if (body.city) updateData.city = body.city.trim();
+    if (body.district !== undefined) updateData.district = body.district;
+    if (body.pincode || body.pinCode) {
+      const pin = (body.pincode || body.pinCode).trim();
+      updateData.pincode = pin;
+      updateData.pinCode = pin;
+    }
+    if (body.status) updateData.status = body.status;
+    if (body.responseStatus) updateData.responseStatus = body.responseStatus;
+    if (body.potential) updateData.potential = body.potential;
+    if (body.paymentMethod) updateData.paymentMethod = body.paymentMethod;
+    if (body.creditPeriod !== undefined) updateData.creditPeriod = body.creditPeriod;
+    if (body.creditLimit !== undefined) updateData.creditLimit = parseFloat(body.creditLimit || '0');
+    if (body.agreedPaymentDate !== undefined) {
+      updateData.agreedPaymentDate = body.agreedPaymentDate ? new Date(body.agreedPaymentDate) : null;
+    }
+    if (body.estimatedMonthlyKg !== undefined) {
+      updateData.estimatedMonthlyKg = parseFloat(body.estimatedMonthlyKg || '0');
+    }
+    if (body.reorderIntervalDays || body.estimatedReorderCycleDays) {
+      const cycle = parseInt(body.reorderIntervalDays || body.estimatedReorderCycleDays || '30', 10);
+      updateData.reorderIntervalDays = cycle;
+      updateData.estimatedReorderCycleDays = cycle;
+    }
+    if (body.notes !== undefined) updateData.notes = body.notes;
 
-    if (status) updateData.status = status;
-    if (reorderIntervalDays) updateData.reorderIntervalDays = parseInt(reorderIntervalDays, 10);
-    if (assignedSalesExecutiveId !== undefined) updateData.assignedSalesExecutiveId = assignedSalesExecutiveId || null;
-    if (assignedSalesExecutiveName !== undefined) updateData.assignedSalesExecutiveName = assignedSalesExecutiveName || null;
-    if (shopName) updateData.shopName = shopName.trim();
-    if (contactPerson) updateData.contactPerson = contactPerson.trim();
-    if (contactNumber) updateData.contactNumber = contactNumber.trim();
-    if (email !== undefined) updateData.email = (email || '').trim() || null;
-    if (address) updateData.address = address.trim();
-    if (area) updateData.area = area.trim();
-    if (city) updateData.city = city.trim();
-    if (pinCode !== undefined) updateData.pinCode = (pinCode || '').trim();
-    if (notes !== undefined) updateData.notes = (notes || '').trim() || null;
-
-    // Handle Snooze Follow-up Date
-    if (snoozeDays) {
-      const days = parseInt(snoozeDays, 10);
-      const currentFollowUp = currentShop.nextFollowUpDate ? new Date(currentShop.nextFollowUpDate) : new Date();
-      updateData.nextFollowUpDate = new Date(currentFollowUp.getTime() + days * 86400000);
-      updateData.status = 'ACTIVE';
+    if (body.salespersonId) {
+      updateData.salespersonId = body.salespersonId;
+      updateData.assignedSalesExecutiveId = body.salespersonId;
     }
 
-    const updatedShop = await (prisma as any).shop.update({
-      where: { id },
+    const updatedShop = await prisma.shop.update({
+      where: { id: currentShop.id },
       data: updateData,
-      include: {
-        orders: { orderBy: { orderDate: 'desc' }, take: 10 },
-        followUps: { orderBy: { date: 'desc' }, take: 10 },
-      },
     });
-
-    await logAdminAction('admin@kamadhenuhoneyfarms.in', 'SHOP_UPDATED', id, `Updated shop ${updatedShop.shopNo} (${updatedShop.shopName})`);
 
     return NextResponse.json({
       success: true,
-      message: 'Shop updated successfully',
       data: updatedShop,
+      message: 'Shop updated successfully',
     });
   } catch (error: any) {
     console.error('PATCH /api/admin/shops/[id] error:', error);

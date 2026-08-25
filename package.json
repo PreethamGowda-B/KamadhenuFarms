@@ -12,9 +12,11 @@
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "^5.10.2",
+    "@types/leaflet": "^1.9.22",
     "canvas-confetti": "^1.9.2",
     "clsx": "^2.1.0",
     "framer-motion": "^11.0.8",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.354.0",
     "next": "14.1.0",
     "nodemailer": "^6.9.10",

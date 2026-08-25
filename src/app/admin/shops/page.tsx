@@ -1,1122 +1,1042 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  Store, 
-  Users, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  Plus, 
-  Search, 
-  Filter, 
-  MessageSquare, 
-  ShoppingBag, 
-  CheckCircle2, 
-  AlertTriangle, 
-  ChevronRight, 
-  ChevronLeft, 
-  Sparkles, 
-  Send, 
-  RefreshCw, 
+import {
+  Store,
+  Users,
+  Phone,
+  MapPin,
+  Calendar,
+  Clock,
+  Plus,
+  Search,
+  Filter,
+  MessageSquare,
+  ShoppingBag,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  ChevronRight,
+  ChevronLeft,
+  Sparkles,
+  Send,
+  RefreshCw,
   ExternalLink,
-  Tag,
   DollarSign,
   TrendingUp,
-  UserCheck,
-  Building,
+  CreditCard,
+  Building2,
   Check,
   X,
   FileText,
   User,
   ArrowLeft,
-  LayoutDashboard
+  LayoutDashboard,
+  Layers,
+  Map,
+  BarChart3,
+  Flame,
+  ShieldCheck
 } from 'lucide-react';
-import { ShopRecord } from '@/lib/store';
+import ShopMapView from '@/components/admin/ShopMapView';
 
 export default function AdminShopsPage() {
-  const [shops, setShops] = useState<ShopRecord[]>([]);
+  const [shops, setShops] = useState<any[]>([]);
   const [metrics, setMetrics] = useState<any>({
+    totalShops: 0,
+    newShopsThisMonth: 0,
     activeShops: 0,
-    followUpsDue: 0,
-    overdue: 0,
-    ordersThisMonth: 0,
-    kgSoldThisMonth: 0,
-    repeatCustomers: 0,
-    totalKgSold: 0,
+    interestedShops: 0,
+    ordersConfirmed: 0,
+    reorderDue: 0,
+    overdueReorders: 0,
+    pendingPayments: 0,
+    overduePayments: 0,
+    totalSalesValue: 0,
   });
+  const [reordersDueToday, setReordersDueToday] = useState<any[]>([]);
   const [salesExecutives, setSalesExecutives] = useState<any[]>([]);
+  const [reportsData, setReportsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Pagination & Filters
-  const [activeTab, setActiveTab] = useState<'ALL_SHOPS' | 'FOLLOW_UPS' | 'MY_SHOPS'>('ALL_SHOPS');
-  const [followUpSubFilter, setFollowUpSubFilter] = useState<'DUE_TODAY' | 'OVERDUE' | 'UPCOMING' | 'WAITING' | 'CONFIRMED'>('DUE_TODAY');
-  
+  // View Mode: TABLE, MAP, REPORTS
+  const [viewMode, setViewMode] = useState<'TABLE' | 'MAP' | 'REPORTS'>('TABLE');
+
+  // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [cityFilter, setCityFilter] = useState('ALL');
   const [execFilter, setExecFilter] = useState('ALL');
-  
+  const [shopTypeFilter, setShopTypeFilter] = useState('ALL');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('ALL');
+  const [reorderStatusFilter, setReorderStatusFilter] = useState('ALL');
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ page: 1, totalCount: 0, totalPages: 1, limit: 20 });
+  const [pagination, setPagination] = useState({ page: 1, totalCount: 0, totalPages: 1, limit: 25 });
 
   // Modals state
-  const [showAddShopModal, setShowAddShopModal] = useState(false);
-  const [showOrderModal, setShowOrderModal] = useState<ShopRecord | null>(null);
-  const [showFollowUpModal, setShowFollowUpModal] = useState<ShopRecord | null>(null);
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState<ShopRecord | null>(null);
+  const [showOrderModal, setShowOrderModal] = useState<any | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState<any | null>(null);
+  const [showVisitModal, setShowVisitModal] = useState<any | null>(null);
+  const [showReminderModal, setShowReminderModal] = useState<any | null>(null);
 
   // Form states
-  const [addShopForm, setAddShopForm] = useState({
-    shopName: '',
-    contactPerson: '',
-    contactNumber: '',
-    email: '',
-    address: '',
-    area: '',
-    city: 'Bangalore',
-    state: 'Karnataka',
-    pinCode: '',
-    assignedSalesExecutiveId: '',
-    assignedSalesExecutiveName: '',
-    reorderIntervalDays: '30',
-    notes: '',
-  });
-  const [submittingShop, setSubmittingShop] = useState(false);
-
   const [orderForm, setOrderForm] = useState({
-    product: 'Pure Raw Honey 1kg',
-    quantity: '10',
-    kg: '10',
-    orderValue: '7490',
+    productName: 'Pure Honey – 500g',
+    quantity: 10,
+    unitPrice: 190,
+    paymentMethod: 'CASH',
     paymentStatus: 'PAID',
-    deliveryStatus: 'DELIVERED',
-    salesExecutive: '',
-    orderDate: new Date().toISOString().split('T')[0],
+    dueDate: '',
     notes: '',
   });
   const [submittingOrder, setSubmittingOrder] = useState(false);
 
-  const [followUpForm, setFollowUpForm] = useState({
-    author: 'Admin User',
-    type: 'CALL',
-    result: 'NEEDS_STOCK' as any,
+  const [paymentForm, setPaymentForm] = useState({
+    amount: '',
+    paymentMethod: 'CASH',
+    reference: '',
     notes: '',
-    nextFollowUpDate: '',
   });
-  const [submittingFollowUp, setSubmittingFollowUp] = useState(false);
+  const [submittingPayment, setSubmittingPayment] = useState(false);
 
-  const [whatsAppText, setWhatsAppText] = useState('');
+  const [visitForm, setVisitForm] = useState({
+    purpose: 'ROUTINE_FOLLOW_UP',
+    discussion: '',
+    orderTaken: false,
+    paymentCollected: 0,
+    nextFollowUpDate: '',
+    notes: '',
+  });
+  const [submittingVisit, setSubmittingVisit] = useState(false);
 
+  const [reminderActionLoading, setReminderActionLoading] = useState<string | null>(null);
+
+  // Load data
   useEffect(() => {
     fetchShops();
-  }, [page, search, statusFilter, cityFilter, execFilter, activeTab, followUpSubFilter]);
+    fetchReordersDue();
+    fetchSalesExecutives();
+    fetchReports();
+  }, [search, statusFilter, cityFilter, execFilter, shopTypeFilter, paymentStatusFilter, reorderStatusFilter, page]);
 
-  const fetchShops = async () => {
-    setLoading(true);
+  async function fetchShops() {
     try {
-      let queryParams = new URLSearchParams();
-      queryParams.set('page', page.toString());
-      queryParams.set('limit', '20');
-      if (search.trim()) queryParams.set('search', search.trim());
-      if (statusFilter !== 'ALL') queryParams.set('status', statusFilter);
-      if (cityFilter !== 'ALL') queryParams.set('city', cityFilter);
-      if (execFilter !== 'ALL') queryParams.set('salesExecutiveId', execFilter);
+      setLoading(true);
+      const params = new URLSearchParams({
+        search,
+        status: statusFilter,
+        city: cityFilter,
+        shopType: shopTypeFilter,
+        salespersonId: execFilter,
+        paymentStatus: paymentStatusFilter,
+        reorderStatus: reorderStatusFilter,
+        page: String(page),
+        limit: '25',
+      });
 
-      if (activeTab === 'FOLLOW_UPS') {
-        queryParams.set('followUpFilter', followUpSubFilter);
-      }
-
-      const res = await fetch(`/api/admin/shops?${queryParams.toString()}`);
-      const json = await res.json();
-
-      if (json.success) {
-        setShops(json.data || []);
-        if (json.metrics) setMetrics(json.metrics);
-        if (json.pagination) setPagination(json.pagination);
-        if (json.salesExecutives) setSalesExecutives(json.salesExecutives);
+      const res = await fetch(`/api/shops?${params.toString()}`);
+      const data = await res.json();
+      if (data.success) {
+        setShops(data.shops || []);
+        setPagination(data.pagination || { page: 1, totalCount: 0, totalPages: 1, limit: 25 });
       }
     } catch (e) {
-      console.error('Failed to load shops:', e);
+      console.error('Failed to fetch shops:', e);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const handleAddShopSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!addShopForm.shopName.trim() || !addShopForm.contactPerson.trim() || !addShopForm.contactNumber.trim()) {
-      alert('Please fill out all required shop details (Name, Contact Person, Phone Number)');
-      return;
-    }
-
-    setSubmittingShop(true);
+  async function fetchReordersDue() {
     try {
-      const res = await fetch('/api/admin/shops', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(addShopForm),
-      });
+      const res = await fetch('/api/shops/reorders/due?filter=DUE_TODAY');
+      const data = await res.json();
+      if (data.success) {
+        setReordersDueToday(data.shops || []);
+      }
+    } catch (e) {}
+  }
 
-      const json = await res.json();
-      if (json.success) {
-        alert('Shop created successfully!');
-        setShowAddShopModal(false);
-        setAddShopForm({
-          shopName: '',
-          contactPerson: '',
-          contactNumber: '',
-          email: '',
-          address: '',
-          area: '',
-          city: 'Bangalore',
-          state: 'Karnataka',
-          pinCode: '',
-          assignedSalesExecutiveId: '',
-          assignedSalesExecutiveName: '',
-          reorderIntervalDays: '30',
-          notes: '',
-        });
+  async function fetchSalesExecutives() {
+    try {
+      const res = await fetch('/api/admin/applications?status=HIRED&limit=100');
+      const data = await res.json();
+      if (data.success && data.applications) {
+        setSalesExecutives(data.applications);
+      }
+    } catch (e) {}
+  }
+
+  async function fetchReports() {
+    try {
+      const res = await fetch('/api/admin/shops/reports');
+      const data = await res.json();
+      if (data.success) {
+        setReportsData(data);
+        const s = data.summary;
+        setMetrics((prev: any) => ({
+          ...prev,
+          totalShops: s.totalShops || 0,
+          totalSalesValue: s.totalSalesValue || 0,
+          pendingPayments: s.totalOutstanding || 0,
+        }));
+      }
+    } catch (e) {}
+  }
+
+  // Quick Action: Handle Reorder Snooze or Mark Contacted
+  const handleReminderAction = async (shopId: string, reminderId: string, action: 'MARK_CONTACTED' | 'SNOOZE') => {
+    try {
+      setReminderActionLoading(`${shopId}-${action}`);
+      const res = await fetch(`/api/shops/${shopId}/reminders`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reminderId, action, snoozeDays: 3 }),
+      });
+      if (res.ok) {
+        fetchReordersDue();
         fetchShops();
-      } else {
-        alert(`Error: ${json.message}`);
       }
     } catch (e) {
-      alert('Failed to save shop');
+      alert('Failed to update reminder');
     } finally {
-      setSubmittingShop(false);
+      setReminderActionLoading(null);
     }
   };
 
-  const handleRecordOrderSubmit = async (e: React.FormEvent) => {
+  // Submit Order Modal
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showOrderModal) return;
-
-    setSubmittingOrder(true);
     try {
-      const res = await fetch(`/api/admin/shops/${showOrderModal.id}/orders`, {
+      setSubmittingOrder(true);
+      const res = await fetch(`/api/shops/${showOrderModal.id}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderForm),
+        body: JSON.stringify({
+          items: [{
+            productName: orderForm.productName,
+            quantity: orderForm.quantity,
+            unitPrice: orderForm.unitPrice,
+            kgPerUnit: orderForm.productName.includes('1kg') ? 1.0 : 0.5,
+          }],
+          paymentMethod: orderForm.paymentMethod,
+          paymentStatus: orderForm.paymentStatus,
+          dueDate: orderForm.dueDate || undefined,
+          notes: orderForm.notes,
+        }),
       });
-
-      const json = await res.json();
-      if (json.success) {
-        alert(`Order recorded! Next follow-up date set to ${new Date(json.shop.nextFollowUpDate).toLocaleDateString('en-IN')}`);
+      const data = await res.json();
+      if (data.success) {
         setShowOrderModal(null);
         fetchShops();
+        fetchReordersDue();
       } else {
-        alert(`Error: ${json.message}`);
+        alert(data.message || 'Failed to create order');
       }
     } catch (e) {
-      alert('Failed to record order');
+      alert('Error creating order');
     } finally {
       setSubmittingOrder(false);
     }
   };
 
-  const handleFollowUpSubmit = async (e: React.FormEvent) => {
+  // Submit Payment Modal
+  const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!showFollowUpModal) return;
-
-    setSubmittingFollowUp(true);
+    if (!showPaymentModal) return;
     try {
-      const res = await fetch(`/api/admin/shops/${showFollowUpModal.id}/followups`, {
+      setSubmittingPayment(true);
+      const res = await fetch(`/api/shops/${showPaymentModal.id}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(followUpForm),
+        body: JSON.stringify(paymentForm),
       });
-
-      const json = await res.json();
-      if (json.success) {
-        alert('Follow-up logged successfully!');
-        setShowFollowUpModal(null);
+      const data = await res.json();
+      if (data.success) {
+        setShowPaymentModal(null);
+        setPaymentForm({ amount: '', paymentMethod: 'CASH', reference: '', notes: '' });
         fetchShops();
       } else {
-        alert(`Error: ${json.message}`);
+        alert(data.message || 'Failed to record payment');
       }
     } catch (e) {
-      alert('Failed to log follow-up');
+      alert('Error recording payment');
     } finally {
-      setSubmittingFollowUp(false);
+      setSubmittingPayment(false);
     }
   };
 
-  const openWhatsAppDrawer = (shop: ShopRecord) => {
-    setShowWhatsAppModal(shop);
-    const msg = `Hi ${shop.contactPerson}, this is Kamadhenu Honey Farms 🐝. Your shop (${shop.shopName}) previously purchased our Pure Raw Honey products. We wanted to check whether you need fresh stock this month. Please let us know your required quantity and we will arrange prompt delivery! 🍯`;
-    setWhatsAppText(msg);
-  };
-
-  const triggerWhatsAppSend = () => {
-    if (!showWhatsAppModal) return;
-    const cleanNum = showWhatsAppModal.contactNumber.replace(/[^0-9]/g, '');
-    const formattedNum = cleanNum.length === 10 ? `91${cleanNum}` : cleanNum;
-    const url = `https://wa.me/${formattedNum}?text=${encodeURIComponent(whatsAppText)}`;
-    window.open(url, '_blank');
-    setShowWhatsAppModal(null);
-  };
-
-  const snoozeShop = async (shopId: string, days: number) => {
+  // Submit Visit Modal
+  const handleSubmitVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showVisitModal) return;
     try {
-      const res = await fetch(`/api/admin/shops/${shopId}`, {
-        method: 'PATCH',
+      setSubmittingVisit(true);
+      const res = await fetch(`/api/shops/${showVisitModal.id}/visits`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ snoozeDays: days }),
+        body: JSON.stringify(visitForm),
       });
-      const json = await res.json();
-      if (json.success) {
-        alert(`Follow-up snoozed for ${days} days.`);
+      const data = await res.json();
+      if (data.success) {
+        setShowVisitModal(null);
+        setVisitForm({ purpose: 'ROUTINE_FOLLOW_UP', discussion: '', orderTaken: false, paymentCollected: 0, nextFollowUpDate: '', notes: '' });
         fetchShops();
+      } else {
+        alert(data.message || 'Failed to log visit');
       }
     } catch (e) {
-      alert('Failed to snooze reminder');
-    }
-  };
-
-  // Helper formatting status badges
-  const renderStatusBadge = (s: string) => {
-    switch (s) {
-      case 'ACTIVE':
-        return <span className="px-2.5 py-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 rounded-full border border-emerald-200">Active Retailer</span>;
-      case 'FOLLOW_UP_DUE':
-        return <span className="px-2.5 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-200 animate-pulse">🔔 Follow-up Due</span>;
-      case 'ORDER_CONFIRMED':
-        return <span className="px-2.5 py-1 text-[11px] font-bold text-blue-700 bg-blue-50 rounded-full border border-blue-200">✨ Order Confirmed</span>;
-      case 'WAITING_FOR_RESPONSE':
-        return <span className="px-2.5 py-1 text-[11px] font-bold text-purple-700 bg-purple-50 rounded-full border border-purple-200">⏳ Awaiting Reply</span>;
-      case 'INACTIVE':
-        return <span className="px-2.5 py-1 text-[11px] font-bold text-gray-600 bg-gray-100 rounded-full border border-gray-200">Inactive</span>;
-      case 'CLOSED':
-        return <span className="px-2.5 py-1 text-[11px] font-bold text-rose-700 bg-rose-50 rounded-full border border-rose-200">Closed</span>;
-      default:
-        return <span className="px-2.5 py-1 text-[11px] font-bold text-gray-700 bg-gray-50 rounded-full border">{s}</span>;
+      alert('Error logging visit');
+    } finally {
+      setSubmittingVisit(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-cream-bg p-4 sm:p-8 space-y-6">
-      
-      {/* Header Bar */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gold-200 pb-5">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-gold-600 font-semibold mb-1">
-            <Link href="/admin/recruitment" className="hover:underline">Recruitment Admin</Link>
-            <span>/</span>
-            <span className="text-charcoal font-bold">Shop Management CRM</span>
+    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pb-20">
+      {/* Admin CRM Top Navigation */}
+      <header className="bg-gradient-to-r from-amber-900 via-yellow-900 to-amber-950 text-white shadow-lg sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/recruitment"
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition text-white"
+              title="Back to Recruitment Hub"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-serif font-bold text-xl tracking-wide">
+                  Shop Management & Reorder Reminder CRM
+                </h1>
+                <span className="bg-amber-400 text-amber-950 font-bold text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Enterprise
+                </span>
+              </div>
+              <p className="text-xs text-amber-200">
+                Kamadhenu Honey Farms • Physical Shop Network & Forecasting Ledger
+              </p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-charcoal flex items-center gap-2">
-            <Store className="w-7 h-7 text-gold-600" /> Shop Management & Reorder Reminder CRM
-          </h1>
-          <p className="text-xs text-gray-600 mt-1">Track retail shops, automated reorder cycles, field sales orders, and repeat honey purchases.</p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/admin/recruitment"
-            className="px-4 py-2.5 bg-white text-gray-700 hover:text-charcoal text-xs font-semibold rounded-xl border border-gold-300 hover:bg-gold-50 shadow-sm transition-all flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4 text-gold-600" /> Back to Admin Portal
-          </Link>
-
-          <button
-            onClick={() => setShowAddShopModal(true)}
-            className="px-4 py-2.5 bg-gold-600 text-white text-xs font-semibold rounded-xl hover:bg-gold-700 shadow-luxury transition-all flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" /> Add New Retail Shop
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* KPI Dashboard Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-          <div className="glass-panel p-4 rounded-2xl border border-gold-300">
-            <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Active Shops</p>
-            <p className="text-2xl font-bold text-charcoal mt-1">{metrics.activeShops}</p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-amber-300 bg-amber-50/50">
-            <p className="text-[11px] text-amber-800 font-semibold uppercase tracking-wider">Due Today 🔔</p>
-            <p className="text-2xl font-bold text-amber-600 mt-1">{metrics.followUpsDue}</p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-rose-300 bg-rose-50/50">
-            <p className="text-[11px] text-rose-800 font-semibold uppercase tracking-wider">Overdue</p>
-            <p className="text-2xl font-bold text-rose-600 mt-1">{metrics.overdue}</p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-gold-300">
-            <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Orders This Month</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{metrics.ordersThisMonth}</p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-gold-300">
-            <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Kg Sold (Month)</p>
-            <p className="text-2xl font-bold text-gold-600 mt-1">{metrics.kgSoldThisMonth} <span className="text-xs font-normal">kg</span></p>
-          </div>
-          <div className="glass-panel p-4 rounded-2xl border border-gold-300">
-            <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Repeat Retailers</p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">{metrics.repeatCustomers}</p>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/shop-form"
+              target="_blank"
+              className="bg-amber-500 hover:bg-amber-400 text-amber-950 text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow transition"
+            >
+              <Plus className="w-4 h-4" />
+              Onboard Shop Form
+            </Link>
           </div>
         </div>
+      </header>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-gold-200 overflow-x-auto gap-2">
-          <button
-            onClick={() => { setActiveTab('ALL_SHOPS'); setPage(1); }}
-            className={`px-5 py-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'ALL_SHOPS'
-                ? 'border-gold-600 text-gold-600 bg-gold-50/60 rounded-t-xl'
-                : 'border-transparent text-gray-600 hover:text-charcoal'
-            }`}
-          >
-            <Store className="w-4 h-4" /> All Retail Shops ({pagination.totalCount})
-          </button>
+      {/* Main CRM Workspace */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
 
-          <button
-            onClick={() => { setActiveTab('FOLLOW_UPS'); setPage(1); }}
-            className={`px-5 py-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'FOLLOW_UPS'
-                ? 'border-gold-600 text-gold-600 bg-gold-50/60 rounded-t-xl'
-                : 'border-transparent text-gray-600 hover:text-charcoal'
-            }`}
-          >
-            <Clock className="w-4 h-4 text-amber-600 animate-pulse" /> 🔔 Stock Follow-ups Hub
-          </button>
+        {/* 10 DASHBOARD KPI CARDS */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">1. Total Shops</span>
+            <span className="text-2xl font-serif font-bold text-stone-900">{reportsData?.summary?.totalShops || shops.length}</span>
+          </div>
 
-          <button
-            onClick={() => { setActiveTab('MY_SHOPS'); setPage(1); }}
-            className={`px-5 py-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'MY_SHOPS'
-                ? 'border-gold-600 text-gold-600 bg-gold-50/60 rounded-t-xl'
-                : 'border-transparent text-gray-600 hover:text-charcoal'
-            }`}
-          >
-            <UserCheck className="w-4 h-4 text-emerald-600" /> My Assigned Shops
-          </button>
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">2. New Shops</span>
+            <span className="text-2xl font-serif font-bold text-amber-700">{reportsData?.summary?.totalShops || 0}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">3. Active Shops</span>
+            <span className="text-2xl font-serif font-bold text-emerald-700">{reportsData?.summary?.repeatShops || 0}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">4. Repeat Reorder Rate</span>
+            <span className="text-2xl font-serif font-bold text-purple-700">{reportsData?.summary?.reorderRate || '0%'}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">5. Total Orders</span>
+            <span className="text-2xl font-serif font-bold text-stone-900">{reportsData?.summary?.totalOrders || 0}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-amber-300 shadow-sm bg-amber-50/40">
+            <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider block">6. Reorders Due Today</span>
+            <span className="text-2xl font-serif font-bold text-amber-950">{reordersDueToday.length}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-rose-300 shadow-sm bg-rose-50/40">
+            <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider block">7. Overdue Reorders</span>
+            <span className="text-2xl font-serif font-bold text-rose-900">{reportsData?.atRiskShops?.length || 0}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">8. Pending Credit (₹)</span>
+            <span className="text-xl font-serif font-bold text-rose-700">₹{(reportsData?.summary?.totalOutstanding || 0).toLocaleString('en-IN')}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">9. Collected Payments</span>
+            <span className="text-xl font-serif font-bold text-emerald-700">₹{(reportsData?.summary?.totalCollected || 0).toLocaleString('en-IN')}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-amber-400 shadow-sm bg-gradient-to-br from-amber-100/50 to-orange-100/40">
+            <span className="text-[11px] font-bold text-amber-950 uppercase tracking-wider block">10. Total Shop Sales</span>
+            <span className="text-xl font-serif font-bold text-amber-950">₹{(reportsData?.summary?.totalSalesValue || 0).toLocaleString('en-IN')}</span>
+          </div>
         </div>
 
-        {/* Follow-up Sub-filter Bar (When Follow-ups Hub tab is active) */}
-        {activeTab === 'FOLLOW_UPS' && (
-          <div className="flex flex-wrap items-center gap-2 bg-amber-50/80 p-3 rounded-2xl border border-amber-200 text-xs font-semibold">
-            <span className="text-amber-900 font-bold flex items-center gap-1 mr-2">
-              <Filter className="w-3.5 h-3.5" /> Follow-up Category:
-            </span>
-            <button
-              onClick={() => { setFollowUpSubFilter('DUE_TODAY'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl transition-colors ${
-                followUpSubFilter === 'DUE_TODAY' ? 'bg-amber-600 text-white font-bold' : 'bg-white text-amber-900 border hover:bg-amber-100'
-              }`}
-            >
-              🔔 Due Today ({metrics.followUpsDue})
-            </button>
-            <button
-              onClick={() => { setFollowUpSubFilter('OVERDUE'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl transition-colors ${
-                followUpSubFilter === 'OVERDUE' ? 'bg-rose-600 text-white font-bold' : 'bg-white text-rose-900 border hover:bg-rose-100'
-              }`}
-            >
-              🚨 Overdue ({metrics.overdue})
-            </button>
-            <button
-              onClick={() => { setFollowUpSubFilter('UPCOMING'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl transition-colors ${
-                followUpSubFilter === 'UPCOMING' ? 'bg-blue-600 text-white font-bold' : 'bg-white text-blue-900 border hover:bg-blue-100'
-              }`}
-            >
-              📅 Upcoming
-            </button>
-            <button
-              onClick={() => { setFollowUpSubFilter('WAITING'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl transition-colors ${
-                followUpSubFilter === 'WAITING' ? 'bg-purple-600 text-white font-bold' : 'bg-white text-purple-900 border hover:bg-purple-100'
-              }`}
-            >
-              ⏳ Awaiting Reply
-            </button>
-            <button
-              onClick={() => { setFollowUpSubFilter('CONFIRMED'); setPage(1); }}
-              className={`px-3 py-1.5 rounded-xl transition-colors ${
-                followUpSubFilter === 'CONFIRMED' ? 'bg-emerald-600 text-white font-bold' : 'bg-white text-emerald-900 border hover:bg-emerald-100'
-              }`}
-            >
-              ✨ Order Confirmed
-            </button>
+        {/* CORE CRM SECTION: REORDERS DUE TODAY */}
+        {reordersDueToday.length > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100 border-2 border-amber-400 rounded-3xl p-5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-950">
+                <Flame className="w-5 h-5 text-amber-700 fill-amber-500 animate-pulse" />
+                <h2 className="font-serif font-bold text-base">
+                  Reorders Due Today ({reordersDueToday.length} Shops)
+                </h2>
+              </div>
+              <span className="text-xs font-bold text-amber-800 bg-amber-200/80 px-3 py-1 rounded-full">
+                Action Required
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {reordersDueToday.map((shop: any) => (
+                <div key={shop.id} className="bg-white rounded-2xl p-4 border border-amber-200 shadow-sm space-y-2.5">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                        {shop.shopCode}
+                      </span>
+                      <h4 className="font-bold text-sm text-stone-900 mt-1">{shop.shopName}</h4>
+                      <p className="text-xs text-stone-500">{shop.ownerName} • {shop.area}, {shop.city}</p>
+                    </div>
+                    <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      Due Today
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-stone-600 bg-amber-50/60 p-2 rounded-lg flex justify-between">
+                    <span>Est. Reorder: <strong>{shop.estimatedMonthlyKg || 10} kg</strong></span>
+                    <span>Executive: <strong>{shop.salespersonSnapshotName || 'Field Agent'}</strong></span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <a
+                      href={`tel:${shop.mobile}`}
+                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1"
+                    >
+                      <Phone className="w-3 h-3" /> Call
+                    </a>
+                    <a
+                      href={`https://wa.me/91${(shop.whatsapp || shop.mobile).replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(shop.shopName)},%20this%20is%20Kamadhenu%20Honey%20Farms.%20Your%20next%20pure%20honey%20stock%20reorder%20is%20due.`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-1.5 bg-emerald-100 text-emerald-900 hover:bg-emerald-200 rounded-lg text-xs font-bold text-center flex items-center justify-center gap-1 border border-emerald-300"
+                    >
+                      <MessageSquare className="w-3 h-3" /> WhatsApp
+                    </a>
+                    <button
+                      onClick={() => setShowOrderModal(shop)}
+                      className="flex-1 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-bold text-center"
+                    >
+                      Order
+                    </button>
+                    <button
+                      onClick={() => handleReminderAction(shop.id, shop.reminders?.[0]?.id || '1', 'MARK_CONTACTED')}
+                      className="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-lg text-stone-700"
+                      title="Mark as Contacted"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Filter Controls Bar */}
-        <div className="glass-panel p-4 rounded-2xl border border-gold-300 flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
-            <input
-              type="text"
-              placeholder="Search by shop name, contact person, phone, area, city..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-gold-200 bg-white outline-none focus:border-gold-500"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="px-3 py-2 text-xs rounded-xl border border-gold-200 bg-white outline-none focus:border-gold-500 font-semibold"
+        {/* VIEW MODE SWITCHER */}
+        <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('TABLE')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+                viewMode === 'TABLE' ? 'bg-amber-800 text-white shadow' : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+              }`}
             >
-              <option value="ALL">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="FOLLOW_UP_DUE">Follow-up Due</option>
-              <option value="ORDER_CONFIRMED">Order Confirmed</option>
-              <option value="WAITING_FOR_RESPONSE">Awaiting Reply</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="CLOSED">Closed</option>
-            </select>
+              <FileText className="w-4 h-4" />
+              Shop Management Table
+            </button>
 
-            <select
-              value={execFilter}
-              onChange={(e) => { setExecFilter(e.target.value); setPage(1); }}
-              className="px-3 py-2 text-xs rounded-xl border border-gold-200 bg-white outline-none focus:border-gold-500 font-semibold"
+            <button
+              onClick={() => setViewMode('MAP')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+                viewMode === 'MAP' ? 'bg-amber-800 text-white shadow' : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+              }`}
             >
-              <option value="ALL">All Sales Executives</option>
-              {salesExecutives.map((exec) => (
-                <option key={exec.id} value={exec.id}>{exec.fullName} ({exec.city})</option>
-              ))}
-            </select>
+              <Map className="w-4 h-4" />
+              📍 Salesperson → Shop Territory Map
+            </button>
+
+            <button
+              onClick={() => setViewMode('REPORTS')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition ${
+                viewMode === 'REPORTS' ? 'bg-amber-800 text-white shadow' : 'bg-white text-stone-600 hover:bg-stone-100 border border-stone-200'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              CRM Reports & Analytics
+            </button>
           </div>
         </div>
 
-        {/* Shop List Table / Cards View */}
-        <div className="glass-panel rounded-3xl border border-gold-300 overflow-hidden shadow-luxury">
-          {loading ? (
-            <div className="p-12 text-center text-xs text-gray-500 font-semibold flex items-center justify-center gap-2">
-              <RefreshCw className="w-4 h-4 animate-spin text-gold-600" /> Loading shop records...
-            </div>
-          ) : shops.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <Store className="w-10 h-10 text-gray-300 mx-auto" />
-              <p className="text-sm font-semibold text-charcoal">No retail shops match your search criteria</p>
-              <button
-                onClick={() => setShowAddShopModal(true)}
-                className="px-4 py-2 bg-gold-600 text-white text-xs font-semibold rounded-xl hover:bg-gold-700 inline-flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4" /> Add First Retail Shop
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gold-50/80 text-[11px] font-bold text-gray-600 uppercase border-b border-gold-200">
-                    <th className="py-3.5 px-4">Shop Details</th>
-                    <th className="py-3.5 px-4">Contact & Location</th>
-                    <th className="py-3.5 px-4">Sales Executive</th>
-                    <th className="py-3.5 px-4">Order Metrics</th>
-                    <th className="py-3.5 px-4">Next Follow-up</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gold-100 text-xs">
-                  {shops.map((shop) => {
-                    const isDueToday = shop.nextFollowUpDate && new Date(shop.nextFollowUpDate).toDateString() === new Date().toDateString();
-                    const isOverdue = shop.nextFollowUpDate && new Date(shop.nextFollowUpDate) < new Date(new Date().setHours(0,0,0,0));
-
-                    return (
-                      <tr key={shop.id} className="hover:bg-gold-50/40 transition-colors">
-                        
-                        {/* Shop Details */}
-                        <td className="py-4 px-4 space-y-1">
-                          <Link href={`/admin/shops/${shop.id}`} className="font-serif font-bold text-sm text-charcoal hover:text-gold-600 block">
-                            {shop.shopName}
-                          </Link>
-                          <span className="text-[10px] font-mono text-gray-400 block">{shop.shopNo} • Cycle: {shop.reorderIntervalDays}d</span>
-                        </td>
-
-                        {/* Contact & Location */}
-                        <td className="py-4 px-4 space-y-1">
-                          <p className="font-semibold text-charcoal">{shop.contactPerson}</p>
-                          <p className="text-[11px] text-gray-600 flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-gold-600" /> {shop.contactNumber}
-                          </p>
-                          <p className="text-[10px] text-gray-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-gray-400" /> {shop.area}, {shop.city}
-                          </p>
-                        </td>
-
-                        {/* Sales Executive */}
-                        <td className="py-4 px-4">
-                          {shop.assignedSalesExecutiveName ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gold-700 bg-gold-50 px-2 py-1 rounded-lg border border-gold-200">
-                              <UserCheck className="w-3 h-3 text-gold-600" /> {shop.assignedSalesExecutiveName}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-gray-400 italic">Unassigned</span>
-                          )}
-                        </td>
-
-                        {/* Order Metrics */}
-                        <td className="py-4 px-4 space-y-1">
-                          <p className="font-bold text-charcoal">{shop.totalKgPurchased} <span className="text-[10px] font-normal text-gray-500">kg total</span></p>
-                          <p className="text-[11px] text-emerald-600 font-semibold">₹{shop.totalPurchaseValue.toLocaleString('en-IN')}</p>
-                          <span className="text-[10px] text-gray-500 block">{shop.totalOrders} order(s)</span>
-                        </td>
-
-                        {/* Next Follow-up Date */}
-                        <td className="py-4 px-4 space-y-1">
-                          {shop.nextFollowUpDate ? (
-                            <div className="flex flex-col">
-                              <span className={`font-semibold text-xs ${isOverdue ? 'text-rose-600 font-bold' : isDueToday ? 'text-amber-600 font-bold' : 'text-charcoal'}`}>
-                                {new Date(shop.nextFollowUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                              </span>
-                              {isOverdue && <span className="text-[10px] text-rose-600 font-bold">⚠️ OVERDUE</span>}
-                              {isDueToday && <span className="text-[10px] text-amber-600 font-bold">🔔 DUE TODAY</span>}
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-gray-400 italic">Not set</span>
-                          )}
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-4 px-4">
-                          {renderStatusBadge(shop.status)}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-4 px-4 text-right space-x-1.5 whitespace-nowrap">
-                          {/* WhatsApp Direct */}
-                          <button
-                            onClick={() => openWhatsAppDrawer(shop)}
-                            title="Send WhatsApp Follow-up Message"
-                            className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors inline-flex items-center"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Record Order */}
-                          <button
-                            onClick={() => {
-                              setShowOrderModal(shop);
-                              setOrderForm({
-                                product: 'Pure Raw Honey 1kg',
-                                quantity: '10',
-                                kg: '10',
-                                orderValue: '7490',
-                                paymentStatus: 'PAID',
-                                deliveryStatus: 'DELIVERED',
-                                salesExecutive: shop.assignedSalesExecutiveName || '',
-                                orderDate: new Date().toISOString().split('T')[0],
-                                notes: '',
-                              });
-                            }}
-                            title="Record New Order"
-                            className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors inline-flex items-center"
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Record Follow-up */}
-                          <button
-                            onClick={() => {
-                              setShowFollowUpModal(shop);
-                              setFollowUpForm({
-                                author: 'Admin User',
-                                type: 'CALL',
-                                result: 'NEEDS_STOCK',
-                                notes: '',
-                                nextFollowUpDate: '',
-                              });
-                            }}
-                            title="Log Follow-up Interaction"
-                            className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 transition-colors inline-flex items-center"
-                          >
-                            <Clock className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* View Profile */}
-                          <Link
-                            href={`/admin/shops/${shop.id}`}
-                            className="px-2.5 py-1 text-[11px] font-semibold text-gold-700 bg-gold-50 hover:bg-gold-100 rounded-lg border border-gold-200 transition-colors inline-flex items-center gap-1"
-                          >
-                            Profile <ChevronRight className="w-3 h-3" />
-                          </Link>
-                        </td>
-
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination Controls */}
-          <div className="p-4 bg-gold-50/50 border-t border-gold-200 flex items-center justify-between text-xs text-gray-600">
-            <span>Showing Page {pagination.page} of {pagination.totalPages} ({pagination.totalCount} shops)</span>
-            <div className="flex gap-2">
-              <button
-                disabled={pagination.page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-                className="px-3 py-1.5 rounded-lg border border-gold-300 bg-white font-semibold disabled:opacity-50 inline-flex items-center gap-1"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" /> Previous
-              </button>
-              <button
-                disabled={pagination.page >= pagination.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1.5 rounded-lg border border-gold-300 bg-white font-semibold disabled:opacity-50 inline-flex items-center gap-1"
-              >
-                Next <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ==========================================================================
-          MODAL 1: Add New Retail Shop
-         ========================================================================== */}
-      {showAddShopModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-gold-300 max-w-xl w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center border-b border-gold-200 pb-4">
-              <h2 className="text-xl font-serif font-bold text-charcoal flex items-center gap-2">
-                <Store className="w-5 h-5 text-gold-600" /> Add New Retail Shop
-              </h2>
-              <button onClick={() => setShowAddShopModal(false)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddShopSubmit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Shop Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Sri Lakshmi Organics"
-                    value={addShopForm.shopName}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, shopName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Contact Person *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Ramesh Kumar"
-                    value={addShopForm.contactPerson}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, contactPerson: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Phone Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="e.g. 9876543210"
-                    value={addShopForm.contactNumber}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, contactNumber: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Email Address (Optional)</label>
-                  <input
-                    type="email"
-                    placeholder="e.g. shop@gmail.com"
-                    value={addShopForm.email}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, email: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block font-semibold text-gray-700 mb-1">Shop Address *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. No. 45, Main Road, opposite City Bank"
-                    value={addShopForm.address}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, address: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Area / Suburb *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Rajajinagar"
-                    value={addShopForm.area}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, area: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">City *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Bangalore"
-                    value={addShopForm.city}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, city: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Assigned Sales Executive</label>
-                  <select
-                    value={addShopForm.assignedSalesExecutiveId}
-                    onChange={(e) => {
-                      const selected = salesExecutives.find((x) => x.id === e.target.value);
-                      setAddShopForm({
-                        ...addShopForm,
-                        assignedSalesExecutiveId: e.target.value,
-                        assignedSalesExecutiveName: selected ? selected.fullName : '',
-                      });
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500 font-semibold"
-                  >
-                    <option value="">None (Unassigned)</option>
-                    {salesExecutives.map((exec) => (
-                      <option key={exec.id} value={exec.id}>{exec.fullName} ({exec.city})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Reorder Interval (Days) *</label>
-                  <select
-                    value={addShopForm.reorderIntervalDays}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, reorderIntervalDays: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500 font-semibold"
-                  >
-                    <option value="15">Every 15 Days (High Demand)</option>
-                    <option value="20">Every 20 Days</option>
-                    <option value="30">Every 30 Days (Monthly Standard)</option>
-                    <option value="45">Every 45 Days</option>
-                    <option value="60">Every 60 Days</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block font-semibold text-gray-700 mb-1">Notes / Preferences</label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g. Prefers 1kg Raw Honey jars, calls best in the evening..."
-                    value={addShopForm.notes}
-                    onChange={(e) => setAddShopForm({ ...addShopForm, notes: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
+        {/* ==================================================== */}
+        {/* VIEW 1: SHOP MANAGEMENT TABLE */}
+        {/* ==================================================== */}
+        {viewMode === 'TABLE' && (
+          <div className="space-y-4">
+            {/* Filter Toolbar */}
+            <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm grid grid-cols-1 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div className="sm:col-span-2 relative">
+                <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search Shop Name, Owner, Mobile, Shop Code..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-stone-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-600"
+                />
               </div>
 
-              <div className="pt-4 flex justify-end gap-3 border-t border-gold-200">
-                <button
-                  type="button"
-                  onClick={() => setShowAddShopModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingShop}
-                  className="px-5 py-2.5 bg-gold-600 text-white rounded-xl font-semibold hover:bg-gold-700 disabled:opacity-50"
-                >
-                  {submittingShop ? 'Saving Shop...' : 'Save & Register Shop'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ==========================================================================
-          MODAL 2: Record New Order
-         ========================================================================== */}
-      {showOrderModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-gold-300 max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center border-b border-gold-200 pb-4">
               <div>
-                <h2 className="text-xl font-serif font-bold text-charcoal flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-gold-600" /> Record New Order
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">{showOrderModal.shopName} ({showOrderModal.shopNo})</p>
-              </div>
-              <button onClick={() => setShowOrderModal(null)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleRecordOrderSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">Product Purchased *</label>
                 <select
-                  value={orderForm.product}
-                  onChange={(e) => setOrderForm({ ...orderForm, product: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500 font-semibold"
+                  value={execFilter}
+                  onChange={(e) => setExecFilter(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-stone-300 text-xs font-bold bg-white"
                 >
-                  <option value="Pure Raw Honey 1kg Jar">Pure Raw Honey 1kg Jar</option>
-                  <option value="Pure Raw Honey 500g Jar">Pure Raw Honey 500g Jar</option>
-                  <option value="Dry Fruits Honey 1kg Jar">Dry Fruits Honey 1kg Jar</option>
-                  <option value="Dry Fruits Honey 500g Jar">Dry Fruits Honey 500g Jar</option>
-                  <option value="Bee-Crafted Honey Comb Jar">Bee-Crafted Honey Comb Jar</option>
-                  <option value="Mixed Honey Bulk Assortment">Mixed Honey Bulk Assortment</option>
+                  <option value="ALL">All Sales Executives</option>
+                  {salesExecutives.map((exec) => (
+                    <option key={exec.id} value={exec.id}>{exec.fullName}</option>
+                  ))}
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-stone-300 text-xs font-bold bg-white"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="ORDER_CONFIRMED">Order Confirmed</option>
+                  <option value="FOLLOW_UP_DUE">Follow-up Due</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
+
+              <div>
+                <select
+                  value={reorderStatusFilter}
+                  onChange={(e) => setReorderStatusFilter(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-stone-300 text-xs font-bold bg-white"
+                >
+                  <option value="ALL">All Reorder Schedules</option>
+                  <option value="DUE_TODAY">Reorder Due Today</option>
+                  <option value="DUE_SOON">Due in 3 Days</option>
+                  <option value="OVERDUE">Overdue Reorder</option>
+                </select>
+              </div>
+
+              <div>
+                <select
+                  value={paymentStatusFilter}
+                  onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                  className="w-full py-2 px-3 rounded-xl border border-stone-300 text-xs font-bold bg-white"
+                >
+                  <option value="ALL">All Payment Statuses</option>
+                  <option value="PENDING">Has Outstanding Balance</option>
+                  <option value="OVERDUE">Overdue Credit Payment</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-100/70 text-stone-700 uppercase font-bold border-b border-stone-200">
+                    <tr>
+                      <th className="p-3.5">Shop Code & Name</th>
+                      <th className="p-3.5">Owner & Mobile</th>
+                      <th className="p-3.5">Location</th>
+                      <th className="p-3.5">Salesperson</th>
+                      <th className="p-3.5">Total Sales</th>
+                      <th className="p-3.5">Next Reorder</th>
+                      <th className="p-3.5">Credit Balance</th>
+                      <th className="p-3.5">Status</th>
+                      <th className="p-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200/70">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={9} className="p-8 text-center text-stone-500">
+                          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-amber-700" />
+                          Loading Shops…
+                        </td>
+                      </tr>
+                    ) : shops.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="p-8 text-center text-stone-500">
+                          No shops match the selected criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      shops.map((shop) => (
+                        <tr key={shop.id} className="hover:bg-amber-50/30 transition">
+                          <td className="p-3.5 font-bold">
+                            <Link
+                              href={`/admin/shops/${shop.id}`}
+                              className="text-amber-900 hover:underline block"
+                            >
+                              {shop.shopName}
+                            </Link>
+                            <span className="font-mono text-[10px] text-stone-400">{shop.shopCode}</span>
+                          </td>
+                          <td className="p-3.5">
+                            <div className="font-medium text-stone-900">{shop.ownerName || shop.contactPerson}</div>
+                            <a href={`tel:${shop.mobile}`} className="text-stone-500 hover:text-amber-800">
+                              {shop.mobile}
+                            </a>
+                          </td>
+                          <td className="p-3.5 text-stone-600">
+                            {shop.area}, {shop.city}
+                          </td>
+                          <td className="p-3.5">
+                            <span className="font-semibold text-stone-800">
+                              {shop.salesperson?.fullName || shop.salespersonSnapshotName || 'Unassigned'}
+                            </span>
+                          </td>
+                          <td className="p-3.5 font-bold text-stone-900">
+                            ₹{shop.totalPurchaseValue?.toLocaleString('en-IN') || 0}
+                            <span className="block font-normal text-[10px] text-stone-400">
+                              {shop.totalOrders || 0} orders ({shop.totalKgPurchased || 0} kg)
+                            </span>
+                          </td>
+                          <td className="p-3.5 font-medium">
+                            {shop.nextReorderDate ? (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                new Date(shop.nextReorderDate) < new Date()
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-emerald-100 text-emerald-800'
+                              }`}>
+                                {new Date(shop.nextReorderDate).toLocaleDateString('en-IN')}
+                              </span>
+                            ) : (
+                              <span className="text-stone-400">—</span>
+                            )}
+                          </td>
+                          <td className="p-3.5">
+                            {shop.outstandingAmount > 0 ? (
+                              <span className="text-rose-700 font-bold">
+                                ₹{shop.outstandingAmount.toLocaleString('en-IN')}
+                              </span>
+                            ) : (
+                              <span className="text-emerald-700 font-semibold">Cleared</span>
+                            )}
+                          </td>
+                          <td className="p-3.5">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              {shop.status}
+                            </span>
+                          </td>
+                          <td className="p-3.5 text-right space-x-1 whitespace-nowrap">
+                            <button
+                              onClick={() => setShowOrderModal(shop)}
+                              className="p-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg"
+                              title="Add Order"
+                            >
+                              <ShoppingBag className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setShowPaymentModal(shop)}
+                              className="p-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-lg"
+                              title="Record Payment"
+                            >
+                              <DollarSign className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setShowVisitModal(shop)}
+                              className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-lg"
+                              title="Log Visit"
+                            >
+                              <Building2 className="w-3.5 h-3.5" />
+                            </button>
+                            <Link
+                              href={`/admin/shops/${shop.id}`}
+                              className="p-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-lg inline-block"
+                              title="View Full 360 Profile"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="p-4 border-t border-stone-200 flex items-center justify-between text-xs text-stone-500">
+                <span>Total {pagination.totalCount} shops</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => p - 1)}
+                    className="p-1.5 rounded-lg border border-stone-300 hover:bg-stone-100 disabled:opacity-50"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="font-bold text-stone-800">Page {page} of {pagination.totalPages}</span>
+                  <button
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                    className="p-1.5 rounded-lg border border-stone-300 hover:bg-stone-100 disabled:opacity-50"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================================================== */}
+        {/* VIEW 2: 📍 SALESPERSON → SHOP TERRITORY MAP */}
+        {/* ==================================================== */}
+        {viewMode === 'MAP' && (
+          <ShopMapView salesExecutives={salesExecutives} />
+        )}
+
+        {/* ==================================================== */}
+        {/* VIEW 3: CRM REPORTS & ANALYTICS */}
+        {/* ==================================================== */}
+        {viewMode === 'REPORTS' && reportsData && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Sales by Salesperson */}
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+                <h3 className="font-serif font-bold text-base text-stone-900 mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-amber-700" />
+                  Sales Performance by Salesperson
+                </h3>
+                <div className="space-y-3">
+                  {reportsData.salesBySalesperson?.map((item: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-sm text-stone-900">{item.salesperson}</span>
+                        <span className="block text-[11px] text-stone-500">{item.shopsCount} Shops • {item.totalKg} kg delivered</span>
+                      </div>
+                      <span className="font-serif font-bold text-base text-emerald-800">
+                        ₹{item.totalSales.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sales by Product */}
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+                <h3 className="font-serif font-bold text-base text-stone-900 mb-3 flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-amber-700" />
+                  Product Sales Volume Breakdown
+                </h3>
+                <div className="space-y-3">
+                  {reportsData.productBreakdown?.map((p: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-sm text-stone-900">{p.productName}</span>
+                        <span className="block text-[11px] text-stone-500">{p.quantity} jars sold ({p.totalKg} kg)</span>
+                      </div>
+                      <span className="font-serif font-bold text-base text-amber-950">
+                        ₹{p.salesValue.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Top Shops Leaderboard */}
+            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+              <h3 className="font-serif font-bold text-base text-stone-900 mb-3">
+                🏆 Top Performing Shops
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-stone-100 text-stone-700 uppercase font-bold">
+                    <tr>
+                      <th className="p-3">Shop Code</th>
+                      <th className="p-3">Shop Name</th>
+                      <th className="p-3">Location</th>
+                      <th className="p-3">Orders</th>
+                      <th className="p-3">Total Kg</th>
+                      <th className="p-3 text-right">Total Purchase Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200">
+                    {reportsData.topShops?.map((s: any) => (
+                      <tr key={s.id}>
+                        <td className="p-3 font-mono font-bold text-amber-900">{s.shopCode}</td>
+                        <td className="p-3 font-bold text-stone-900">{s.shopName}</td>
+                        <td className="p-3 text-stone-600">{s.area}, {s.city}</td>
+                        <td className="p-3">{s.totalOrders}</td>
+                        <td className="p-3">{s.totalKgPurchased} kg</td>
+                        <td className="p-3 text-right font-serif font-bold text-emerald-800">₹{s.totalPurchaseValue.toLocaleString('en-IN')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* MODAL: ADD ORDER */}
+      {showOrderModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-amber-300 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center border-b border-stone-200 pb-3">
+              <div>
+                <h3 className="font-serif font-bold text-base text-stone-900">Record Shop Order</h3>
+                <p className="text-xs text-stone-500">{showOrderModal.shopName} ({showOrderModal.shopCode})</p>
+              </div>
+              <button onClick={() => setShowOrderModal(null)} className="text-stone-400 hover:text-stone-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitOrder} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Product</label>
+                <select
+                  value={orderForm.productName}
+                  onChange={(e) => setOrderForm({ ...orderForm, productName: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 font-bold bg-white"
+                >
+                  <option value="Pure Honey – 500g">Pure Honey – 500g</option>
+                  <option value="Pure Honey – 1kg">Pure Honey – 1kg</option>
+                  <option value="Dry Fruits Honey – 500g">Dry Fruits Honey – 500g</option>
+                  <option value="Dry Fruits Honey – 1kg">Dry Fruits Honey – 1kg</option>
+                  <option value="Comb Honey in Glass Jar – 500g">Comb Honey – 500g</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Quantity (Units/Jars) *</label>
+                  <label className="block font-bold text-stone-700 mb-1">Quantity (Jars)</label>
                   <input
                     type="number"
-                    required
                     min="1"
+                    required
                     value={orderForm.quantity}
-                    onChange={(e) => setOrderForm({ ...orderForm, quantity: e.target.value, kg: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
+                    onChange={(e) => setOrderForm({ ...orderForm, quantity: parseInt(e.target.value || '1', 10) })}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 font-bold"
                   />
                 </div>
-
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Total Weight (Kg) *</label>
+                  <label className="block font-bold text-stone-700 mb-1">Unit Price (₹)</label>
                   <input
                     type="number"
-                    required
-                    step="0.5"
-                    min="0.5"
-                    value={orderForm.kg}
-                    onChange={(e) => setOrderForm({ ...orderForm, kg: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Total Order Value (₹) *</label>
-                  <input
-                    type="number"
-                    required
                     min="0"
-                    value={orderForm.orderValue}
-                    onChange={(e) => setOrderForm({ ...orderForm, orderValue: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
+                    required
+                    value={orderForm.unitPrice}
+                    onChange={(e) => setOrderForm({ ...orderForm, unitPrice: parseFloat(e.target.value || '0') })}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 font-bold"
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Payment Status</label>
+                  <label className="block font-bold text-stone-700 mb-1">Payment Method</label>
+                  <select
+                    value={orderForm.paymentMethod}
+                    onChange={(e) => setOrderForm({ ...orderForm, paymentMethod: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-stone-300 font-bold bg-white"
+                  >
+                    <option value="CASH">Cash</option>
+                    <option value="UPI">UPI</option>
+                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                    <option value="CREDIT">Credit</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">Payment Status</label>
                   <select
                     value={orderForm.paymentStatus}
                     onChange={(e) => setOrderForm({ ...orderForm, paymentStatus: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500 font-semibold"
+                    className="w-full p-2.5 rounded-xl border border-stone-300 font-bold bg-white"
                   >
-                    <option value="PAID">PAID (Full Payment)</option>
-                    <option value="PENDING">PENDING (Credit)</option>
-                    <option value="PARTIAL">PARTIAL PAYMENT</option>
+                    <option value="PAID">Paid</option>
+                    <option value="PENDING">Pending</option>
                   </select>
                 </div>
               </div>
 
+              <div className="bg-emerald-50 border border-emerald-300 p-3 rounded-xl flex justify-between items-center">
+                <span className="font-bold text-emerald-900">Total Order Amount</span>
+                <span className="text-base font-serif font-bold text-emerald-950">
+                  ₹{(orderForm.quantity * orderForm.unitPrice).toLocaleString('en-IN')}
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingOrder}
+                className="w-full py-3 bg-amber-800 hover:bg-amber-900 text-white font-bold rounded-xl shadow transition"
+              >
+                {submittingOrder ? 'Recording Order…' : 'Confirm & Schedule Reorder'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: RECORD PAYMENT */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-emerald-300 space-y-4">
+            <div className="flex justify-between items-center border-b border-stone-200 pb-3">
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Sales Executive Who Took Order</label>
+                <h3 className="font-serif font-bold text-base text-stone-900">Record Payment</h3>
+                <p className="text-xs text-stone-500">Outstanding: ₹{showPaymentModal.outstandingAmount?.toLocaleString('en-IN')}</p>
+              </div>
+              <button onClick={() => setShowPaymentModal(null)} className="text-stone-400 hover:text-stone-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitPayment} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Payment Amount (₹) *</label>
+                <input
+                  type="number"
+                  required
+                  placeholder="e.g. 5000"
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Payment Method</label>
+                <select
+                  value={paymentForm.paymentMethod}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 font-bold bg-white"
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="CHEQUE">Cheque</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Reference / UTR (Optional)</label>
                 <input
                   type="text"
-                  placeholder="e.g. Preetham Gowda"
-                  value={orderForm.salesExecutive}
-                  onChange={(e) => setOrderForm({ ...orderForm, salesExecutive: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
+                  placeholder="UPI transaction ref or UTR"
+                  value={paymentForm.reference}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, reference: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 font-medium"
                 />
               </div>
 
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">Order Date</label>
-                <input
-                  type="date"
-                  value={orderForm.orderDate}
-                  onChange={(e) => setOrderForm({ ...orderForm, orderDate: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                />
-              </div>
-
-              <div className="p-3 bg-gold-50/80 rounded-xl border border-gold-200 text-[11px] text-gray-700">
-                ⚡ <strong>Automated Engine:</strong> Saving this order will set the shop's next follow-up date to <strong>{showOrderModal.reorderIntervalDays} days</strong> from order date.
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3 border-t border-gold-200">
-                <button
-                  type="button"
-                  onClick={() => setShowOrderModal(null)}
-                  className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingOrder}
-                  className="px-5 py-2.5 bg-gold-600 text-white rounded-xl font-semibold hover:bg-gold-700 disabled:opacity-50"
-                >
-                  {submittingOrder ? 'Recording Order...' : 'Confirm & Record Order'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ==========================================================================
-          MODAL 3: Record Follow-Up Interaction
-         ========================================================================== */}
-      {showFollowUpModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-gold-300 max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center border-b border-gold-200 pb-4">
-              <div>
-                <h2 className="text-xl font-serif font-bold text-charcoal flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-600" /> Log Follow-up Interaction
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">{showFollowUpModal.shopName} ({showFollowUpModal.contactNumber})</p>
-              </div>
-              <button onClick={() => setShowFollowUpModal(null)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
-                <X className="w-5 h-5" />
+              <button
+                type="submit"
+                disabled={submittingPayment}
+                className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow transition"
+              >
+                {submittingPayment ? 'Saving…' : 'Record Payment in Ledger'}
               </button>
-            </div>
-
-            <form onSubmit={handleFollowUpSubmit} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Follow-up Type</label>
-                  <select
-                    value={followUpForm.type}
-                    onChange={(e) => setFollowUpForm({ ...followUpForm, type: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500 font-semibold"
-                  >
-                    <option value="CALL">Phone Call 📞</option>
-                    <option value="WHATSAPP">WhatsApp Message 💬</option>
-                    <option value="VISIT">In-Person Shop Visit 🏪</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Interaction Result *</label>
-                  <select
-                    value={followUpForm.result}
-                    onChange={(e) => setFollowUpForm({ ...followUpForm, result: e.target.value as any })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500 font-semibold text-gold-700"
-                  >
-                    <option value="NEEDS_STOCK">Needs Stock (Wants to Order)</option>
-                    <option value="ORDER_CONFIRMED">Order Confirmed</option>
-                    <option value="DOESNT_NEED_STOCK_NOW">Has Enough Stock Right Now</option>
-                    <option value="CALL_LATER">Call Later (Snooze 3 Days)</option>
-                    <option value="NO_RESPONSE">No Answer / Did Not Reply</option>
-                    <option value="NOT_INTERESTED">Not Interested Anymore</option>
-                    <option value="SHOP_CLOSED">Shop Closed</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">Custom Next Follow-up Date (Optional)</label>
-                <input
-                  type="date"
-                  value={followUpForm.nextFollowUpDate}
-                  onChange={(e) => setFollowUpForm({ ...followUpForm, nextFollowUpDate: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold text-gray-700 mb-1">Follow-up Notes / Remarks</label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Record customer response or stock notes..."
-                  value={followUpForm.notes}
-                  onChange={(e) => setFollowUpForm({ ...followUpForm, notes: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gold-300 bg-white outline-none focus:border-gold-500"
-                />
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3 border-t border-gold-200">
-                <button
-                  type="button"
-                  onClick={() => setShowFollowUpModal(null)}
-                  className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingFollowUp}
-                  className="px-5 py-2.5 bg-amber-600 text-white rounded-xl font-semibold hover:bg-amber-700 disabled:opacity-50"
-                >
-                  {submittingFollowUp ? 'Logging...' : 'Log Follow-up'}
-                </button>
-              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* ==========================================================================
-          MODAL 4: WhatsApp prepared Message Drawer
-         ========================================================================== */}
-      {showWhatsAppModal && (
+      {/* MODAL: LOG VISIT */}
+      {showVisitModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gold-300 max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="flex justify-between items-center border-b border-gold-200 pb-4">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-stone-300 space-y-4">
+            <div className="flex justify-between items-center border-b border-stone-200 pb-3">
               <div>
-                <h2 className="text-xl font-serif font-bold text-charcoal flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-emerald-600" /> Send WhatsApp Follow-up
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">{showWhatsAppModal.shopName} ({showWhatsAppModal.contactNumber})</p>
+                <h3 className="font-serif font-bold text-base text-stone-900">Log Physical Visit</h3>
+                <p className="text-xs text-stone-500">{showVisitModal.shopName}</p>
               </div>
-              <button onClick={() => setShowWhatsAppModal(null)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
+              <button onClick={() => setShowVisitModal(null)} className="text-stone-400 hover:text-stone-600">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-4 text-xs">
+            <form onSubmit={handleSubmitVisit} className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Pre-filled Message Preview (Editable):</label>
+                <label className="block font-bold text-stone-700 mb-1">Purpose of Visit</label>
+                <select
+                  value={visitForm.purpose}
+                  onChange={(e) => setVisitForm({ ...visitForm, purpose: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 font-bold bg-white"
+                >
+                  <option value="ROUTINE_FOLLOW_UP">Routine Follow-up</option>
+                  <option value="REORDER_VISIT">Reorder Delivery / Visit</option>
+                  <option value="PAYMENT_COLLECTION">Payment Collection</option>
+                  <option value="SAMPLE_DROP">Sample Drop</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Discussion Details *</label>
                 <textarea
-                  rows={5}
-                  value={whatsAppText}
-                  onChange={(e) => setWhatsAppText(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-emerald-300 bg-emerald-50/50 outline-none focus:border-emerald-500 text-xs leading-relaxed text-charcoal font-mono"
+                  required
+                  rows={3}
+                  placeholder="Key discussion points, feedback on honey stock..."
+                  value={visitForm.discussion}
+                  onChange={(e) => setVisitForm({ ...visitForm, discussion: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 font-medium"
                 />
               </div>
 
-              <div className="pt-4 flex justify-end gap-3 border-t border-gold-200">
-                <button
-                  type="button"
-                  onClick={() => setShowWhatsAppModal(null)}
-                  className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={triggerWhatsAppSend}
-                  className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 inline-flex items-center gap-2"
-                >
-                  <Send className="w-4 h-4" /> Open WhatsApp Web/App
-                </button>
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Next Follow-up Date</label>
+                <input
+                  type="date"
+                  value={visitForm.nextFollowUpDate}
+                  onChange={(e) => setVisitForm({ ...visitForm, nextFollowUpDate: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-stone-300 font-bold"
+                />
               </div>
-            </div>
+
+              <button
+                type="submit"
+                disabled={submittingVisit}
+                className="w-full py-3 bg-stone-800 hover:bg-stone-900 text-white font-bold rounded-xl shadow transition"
+              >
+                {submittingVisit ? 'Saving…' : 'Save Visit Record'}
+              </button>
+            </form>
           </div>
         </div>
       )}
