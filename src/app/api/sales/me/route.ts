@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       });
 
       if (!agent || agent.isAuthActive === false) {
-        return NextResponse.json({ success: false, authenticated: false }, { status: 401 });
+        return NextResponse.json({ success: true, authenticated: false });
       }
 
       return NextResponse.json({
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: false, authenticated: false }, { status: 401 });
+    return NextResponse.json({ success: true, authenticated: false });
   } catch (error: any) {
     console.error('Sales me error:', error);
     return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
