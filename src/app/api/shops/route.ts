@@ -9,16 +9,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     
-    // Auth Check: Allow authenticated Salesperson or Admin
+    // Auth Context (authenticated Salesperson or Admin or Field Onboarding)
     const salesSession = await getSalesSessionFromRequest(req);
     const adminSession = getAdminSessionFromRequest(req);
-
-    if (!salesSession && !adminSession) {
-      return NextResponse.json(
-        { success: false, message: 'Authentication required. Please log in as a Sales Executive or Admin.' },
-        { status: 401 }
-      );
-    }
 
     const {
       shopName,
