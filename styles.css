@@ -5009,30 +5009,96 @@ body.overflow-hidden {
   overflow: hidden !important;
 }
 
+/* Add to Cart button success state */
+.btn-added-state {
+  background: linear-gradient(135deg, #27ae60 0%, #219653 100%) !important;
+  border-color: #27ae60 !important;
+  color: #ffffff !important;
+  transform: scale(0.98);
+  box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4) !important;
+}
+
 /* ==========================================================================
-   Mobile Hardware Acceleration & Performance Overrides
+   Mobile Hardware Acceleration & High Performance Overrides (60fps Engine)
    ========================================================================== */
 @media (max-width: 768px) {
   :root {
-    --luxury-shadow: 0 4px 16px rgba(182, 133, 47, 0.08);
-    --glass-shadow: 0 4px 16px rgba(46, 46, 46, 0.06);
-    --soft-shadow: 0 4px 12px rgba(46, 46, 46, 0.04);
+    --luxury-shadow: 0 4px 12px rgba(182, 133, 47, 0.08);
+    --glass-shadow: 0 4px 12px rgba(46, 46, 46, 0.05);
+    --soft-shadow: 0 4px 10px rgba(46, 46, 46, 0.04);
   }
 
-  header.scrolled {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+  /* Kill continuous battery-draining & GPU-stuttering background animations on mobile */
+  .depth-particles,
+  .upcoming-scan-line,
+  .upcoming-shimmer-ring,
+  .upcoming-glow-blob2,
+  .placeholder-glow,
+  .upcoming-products::before,
+  .upcoming-products::after,
+  .stats-showcase::before,
+  .final-cta::after,
+  #cart-confetti-canvas {
+    display: none !important;
+    animation: none !important;
   }
 
-  .btn-glass {
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+  .gold-foil-text,
+  h2::after,
+  .badge-luxury,
+  .placeholder-icon,
+  .floating-wa-btn {
+    animation: none !important;
   }
 
-  /* Hardware accelerated compositing layers on touch devices */
-  .product-card, .glass-card, .upcoming-card, .hero-media {
-    will-change: transform, opacity;
-    transform: translateZ(0);
+  /* Defer rendering of offscreen sections to eliminate initial scroll stutter */
+  .purity,
+  .stats-showcase,
+  .upcoming-products,
+  .buy-choices,
+  .why-us,
+  .gallery,
+  .journey,
+  .benefits,
+  .testimonials,
+  .faq,
+  footer {
+    content-visibility: auto;
+    contain-intrinsic-size: 500px;
+  }
+
+  /* Fast, non-blurry translucent backgrounds without expensive GPU backdrop-filter */
+  .cart-overlay,
+  .modal-overlay {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(22, 20, 16, 0.75) !important;
+  }
+
+  .mobile-bottom-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #FFFFFF !important;
+  }
+
+  .cart-drawer,
+  .checkout-modal,
+  .tracker-modal,
+  .meesho-selector-drawer {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  #cart-celebration-toast {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(20, 18, 14, 0.96) !important;
+  }
+
+  /* Clean touch scrolling on iOS and Android */
+  html, body {
+    -webkit-overflow-scrolling: touch;
   }
 }
+
 
