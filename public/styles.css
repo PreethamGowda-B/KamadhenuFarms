@@ -1013,16 +1013,17 @@ header nav {
 .product-media > img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  padding: 0;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 10px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   z-index: 2;
+  filter: drop-shadow(0 6px 14px rgba(182, 133, 47, 0.12));
 }
 
 .product-card:hover .product-media > img {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 /* Card Gallery Thumbnails Overlay */
@@ -1184,6 +1185,15 @@ header nav {
   font-size: 1.6rem;
   color: var(--dark-gold);
   font-weight: 700;
+}
+
+.price-display .delivery-notice {
+  font-size: 0.76rem !important;
+  color: #8c7d6b !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  margin-top: 3px;
+  letter-spacing: 0.01em;
 }
 
 .qty-selector {

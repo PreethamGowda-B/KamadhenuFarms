@@ -585,6 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="price-display">
               <span>Price</span>
               <h4 class="card-price-text">₹${sizePrice}</h4>
+              <span class="delivery-notice">(Delivery charges not included)</span>
             </div>
           </div>
           <div class="product-actions">
@@ -614,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       productGrid.appendChild(productCard);
 
-      // Wire up card thumbnail gallery clicks and auto-play
+      // Wire up card thumbnail gallery clicks
       if (hasGallery) {
         const thumbBtns = productCard.querySelectorAll('.thumb-nav-btn');
         const mainImg = productCard.querySelector('.product-media img');
@@ -634,15 +635,6 @@ document.addEventListener('DOMContentLoaded', () => {
             switchImage(idx);
           });
         });
-
-        // Auto switch images on desktop only
-        if (thumbBtns.length > 1 && window.innerWidth > 768) {
-          let currentIndex = 0;
-          setInterval(() => {
-            currentIndex = (currentIndex + 1) % thumbBtns.length;
-            switchImage(currentIndex);
-          }, 6000);
-        }
       }
 
       // Setup micro-animations and logic triggers for this card
@@ -677,10 +669,11 @@ document.addEventListener('DOMContentLoaded', () => {
           
           const isFirstItem = cart.length === 0;
           
-          // 1. Add item to cart immediately & save state
-          addItemToCart(product.id, selectedSize, 1, false);
+          // 1. Add item to cart immediately and automatically open cart page/drawer
+          addItemToCart(product.id, selectedSize, 1, true);
+          openCart();
           
-          // 2. Trigger silky smooth GPU-accelerated celebration
+          // 2. Trigger silky smooth celebration if available
           if (window.CartCelebration) {
             window.CartCelebration.trigger(addToCartBtn, product, e, isFirstItem);
           }
