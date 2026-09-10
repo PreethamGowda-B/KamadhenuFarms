@@ -61,12 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
         '500g': 599,
         '1kg': 999
       },
-      image: 'assets/dry_fruits_honey.jpg',
+      image: 'assets/dry_fruits_honey_details.jpg',
       images: [
-        'assets/dry_fruits_honey.jpg',
+        'assets/dry_fruits_honey_details.jpg',
         'assets/dry_fruits_honey_back.jpg',
         'assets/dry_fruits_honey_landscape.jpg',
-        'assets/dry_fruits_honey_details.jpg'
+        'assets/dry_fruits_honey.jpg'
       ],
       meeshoLink: 'https://www.meesho.com/s/p/fr48vn',
       placeholderIcon: `
