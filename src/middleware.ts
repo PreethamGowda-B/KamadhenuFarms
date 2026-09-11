@@ -144,6 +144,10 @@ export async function middleware(req: NextRequest) {
       pathname === '/dashboard' || 
       pathname === '/applications' || 
       pathname.startsWith('/applications/') ||
+      pathname === '/orders' ||
+      pathname.startsWith('/orders/') ||
+      pathname === '/referrals' ||
+      pathname.startsWith('/referrals/') ||
       pathname === '/shops' ||
       pathname.startsWith('/shops/') ||
       pathname === '/analytics' || 
@@ -162,6 +166,16 @@ export async function middleware(req: NextRequest) {
       if (pathname.startsWith('/applications/')) {
         const id = pathname.replace('/applications/', '');
         return NextResponse.rewrite(new URL(`/admin/recruitment/applications/${id}`, req.url));
+      }
+      if (pathname === '/orders') {
+        return NextResponse.rewrite(new URL('/admin/orders', req.url));
+      }
+      if (pathname.startsWith('/orders/')) {
+        const id = pathname.replace('/orders/', '');
+        return NextResponse.rewrite(new URL(`/admin/orders/${id}`, req.url));
+      }
+      if (pathname === '/referrals') {
+        return NextResponse.rewrite(new URL('/admin/referrals', req.url));
       }
       if (pathname === '/shops') {
         return NextResponse.rewrite(new URL('/admin/shops', req.url));

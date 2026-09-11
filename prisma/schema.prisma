@@ -472,10 +472,14 @@ model Customer {
   name        String
   mobile      String
   email       String
-  addresses   Address[]
-  orders      Order[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  addresses                Address[]
+  orders                   Order[]
+  referralRewards          ReferralReward[]
+  referralUsagesAsReferrer ReferralUsage[]   @relation("ReferrerUsages")
+  referralUsagesAsReferred ReferralUsage[]   @relation("ReferredCustomerUsages")
+  referralOffers           ReferralOffer[]   @relation("ReferrerCustomerOffers")
+  createdAt                DateTime   @default(now())
+  updatedAt                DateTime   @updatedAt
 
   @@index([mobile])
   @@index([email])
@@ -523,18 +527,23 @@ model Order {
   razorpayPaymentId  String?
   
   notes              String?
+  referralCode       String?
   items              OrderItem[]
   payments           Payment[]
   shipments          Shipment[]
+  referralUsages     ReferralUsage[]
   
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   @@index([orderNumber])
   @@index([customerId])
+  @@index([shippingAddressId])
   @@index([paymentStatus])
   @@index([orderStatus])
   @@index([createdAt])
+  @@index([paymentStatus, createdAt])
+  @@index([orderStatus, createdAt])
 }
 
 model OrderItem {
@@ -595,4 +604,73 @@ model EcommerceOrderSequence {
   lastSeq   Int      @default(0)
   updatedAt DateTime @updatedAt
 }
+
+model ReferralOffer {
+  id                    String            @id @default(cuid())
+  code                  String            @unique // e.g. "KHF-REF5" or custom
+  discountPercent       Float             @default(5.0) // 5% default
+  minPurchaseKg         Float             @default(1.0) // 1kg default
+  rewardType            String            @default("DISCOUNT_NEXT_PURCHASE") // discount on next qualifying purchase
+  startDate             DateTime          @default(now())
+  expiryDate            DateTime?
+  usageLimit            Int?              // optional usage cap
+  timesUsed             Int               @default(0)
+  isActive              Boolean           @default(true)
+  description           String?
+  referrerCustomerId    String?
+  referrerCustomer      Customer?         @relation("ReferrerCustomerOffers", fields: [referrerCustomerId], references: [id])
+  usages                ReferralUsage[]
+  rewards               ReferralReward[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model ReferralUsage {
+  id                    String            @id @default(cuid())
+  offerId               String
+  offer                 ReferralOffer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  orderId               String
+  order                 Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  referrerCustomerId    String?
+  referrerCustomer      Customer?         @relation("ReferrerUsages", fields: [referrerCustomerId], references: [id])
+  referredCustomerId    String
+  referredCustomer      Customer          @relation("ReferredCustomerUsages", fields: [referredCustomerId], references: [id])
+  discountApplied       Float
+  status                String            @default("PENDING") // PENDING, QUALIFIED, REJECTED
+  qualifiesReward       Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([offerId])
+  @@index([orderId])
+  @@index([referrerCustomerId])
+  @@index([referredCustomerId])
+  @@index([status])
+}
+
+model ReferralReward {
+  id                    String            @id @default(cuid())
+  offerId               String
+  offer                 ReferralOffer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customerId            String            // Referrer customer who earned 5% reward
+  customer              Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  rewardCode            String            @unique // e.g. "REWARD-XXXXXX"
+  discountPercent       Float             @default(5.0)
+  minPurchaseKg         Float             @default(1.0)
+  isUsed                Boolean           @default(false)
+  usedAt                DateTime?
+  usedOrderId           String?
+  sourceOrderId         String            // Order that generated the reward
+  status                String            @default("ACTIVE") // ACTIVE, USED, EXPIRED
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  @@index([customerId])
+  @@index([rewardCode])
+  @@index([status])
+}
+
 

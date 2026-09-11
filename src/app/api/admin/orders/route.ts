@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
       deliveredCount,
       failedPaymentsCount,
       refundsCount,
+      pendingShipmentsCount,
       todayRevenueAgg,
       monthlyRevenueAgg,
     ] = await Promise.all([
@@ -90,6 +91,12 @@ export async function GET(req: NextRequest) {
       prisma.order.count({ where: { orderStatus: 'DELIVERED' } }),
       prisma.order.count({ where: { paymentStatus: 'FAILED' } }),
       prisma.order.count({ where: { paymentStatus: 'REFUNDED' } }),
+      prisma.order.count({
+        where: {
+          paymentStatus: 'PAID',
+          orderStatus: { in: ['NEW', 'CONFIRMED', 'PROCESSING', 'PACKED'] },
+        },
+      }),
       prisma.order.aggregate({
         _sum: { total: true },
         where: { paymentStatus: 'PAID', createdAt: { gte: startOfToday } },
@@ -108,6 +115,7 @@ export async function GET(req: NextRequest) {
       packed: packedCount,
       shipped: shippedCount,
       delivered: deliveredCount,
+      pendingShipments: pendingShipmentsCount,
       failedPayments: failedPaymentsCount,
       refunds: refundsCount,
       todayRevenue: todayRevenueAgg._sum.total || 0,

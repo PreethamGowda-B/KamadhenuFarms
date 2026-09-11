@@ -19,9 +19,12 @@ import {
   ExternalLink,
   Store,
   Users,
+  Gift,
   ChevronRight,
+  ChevronLeft,
   ShieldCheck,
   Calendar,
+  Bell,
 } from 'lucide-react';
 
 export default function AdminOrdersPage() {
@@ -34,6 +37,7 @@ export default function AdminOrdersPage() {
     packed: 0,
     shipped: 0,
     delivered: 0,
+    pendingShipments: 0,
     failedPayments: 0,
     refunds: 0,
     todayRevenue: 0,
@@ -74,6 +78,14 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, [statusFilter, page]);
 
+  // Auto-refresh orders every 30 seconds so new orders appear automatically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [statusFilter, page, search]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
@@ -82,7 +94,7 @@ export default function AdminOrdersPage() {
 
   const getOrderStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      NEW: 'bg-amber-100 text-amber-800 border-amber-300',
+      NEW: 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse',
       CONFIRMED: 'bg-blue-100 text-blue-800 border-blue-300',
       PROCESSING: 'bg-purple-100 text-purple-800 border-purple-300',
       PACKED: 'bg-indigo-100 text-indigo-800 border-indigo-300',
@@ -135,6 +147,13 @@ export default function AdminOrdersPage() {
           {/* Navigation Sub-bar */}
           <div className="flex items-center gap-2 text-xs font-semibold">
             <Link
+              href="/admin/referrals"
+              className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition"
+            >
+              <Gift className="w-3.5 h-3.5 text-amber-600" />
+              <span>Referrals</span>
+            </Link>
+            <Link
               href="/admin/shops"
               className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition"
             >
@@ -161,15 +180,43 @@ export default function AdminOrdersPage() {
 
       {/* Main Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* 10 KPI Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {/* NEW Order Arrival Alert Banner */}
+        {metrics.pendingOrders > 0 && (
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between text-amber-950 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 text-amber-950 flex items-center justify-center font-bold">
+                <Bell className="w-4 h-4 animate-bounce" />
+              </div>
+              <div>
+                <strong className="text-sm font-bold block">
+                  {metrics.pendingOrders} NEW Online Order{metrics.pendingOrders > 1 ? 's' : ''} Received!
+                </strong>
+                <span className="text-xs text-amber-800">
+                  New customer orders arrived from website. Review details below to confirm and prepare packing.
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setStatusFilter('NEW');
+                setPage(1);
+              }}
+              className="bg-amber-500 hover:bg-amber-400 text-amber-950 text-xs font-bold px-3 py-1.5 rounded-xl transition"
+            >
+              Filter New Orders
+            </button>
+          </div>
+        )}
+
+        {/* 11 KPI Summary Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
           <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
             <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Today's Orders</span>
             <span className="text-2xl font-serif font-bold text-amber-900">{metrics.todayOrders}</span>
           </div>
 
           <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
-            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Pending Review</span>
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Pending Review (NEW)</span>
             <span className="text-2xl font-serif font-bold text-amber-600">{metrics.pendingOrders}</span>
           </div>
 
@@ -181,6 +228,11 @@ export default function AdminOrdersPage() {
           <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
             <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Processing / Packed</span>
             <span className="text-2xl font-serif font-bold text-purple-700">{metrics.processing + metrics.packed}</span>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Pending Shipments</span>
+            <span className="text-2xl font-serif font-bold text-indigo-700">{metrics.pendingShipments}</span>
           </div>
 
           <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
@@ -212,6 +264,11 @@ export default function AdminOrdersPage() {
             <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Refunds</span>
             <span className="text-2xl font-serif font-bold text-stone-600">{metrics.refunds}</span>
           </div>
+
+          <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Total Ledger</span>
+            <span className="text-2xl font-serif font-bold text-stone-800">{metrics.totalOrders}</span>
+          </div>
         </div>
 
         {/* Search & Status Filter Bar */}
@@ -232,7 +289,7 @@ export default function AdminOrdersPage() {
             {/* Quick Status Pill Bar */}
             <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
               {[
-                { key: 'ALL', label: 'All Orders' },
+                { key: 'ALL', label: 'All' },
                 { key: 'NEW', label: 'New' },
                 { key: 'PAID', label: 'Paid' },
                 { key: 'PROCESSING', label: 'Processing' },
@@ -240,6 +297,8 @@ export default function AdminOrdersPage() {
                 { key: 'SHIPPED', label: 'Shipped' },
                 { key: 'DELIVERED', label: 'Delivered' },
                 { key: 'CANCELLED', label: 'Cancelled' },
+                { key: 'FAILED', label: 'Failed' },
+                { key: 'REFUNDED', label: 'Refunded' },
               ].map((f) => (
                 <button
                   key={f.key}
@@ -300,6 +359,11 @@ export default function AdminOrdersPage() {
                           <Link href={`/admin/orders/${ord.id}`} className="hover:underline">
                             {ord.orderNumber}
                           </Link>
+                          {ord.referralCode && (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded block mt-0.5 font-sans font-semibold">
+                              Code: {ord.referralCode}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <strong className="block text-stone-900">{ord.customer?.name}</strong>
@@ -358,6 +422,54 @@ export default function AdminOrdersPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          {pagination.totalPages > 1 && (
+            <div className="bg-[#FAF7F0] px-4 py-3 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <span className="text-stone-500">
+                Showing page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong> ({pagination.totalCount} total orders)
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={page <= 1 || loading}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="bg-white hover:bg-stone-100 disabled:opacity-40 text-stone-700 px-3 py-1.5 rounded-lg border border-stone-300 font-bold flex items-center gap-1 transition"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Previous</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`w-7 h-7 rounded-lg font-bold text-xs transition ${
+                          page === pageNum
+                            ? 'bg-amber-500 text-amber-950 shadow-sm'
+                            : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-300'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  disabled={page >= pagination.totalPages || loading}
+                  onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                  className="bg-white hover:bg-stone-100 disabled:opacity-40 text-stone-700 px-3 py-1.5 rounded-lg border border-stone-300 font-bold flex items-center gap-1 transition"
+                >
+                  <span>Next</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -20,6 +20,27 @@ document.addEventListener('DOMContentLoaded', () => {
   let wishlist = JSON.parse(localStorage.getItem('kamadhenu_wishlist')) || [];
   let currentCoupon = null;
   const deliveryCharges = 0; // Free delivery for luxury brand
+  let isCheckoutSubmitting = false;
+
+  // Request timeout wrapper to protect against network drops and freezing
+  const fetchWithTimeout = async (url, options = {}, timeoutMs = 12000) => {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timerId);
+      return response;
+    } catch (err) {
+      clearTimeout(timerId);
+      if (err.name === 'AbortError') {
+        throw new Error('Connection timed out. Please check your network and try again.');
+      }
+      throw err;
+    }
+  };
   
   // Brand Configuration
   const PRIMARY_WHATSAPP = '919980114675';
@@ -441,26 +462,66 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Coupon Engine Toggling
+  // Coupon & Referral Engine
   if (applyCouponBtn) {
-    applyCouponBtn.addEventListener('click', () => {
-      const code = couponInput.value.trim().toUpperCase();
+    applyCouponBtn.addEventListener('click', async () => {
+      const code = (couponInput.value || '').trim().toUpperCase();
       couponFeedback.className = 'coupon-feedback';
       
       if (!code) {
-        couponFeedback.textContent = 'Please enter a coupon code.';
+        couponFeedback.textContent = 'Please enter a coupon or referral code.';
         couponFeedback.classList.add('error');
         return;
       }
 
+      // 1. Instant check for local static coupons
       if (validCoupons[code]) {
         currentCoupon = code;
         couponFeedback.textContent = `Coupon "${code}" applied successfully! You got ${validCoupons[code].value}${validCoupons[code].type === 'percent' ? '% off' : ' Rs off'}.`;
         couponFeedback.classList.add('success');
         renderCart();
-      } else {
-        couponFeedback.textContent = 'Invalid coupon code. Try "KAMADHENU10".';
+        renderCheckoutSummary();
+        return;
+      }
+
+      // 2. Dynamic check for live admin-created referral offers & reward codes
+      try {
+        applyCouponBtn.disabled = true;
+        couponFeedback.textContent = 'Verifying referral code...';
+        couponFeedback.className = 'coupon-feedback';
+
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        const res = await fetchWithTimeout('/api/referrals/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            subtotal,
+            items: cart.map(i => ({ productId: i.id, weightVariant: i.size, quantity: i.qty })),
+            customerMobile: document.getElementById('chkPhone')?.value || null
+          })
+        }, 8000);
+
+        const data = await res.json();
+        if (data.success && data.valid) {
+          currentCoupon = code;
+          validCoupons[code] = {
+            type: data.discountType,
+            value: data.discountValue
+          };
+          couponFeedback.textContent = data.message || `Referral code "${code}" applied! You got ${data.discountValue}% off.`;
+          couponFeedback.classList.add('success');
+          renderCart();
+          renderCheckoutSummary();
+        } else {
+          couponFeedback.textContent = data.message || 'Invalid coupon or referral code. Try "KAMADHENU10".';
+          couponFeedback.classList.add('error');
+        }
+      } catch (err) {
+        couponFeedback.textContent = 'Unable to verify code right now. Please try again.';
         couponFeedback.classList.add('error');
+      } finally {
+        applyCouponBtn.disabled = false;
       }
     });
   }
@@ -814,7 +875,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const response = await fetch('/api/shipping/calculate', {
+      const response = await fetchWithTimeout('/api/shipping/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -826,7 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
             quantity: i.qty
           }))
         })
-      });
+      }, 10000);
 
       const data = await response.json();
       if (data.success) {
@@ -977,6 +1038,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (checkoutForm) {
     checkoutForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (isCheckoutSubmitting) return;
+      isCheckoutSubmitting = true;
       showCheckoutError(null);
 
       // Gather checkout data
@@ -993,23 +1056,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'razorpay';
 
       if (!name || !phone || !email || !address || !city || !state || !pincode) {
+        isCheckoutSubmitting = false;
         showCheckoutError('Please fill in all the required delivery fields (Name, Mobile, Email, Address, City, State, Pincode).');
         return;
       }
 
       const cleanMobile = phone.replace(/\D/g, '');
       if (cleanMobile.length < 10) {
+        isCheckoutSubmitting = false;
         showCheckoutError('Please enter a valid 10-digit mobile number.');
         return;
       }
 
       const cleanPin = pincode.replace(/\D/g, '');
       if (cleanPin.length !== 6) {
+        isCheckoutSubmitting = false;
         showCheckoutError('Please enter a valid 6-digit delivery pincode.');
         return;
       }
 
       if (cart.length === 0) {
+        isCheckoutSubmitting = false;
         showCheckoutError('Your cart is empty. Please add products to cart.');
         return;
       }
@@ -1021,6 +1088,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await calculateShippingRate(cleanPin);
         checkoutSubmitBtn.disabled = false;
         if (!isShippingCalculated) {
+          isCheckoutSubmitting = false;
           showCheckoutError('Unable to calculate shipping for pincode ' + cleanPin + '. Please check if delivery is available.');
           renderCheckoutSummary();
           return;
@@ -1030,6 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // --- FLOW A: RAZORPAY ONLINE PAYMENT ---
       if (paymentMethod === 'razorpay') {
         if (typeof window.Razorpay === 'undefined') {
+          isCheckoutSubmitting = false;
           showCheckoutError('Razorpay payment SDK could not be loaded. Please check your internet connection and refresh.');
           return;
         }
@@ -1038,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Securing order...';
 
         try {
-          const createRes = await fetch('/api/checkout/create-order', {
+          const createRes = await fetchWithTimeout('/api/checkout/create-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1058,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
               })),
               couponCode: currentCoupon || undefined
             })
-          });
+          }, 15000);
 
           const createData = await createRes.json();
           if (!createData.success) {
@@ -1083,6 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             modal: {
               ondismiss: function() {
+                isCheckoutSubmitting = false;
                 checkoutSubmitBtn.disabled = false;
                 renderCheckoutSummary();
               }
@@ -1092,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
 
               try {
-                const verifyRes = await fetch('/api/checkout/verify', {
+                const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -1117,7 +1187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     })),
                     couponCode: currentCoupon || undefined
                   })
-                });
+                }, 20000);
 
                 const verifyData = await verifyRes.json();
                 if (verifyData.success) {
@@ -1132,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
               } catch (vErr) {
                 console.error('Payment verification failed:', vErr);
                 showCheckoutError(vErr.message || `Payment completed (ID: ${paymentResponse.razorpay_payment_id}) but verification timed out. Please contact us on WhatsApp.`);
+                isCheckoutSubmitting = false;
                 checkoutSubmitBtn.disabled = false;
                 renderCheckoutSummary();
               }
@@ -1141,6 +1212,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const rzp = new window.Razorpay(rzpOptions);
           rzp.on('payment.failed', function(failureResponse) {
             showCheckoutError(`Payment failed: ${failureResponse.error?.description || 'Declined by bank'}`);
+            isCheckoutSubmitting = false;
             checkoutSubmitBtn.disabled = false;
             renderCheckoutSummary();
           });
@@ -1148,6 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
           console.error('Razorpay initialization error:', err);
           showCheckoutError(err.message || 'Error communicating with payment gateway');
+          isCheckoutSubmitting = false;
           checkoutSubmitBtn.disabled = false;
           renderCheckoutSummary();
         }
@@ -1199,6 +1272,7 @@ document.addEventListener('DOMContentLoaded', () => {
       cart = [];
       saveCart();
       currentCoupon = null;
+      isCheckoutSubmitting = false;
       checkoutForm.reset();
       closeCheckout();
       alert(`Thank you, ${name}! Your Cash On Delivery order reference is ${orderNum}. WhatsApp has opened to confirm your shipment with our dispatch team.`);

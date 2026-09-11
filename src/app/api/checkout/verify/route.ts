@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyPaymentSignature } from '@/lib/razorpay';
 import { generateNextOrderNumber } from '@/lib/orderNumber';
 import { calculateShippingCharge } from '@/lib/shipping';
+import { validateDiscountOrReferralCode } from '@/lib/referral';
 
 const AUTHORITATIVE_PRICES: Record<string, { name: string; prices: Record<string, number> }> = {
   p1: {
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Re-verify financial amounts server-side
+    // 3. Re-verify financial amounts and referral/coupon discounts server-side
     let subtotal = 0;
     const validatedItems: any[] = [];
 
@@ -113,16 +114,15 @@ export async function POST(req: NextRequest) {
     const shippingResult = await calculateShippingCharge(customerDetails.pincode, items);
     const shippingFee = shippingResult.shippingFee;
 
-    let discount = 0;
-    if (couponCode) {
-      const coupon = VALID_COUPONS[String(couponCode).trim().toUpperCase()];
-      if (coupon) {
-        discount = coupon.type === 'percent'
-          ? Math.round(subtotal * (coupon.value / 100))
-          : coupon.value;
-      }
-    }
-
+    // Server-Side Authoritative Referral & Coupon Validation
+    const validation = await validateDiscountOrReferralCode(
+      couponCode,
+      subtotal,
+      items,
+      customerDetails.mobile,
+      customerDetails.email
+    );
+    const discount = validation.valid ? validation.calculatedDiscount : 0;
     const finalTotal = Math.max(1, subtotal - discount + shippingFee);
 
     // 4. Generate Unique Sequential Order Number (e.g. KHF-ORD-000001)
@@ -157,6 +157,15 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // Check if this customer has prior paid orders to determine if they are genuinely new
+      const priorPaidOrdersCount = await tx.order.count({
+        where: {
+          customerId: customer.id,
+          paymentStatus: 'PAID',
+        },
+      });
+      const isGenuinelyNewCustomer = priorPaidOrdersCount === 0;
+
       // Create Address record
       const address = await tx.address.create({
         data: {
@@ -173,7 +182,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Create Order record
+      // Create Order record with orderStatus 'NEW' for owner order management
       const order = await tx.order.create({
         data: {
           orderNumber,
@@ -185,7 +194,8 @@ export async function POST(req: NextRequest) {
           total: finalTotal,
           currency: 'INR',
           paymentStatus: 'PAID',
-          orderStatus: 'CONFIRMED',
+          orderStatus: 'NEW',
+          referralCode: validation.valid ? validation.code : null,
           razorpayOrderId: razorpay_order_id,
           razorpayPaymentId: razorpay_payment_id,
           notes: customerDetails.landmark ? `Landmark: ${customerDetails.landmark}` : null,
@@ -222,11 +232,78 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Handle Referral Tracking, Qualification & 5% Reward Issuance
+      if (validation.valid) {
+        if (validation.source === 'REFERRAL_OFFER' && validation.offerId) {
+          // Increment usage count
+          await tx.referralOffer.update({
+            where: { id: validation.offerId },
+            data: { timesUsed: { increment: 1 } },
+          });
+
+          const offer = await tx.referralOffer.findUnique({
+            where: { id: validation.offerId },
+          });
+
+          // Qualify reward if genuinely new customer and not referring themselves
+          const hasReferrer = Boolean(offer?.referrerCustomerId && offer.referrerCustomerId !== customer.id);
+          const qualifiesReward = isGenuinelyNewCustomer && hasReferrer;
+
+          await tx.referralUsage.create({
+            data: {
+              offerId: validation.offerId,
+              orderId: order.id,
+              referrerCustomerId: offer?.referrerCustomerId || null,
+              referredCustomerId: customer.id,
+              discountApplied: discount,
+              status: qualifiesReward ? 'QUALIFIED' : isGenuinelyNewCustomer ? 'QUALIFIED_GLOBAL' : 'DISCOUNT_ONLY',
+              qualifiesReward,
+            },
+          });
+
+          // Award 5% reward on next purchase >= 1kg to the referring existing customer
+          if (qualifiesReward && offer?.referrerCustomerId) {
+            const rewardCode = `REWARD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            await tx.referralReward.create({
+              data: {
+                offerId: validation.offerId,
+                customerId: offer.referrerCustomerId,
+                rewardCode,
+                discountPercent: 5.0,
+                minPurchaseKg: 1.0,
+                sourceOrderId: order.id,
+                status: 'ACTIVE',
+              },
+            });
+
+            await tx.adminNotification.create({
+              data: {
+                title: `Referral Reward Earned (5%)`,
+                message: `Referrer earned reward code ${rewardCode} from new customer order ${orderNumber}.`,
+                type: 'REFERRAL_REWARD',
+                link: `/admin/referrals`,
+              },
+            });
+          }
+        } else if (validation.source === 'REFERRAL_REWARD' && validation.rewardId) {
+          // Mark reward code as redeemed
+          await tx.referralReward.update({
+            where: { id: validation.rewardId },
+            data: {
+              isUsed: true,
+              usedAt: new Date(),
+              usedOrderId: order.id,
+              status: 'USED',
+            },
+          });
+        }
+      }
+
       // Create Admin Notification for new order
       await tx.adminNotification.create({
         data: {
           title: `New Online Order: ${orderNumber}`,
-          message: `${customer.name} placed an order of ₹${finalTotal} (${orderNumber}) via Razorpay.`,
+          message: `${customer.name} placed order of ₹${finalTotal} (${orderNumber}) via Razorpay.`,
           type: 'HIGH_VALUE_ORDER',
           link: `/admin/orders/${order.id}`,
         },

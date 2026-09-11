@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRazorpayClient } from '@/lib/razorpay';
 import { calculateShippingCharge } from '@/lib/shipping';
+import { validateDiscountOrReferralCode } from '@/lib/referral';
 
 // Server-side authoritative product pricing
 const AUTHORITATIVE_PRICES: Record<string, { name: string; prices: Record<string, number> }> = {
@@ -126,17 +127,18 @@ export async function POST(req: NextRequest) {
 
     const shippingFee = shippingResult.shippingFee;
 
-    // 3. Calculate Discount if coupon applied
+    // 3. Calculate Authoritative Discount (Static Coupons + Admin Referral Offers & Rewards)
     let discount = 0;
     if (couponCode && typeof couponCode === 'string') {
-      const codeKey = couponCode.trim().toUpperCase();
-      const coupon = VALID_COUPONS[codeKey];
-      if (coupon) {
-        if (coupon.type === 'percent') {
-          discount = Math.round(subtotal * (coupon.value / 100));
-        } else {
-          discount = coupon.value;
-        }
+      const validation = await validateDiscountOrReferralCode(
+        couponCode,
+        subtotal,
+        items,
+        cleanMobile,
+        email
+      );
+      if (validation.valid) {
+        discount = validation.calculatedDiscount;
       }
     }
 

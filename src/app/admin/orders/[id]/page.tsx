@@ -23,6 +23,7 @@ import {
   Send,
   Printer,
   ChevronRight,
+  Gift,
 } from 'lucide-react';
 
 export default function AdminOrderDetailPage({ params }: { params: { id: string } }) {
@@ -87,6 +88,29 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
     }
   };
 
+  const handleUpdatePaymentStatus = async (newPaymentStatus: string) => {
+    if (!confirm(`Are you sure you want to update payment status to "${newPaymentStatus}"?`)) return;
+
+    try {
+      setActionLoading(true);
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentStatus: newPaymentStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrder(data.order);
+      } else {
+        alert(data.message || 'Failed to update payment status');
+      }
+    } catch (err) {
+      alert('Error updating payment status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDispatchShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shipmentForm.courierProvider.trim() || !shipmentForm.trackingNumber.trim()) {
@@ -135,6 +159,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
   }
 
   const latestShipment = order.shipments?.[0] || null;
+  const latestPayment = order.payments?.[0] || null;
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2C2416] pb-12">
@@ -145,6 +170,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
             <Link
               href="/admin/orders"
               className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-700 transition"
+              title="Back to Orders"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
@@ -159,12 +185,12 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                 </span>
               </div>
               <p className="text-xs text-stone-500">
-                Placed on {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                Created: {new Date(order.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
               </p>
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
+          {/* Status Actions & Controls */}
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => window.print()}
@@ -174,6 +200,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               <span>Print Invoice</span>
             </button>
 
+            {/* Quick Step Buttons */}
             {order.orderStatus === 'NEW' && (
               <button
                 disabled={actionLoading}
@@ -184,7 +211,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               </button>
             )}
 
-            {['CONFIRMED', 'NEW'].includes(order.orderStatus) && (
+            {order.orderStatus === 'CONFIRMED' && (
               <button
                 disabled={actionLoading}
                 onClick={() => handleUpdateStatus('PROCESSING')}
@@ -204,13 +231,13 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               </button>
             )}
 
-            {['PACKED', 'PROCESSING'].includes(order.orderStatus) && (
+            {['PACKED', 'PROCESSING', 'CONFIRMED'].includes(order.orderStatus) && (
               <button
                 onClick={() => setShipmentModalOpen(true)}
                 className="bg-amber-500 hover:bg-amber-400 text-amber-950 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
               >
                 <Truck className="w-4 h-4" />
-                <span>Create Shipment / Dispatch</span>
+                <span>Dispatch Shipment</span>
               </button>
             )}
 
@@ -224,15 +251,22 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               </button>
             )}
 
-            {order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'DELIVERED' && (
-              <button
-                disabled={actionLoading}
-                onClick={() => handleUpdateStatus('CANCELLED')}
-                className="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition"
-              >
-                Cancel Order
-              </button>
-            )}
+            {/* Direct Order Status Selector */}
+            <select
+              value={order.orderStatus}
+              disabled={actionLoading}
+              onChange={(e) => handleUpdateStatus(e.target.value)}
+              className="bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-bold px-2.5 py-1.5 rounded-xl focus:outline-none"
+            >
+              <option value="NEW">Status: NEW</option>
+              <option value="CONFIRMED">Status: CONFIRMED</option>
+              <option value="PROCESSING">Status: PROCESSING</option>
+              <option value="PACKED">Status: PACKED</option>
+              <option value="SHIPPED">Status: SHIPPED</option>
+              <option value="DELIVERED">Status: DELIVERED</option>
+              <option value="CANCELLED">Status: CANCELLED</option>
+              <option value="RETURNED">Status: RETURNED</option>
+            </select>
           </div>
         </div>
       </header>
@@ -254,7 +288,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                   <div>
                     <h4 className="font-bold text-stone-900 text-sm">{item.productNameSnapshot}</h4>
                     <span className="text-stone-500 block pt-0.5">
-                      Variant: <strong>{item.weightVariant}</strong> • Unit Price: ₹{item.unitPrice}
+                      Weight / Variant: <strong className="text-amber-900">{item.weightVariant}</strong> • Unit Price: ₹{item.unitPrice}
                     </span>
                   </div>
                   <div className="text-right">
@@ -271,18 +305,26 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                 <span>Subtotal</span>
                 <span className="font-mono font-semibold">₹{order.subtotal}</span>
               </div>
+
               {order.discount > 0 && (
                 <div className="flex justify-between text-emerald-700 font-semibold">
-                  <span>Discount Applied</span>
+                  <span className="flex items-center gap-1">
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>Referral / Coupon Discount {order.referralCode ? `(${order.referralCode})` : ''}</span>
+                  </span>
                   <span className="font-mono">-₹{order.discount}</span>
                 </div>
               )}
+
               <div className="flex justify-between text-stone-600">
-                <span>Delivery Charge (Verified Pincode Rate)</span>
-                <span className="font-mono font-semibold">₹{order.shippingFee}</span>
+                <span>Delivery / Shipping Charge</span>
+                <span className="font-mono font-semibold">
+                  {order.shippingFee === 0 ? 'FREE' : `₹${order.shippingFee}`}
+                </span>
               </div>
+
               <div className="flex justify-between text-sm font-bold text-stone-900 pt-2 border-t border-stone-100">
-                <span>Total Amount Payable</span>
+                <span>Final Total Payable</span>
                 <span className="font-mono text-base text-amber-900">₹{order.total}</span>
               </div>
             </div>
@@ -292,23 +334,23 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
           <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider flex items-center gap-2">
               <MapPin className="w-4 h-4 text-amber-700" />
-              <span>Delivery Address</span>
+              <span>Complete Delivery Address</span>
             </h3>
 
             <div className="bg-[#FAF7F0] rounded-xl p-4 border border-amber-200/60 text-xs space-y-1.5">
               <strong className="block text-stone-900 text-sm">{order.shippingAddress?.recipientName}</strong>
               <p className="text-stone-700 font-medium">{order.shippingAddress?.addressLine1}</p>
               {order.shippingAddress?.addressLine2 && <p className="text-stone-600">{order.shippingAddress.addressLine2}</p>}
-              {order.shippingAddress?.area && <p className="text-stone-600">Area: {order.shippingAddress.area}</p>}
+              {order.shippingAddress?.area && <p className="text-stone-600"><strong>Area / Locality:</strong> {order.shippingAddress.area}</p>}
               <p className="text-stone-800 font-semibold">
-                {order.shippingAddress?.city}, {order.shippingAddress?.state} - <span className="font-mono text-amber-900 font-bold">{order.shippingAddress?.pincode}</span>
+                <strong>City:</strong> {order.shippingAddress?.city} • <strong>State:</strong> {order.shippingAddress?.state} • <strong>Pincode:</strong> <span className="font-mono text-amber-900 font-bold">{order.shippingAddress?.pincode}</span>
               </p>
               {order.shippingAddress?.landmark && (
                 <p className="text-amber-800 pt-1">
                   <strong>Landmark:</strong> {order.shippingAddress.landmark}
                 </p>
               )}
-              <p className="text-stone-500 pt-1 font-mono">Mobile: {order.shippingAddress?.mobileNumber}</p>
+              <p className="text-stone-500 pt-1 font-mono">Recipient Mobile: {order.shippingAddress?.mobileNumber}</p>
             </div>
           </div>
 
@@ -317,7 +359,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider flex items-center gap-2">
                 <Truck className="w-4 h-4 text-amber-700" />
-                <span>Shipping & Dispatch Status</span>
+                <span>Shipping Provider & Tracking</span>
               </h3>
               <button
                 onClick={() => setShipmentModalOpen(true)}
@@ -329,14 +371,18 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
 
             {latestShipment ? (
               <div className="bg-[#FAF7F0] rounded-xl p-4 border border-amber-200/60 text-xs space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <span className="text-stone-500 block">Courier Partner:</span>
+                    <span className="text-stone-500 block">Shipping Provider:</span>
                     <strong className="text-stone-900 text-sm">{latestShipment.courierProvider}</strong>
                   </div>
                   <div>
                     <span className="text-stone-500 block">AWB / Tracking Number:</span>
-                    <strong className="font-mono text-amber-900 text-sm">{latestShipment.trackingNumber}</strong>
+                    <strong className="font-mono text-amber-900 text-sm">{latestShipment.trackingNumber || 'Pending'}</strong>
+                  </div>
+                  <div>
+                    <span className="text-stone-500 block">Shipping Status:</span>
+                    <span className="font-bold text-emerald-800">{latestShipment.status}</span>
                   </div>
                 </div>
                 {latestShipment.trackingUrl && (
@@ -347,7 +393,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                       rel="noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-amber-800 hover:text-amber-950 font-bold underline"
                     >
-                      <span>Open Live Courier Tracking Page</span>
+                      <span>Open Courier Tracking Page</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
@@ -365,16 +411,16 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
           <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider flex items-center gap-2">
               <User className="w-4 h-4 text-amber-700" />
-              <span>Customer Information</span>
+              <span>Customer Details</span>
             </h3>
 
-            <div className="text-xs space-y-2">
+            <div className="text-xs space-y-2.5">
               <div>
-                <span className="text-stone-500 block">Full Name</span>
+                <span className="text-stone-500 block">Customer Name</span>
                 <strong className="text-stone-900 text-sm">{order.customer?.name}</strong>
               </div>
               <div>
-                <span className="text-stone-500 block">WhatsApp Mobile Number</span>
+                <span className="text-stone-500 block">Mobile Number</span>
                 <a
                   href={`https://wa.me/91${order.customer?.mobile.replace(/\D/g, '')}`}
                   target="_blank"
@@ -383,6 +429,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                 >
                   <Phone className="w-3.5 h-3.5" />
                   <span>{order.customer?.mobile}</span>
+                  <span className="text-[10px] text-emerald-700 font-sans font-normal">(Chat on WhatsApp)</span>
                 </a>
               </div>
               <div>
@@ -396,31 +443,59 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
           <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm space-y-3">
             <h3 className="text-sm font-bold text-stone-900 uppercase tracking-wider flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-700" />
-              <span>Razorpay Payment Details</span>
+              <span>Payment Details</span>
             </h3>
 
             <div className="text-xs space-y-2.5">
               <div>
-                <span className="text-stone-500 block">Payment Status</span>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full border bg-emerald-100 text-emerald-800 border-emerald-300 inline-block mt-1">
-                  {order.paymentStatus}
+                <span className="text-stone-500 block mb-1">Payment Status:</span>
+                <select
+                  value={order.paymentStatus}
+                  disabled={actionLoading}
+                  onChange={(e) => handleUpdatePaymentStatus(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-2.5 py-1.5 font-bold text-xs focus:outline-none"
+                >
+                  <option value="PAID">PAID</option>
+                  <option value="PAYMENT_PENDING">PAYMENT_PENDING</option>
+                  <option value="FAILED">FAILED</option>
+                  <option value="REFUND_PENDING">REFUND_PENDING</option>
+                  <option value="REFUNDED">REFUNDED</option>
+                </select>
+              </div>
+
+              <div>
+                <span className="text-stone-500 block">Payment Method</span>
+                <strong className="text-stone-900">
+                  {latestPayment?.paymentMethod || (order.razorpayPaymentId ? 'Razorpay Online (UPI/Cards)' : 'Cash On Delivery')}
+                </strong>
+              </div>
+
+              <div>
+                <span className="text-stone-500 block">Payment Date / Time</span>
+                <span className="text-stone-800">
+                  {latestPayment?.createdAt
+                    ? new Date(latestPayment.createdAt).toLocaleString('en-IN')
+                    : new Date(order.createdAt).toLocaleString('en-IN')}
                 </span>
               </div>
+
               <div>
                 <span className="text-stone-500 block">Razorpay Order ID</span>
                 <span className="font-mono text-stone-800 select-all block bg-stone-50 p-1.5 rounded border border-stone-200">
                   {order.razorpayOrderId || 'N/A'}
                 </span>
               </div>
+
               <div>
                 <span className="text-stone-500 block">Razorpay Payment ID</span>
                 <span className="font-mono text-stone-800 select-all block bg-stone-50 p-1.5 rounded border border-stone-200">
                   {order.razorpayPaymentId || 'N/A'}
                 </span>
               </div>
+
               <div className="pt-1">
-                <span className="text-stone-500 block">Amount Captured</span>
-                <strong className="font-mono text-stone-900 text-sm">₹{order.total}</strong>
+                <span className="text-stone-500 block">Final Total Captured</span>
+                <strong className="font-mono text-amber-900 text-base">₹{order.total}</strong>
               </div>
             </div>
           </div>
@@ -448,7 +523,6 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                   onChange={(e) => setShipmentForm({ ...shipmentForm, courierProvider: e.target.value })}
                   placeholder="e.g. Delhivery, Bluedart, Shiprocket, DTDC"
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  required
                 />
               </div>
 
@@ -458,37 +532,36 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                   type="text"
                   value={shipmentForm.trackingNumber}
                   onChange={(e) => setShipmentForm({ ...shipmentForm, trackingNumber: e.target.value })}
-                  placeholder="Enter tracking code (e.g. 129038472910)"
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 uppercase"
-                  required
+                  placeholder="e.g. DEL782390145"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
 
               <div>
-                <label className="font-bold text-stone-700 block mb-1">Live Tracking URL (Optional)</label>
+                <label className="font-bold text-stone-700 block mb-1">Online Tracking URL (Optional)</label>
                 <input
                   type="url"
                   value={shipmentForm.trackingUrl}
                   onChange={(e) => setShipmentForm({ ...shipmentForm, trackingUrl: e.target.value })}
-                  placeholder="https://..."
+                  placeholder="https://delhivery.com/track/package/..."
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="flex justify-end gap-2 pt-2 border-t border-stone-100">
                 <button
                   type="button"
                   onClick={() => setShipmentModalOpen(false)}
-                  className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2.5 rounded-xl transition"
+                  className="px-4 py-2 rounded-xl text-stone-600 hover:bg-stone-100 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold py-2.5 rounded-xl transition shadow"
+                  className="bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold px-4 py-2 rounded-xl transition shadow-sm"
                 >
-                  {actionLoading ? 'Saving...' : 'Save & Mark Shipped'}
+                  Dispatch & Mark SHIPPED
                 </button>
               </div>
             </form>
