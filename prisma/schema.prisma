@@ -432,3 +432,167 @@ model AdminNotification {
   @@index([isRead])
   @@index([createdAt])
 }
+
+// ============================================================================
+// E-COMMERCE CUSTOMER, ORDERS, PAYMENTS, & SHIPMENTS
+// ============================================================================
+
+enum PaymentStatus {
+  PAYMENT_PENDING
+  PAID
+  FAILED
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  PROCESSING
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum ShippingStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+  RTO
+}
+
+model Customer {
+  id          String     @id @default(cuid())
+  name        String
+  mobile      String
+  email       String
+  addresses   Address[]
+  orders      Order[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([mobile])
+  @@index([email])
+}
+
+model Address {
+  id            String    @id @default(cuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  recipientName String
+  mobileNumber  String
+  addressLine1  String
+  addressLine2  String?
+  area          String
+  city          String
+  state         String
+  pincode       String
+  landmark      String?
+  orders        Order[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([pincode])
+}
+
+model Order {
+  id                 String          @id @default(cuid())
+  orderNumber        String          @unique // e.g. KHF-ORD-000001
+  customerId         String
+  customer           Customer        @relation(fields: [customerId], references: [id])
+  shippingAddressId  String
+  shippingAddress    Address         @relation(fields: [shippingAddressId], references: [id])
+  
+  subtotal           Float
+  shippingFee        Float           @default(0)
+  discount           Float           @default(0)
+  total              Float
+  currency           String          @default("INR")
+  
+  paymentStatus      PaymentStatus   @default(PAYMENT_PENDING)
+  orderStatus        OrderStatus     @default(NEW)
+  
+  razorpayOrderId    String?         @unique
+  razorpayPaymentId  String?
+  
+  notes              String?
+  items              OrderItem[]
+  payments           Payment[]
+  shipments          Shipment[]
+  
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([orderNumber])
+  @@index([customerId])
+  @@index([paymentStatus])
+  @@index([orderStatus])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id                   String   @id @default(cuid())
+  orderId              String
+  order                Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId            String   // 'p1', 'p2', etc.
+  productNameSnapshot  String
+  weightVariant        String   // '250g', '500g', '1kg'
+  quantity             Int
+  unitPrice            Float
+  totalPrice           Float
+  weightKg             Float    @default(0.5)
+
+  @@index([orderId])
+}
+
+model Payment {
+  id                 String         @id @default(cuid())
+  orderId            String
+  order              Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider           String         @default("RAZORPAY")
+  razorpayOrderId    String
+  razorpayPaymentId  String?
+  razorpaySignature  String?
+  amount             Float
+  currency           String         @default("INR")
+  paymentMethod      String?        // 'upi', 'card', 'netbanking'
+  status             PaymentStatus  @default(PAYMENT_PENDING)
+  rawResponse        String?        // JSON stringified payload
+  createdAt          DateTime       @default(now())
+
+  @@index([orderId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+}
+
+model Shipment {
+  id               String          @id @default(cuid())
+  orderId          String
+  order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  courierProvider  String          @default("Standard Courier")
+  trackingNumber   String?         // AWB Number
+  trackingUrl      String?
+  shippingFee      Float           @default(0)
+  status           ShippingStatus  @default(PENDING)
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([orderId])
+  @@index([trackingNumber])
+}
+
+model EcommerceOrderSequence {
+  id        Int      @id @default(1)
+  lastSeq   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+

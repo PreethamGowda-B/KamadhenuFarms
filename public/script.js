@@ -744,13 +744,126 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   /* ==========================================================================
-     Checkout Modal UI & WhatsApp Invoice Compilation
+     Checkout Modal UI & Razorpay / COD Integration
      ========================================================================== */
+  let currentShippingCharge = 0;
+  let isShippingCalculated = false;
+  let currentShippingDetails = null;
+  let pincodeCalculationTimer = null;
+
+  const chkPincodeInput = document.getElementById('chkPincode');
+  const checkoutShippingEl = document.getElementById('checkoutShipping');
+  const checkoutShippingNoticeEl = document.getElementById('checkoutShippingNotice');
+  const checkoutSubmitBtnText = document.getElementById('checkoutSubmitBtnText');
+  const checkoutErrorMsg = document.getElementById('checkoutErrorMsg');
+
+  const showCheckoutError = (msg) => {
+    if (!checkoutErrorMsg) return;
+    if (msg) {
+      checkoutErrorMsg.textContent = msg;
+      checkoutErrorMsg.style.display = 'block';
+    } else {
+      checkoutErrorMsg.style.display = 'none';
+    }
+  };
+
+  const calculateShippingRate = async (pincodeVal) => {
+    const cleanPin = (pincodeVal || '').replace(/\D/g, '');
+    if (cleanPin.length !== 6) {
+      isShippingCalculated = false;
+      currentShippingCharge = 0;
+      currentShippingDetails = null;
+      if (checkoutShippingEl) {
+        checkoutShippingEl.textContent = 'Enter 6-digit pincode';
+        checkoutShippingEl.style.color = 'var(--dark-gold)';
+      }
+      if (checkoutShippingNoticeEl) checkoutShippingNoticeEl.textContent = '';
+      renderCheckoutSummary();
+      return;
+    }
+
+    if (checkoutShippingEl) {
+      checkoutShippingEl.innerHTML = '<span style="font-size:0.8rem; color:#888;">Calculating...</span>';
+    }
+
+    try {
+      const response = await fetch('/api/shipping/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pincode: cleanPin,
+          items: cart.map(i => ({
+            productId: i.id,
+            variant: i.size,
+            weightVariant: i.size,
+            quantity: i.qty
+          }))
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        currentShippingCharge = Number(data.shippingFee) || 0;
+        isShippingCalculated = true;
+        currentShippingDetails = data;
+        showCheckoutError(null);
+        if (checkoutShippingEl) {
+          checkoutShippingEl.textContent = currentShippingCharge === 0 ? 'FREE' : `₹${currentShippingCharge}`;
+          checkoutShippingEl.style.color = currentShippingCharge === 0 ? '#27ae60' : 'var(--dark-gold)';
+        }
+        if (checkoutShippingNoticeEl) {
+          checkoutShippingNoticeEl.innerHTML = `🚚 <strong>${data.courierName || 'Courier Delivery'}</strong> &bull; Est. arrival: ${data.estimatedDays || '2-4 business days'}`;
+        }
+      } else {
+        isShippingCalculated = false;
+        currentShippingCharge = 0;
+        currentShippingDetails = null;
+        if (checkoutShippingEl) {
+          checkoutShippingEl.textContent = 'Not serviceable';
+          checkoutShippingEl.style.color = '#c0392b';
+        }
+        if (checkoutShippingNoticeEl) {
+          checkoutShippingNoticeEl.innerHTML = `<span style="color:#c0392b;">${data.message || 'Delivery is currently unavailable for this pincode.'}</span>`;
+        }
+      }
+    } catch (err) {
+      console.error('Shipping calculation error:', err);
+      if (checkoutShippingEl) checkoutShippingEl.textContent = 'Error calculating';
+    } finally {
+      renderCheckoutSummary();
+    }
+  };
+
+  if (chkPincodeInput) {
+    chkPincodeInput.addEventListener('input', (e) => {
+      const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+      e.target.value = val;
+      clearTimeout(pincodeCalculationTimer);
+      if (val.length === 6) {
+        pincodeCalculationTimer = setTimeout(() => calculateShippingRate(val), 350);
+      } else {
+        isShippingCalculated = false;
+        renderCheckoutSummary();
+      }
+    });
+
+    chkPincodeInput.addEventListener('blur', (e) => {
+      const val = e.target.value.replace(/\D/g, '');
+      if (val.length === 6) {
+        calculateShippingRate(val);
+      }
+    });
+  }
+
   const openCheckout = () => {
     closeCart(); // Close drawer
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    showCheckoutError(null);
     renderCheckoutSummary();
+    if (chkPincodeInput && chkPincodeInput.value.trim().length === 6) {
+      calculateShippingRate(chkPincodeInput.value.trim());
+    }
   };
 
   const closeCheckout = () => {
@@ -773,8 +886,11 @@ document.addEventListener('DOMContentLoaded', () => {
       checkoutSubtotalEl.textContent = '₹0';
       checkoutDiscountRow.style.display = 'none';
       checkoutTotalEl.textContent = '₹0';
+      if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = true;
       return;
     }
+
+    if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = false;
 
     cart.forEach(item => {
       const summaryRow = document.createElement('div');
@@ -804,41 +920,215 @@ document.addEventListener('DOMContentLoaded', () => {
       checkoutDiscountRow.style.display = 'none';
     }
 
-    const finalTotal = Math.max(0, subtotal - discount + deliveryCharges);
+    const shippingCharge = isShippingCalculated ? currentShippingCharge : 0;
+    const finalTotal = Math.max(0, subtotal - discount + shippingCharge);
     checkoutTotalEl.textContent = `₹${finalTotal}`;
+
+    // Update submit button text
+    const activePaymentCard = document.querySelector('.payment-option-card.active');
+    const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'razorpay';
+    if (checkoutSubmitBtnText) {
+      if (paymentMethod === 'razorpay') {
+        checkoutSubmitBtnText.textContent = `Pay Securely with Razorpay ₹${finalTotal}`;
+      } else {
+        checkoutSubmitBtnText.textContent = `Confirm Cash On Delivery Order ₹${finalTotal}`;
+      }
+    }
   };
 
-  // Wire Cash On Delivery Toggles
+  // Wire Payment Option Toggles
   const paymentCards = document.querySelectorAll('.payment-option-card');
   paymentCards.forEach(card => {
     card.addEventListener('click', () => {
       paymentCards.forEach(c => c.classList.remove('active'));
       card.classList.add('active');
+      renderCheckoutSummary();
     });
   });
 
-  // Handle Checkout submission and WhatsApp redirection
+  // Handle Checkout submission and Razorpay payment / COD
   if (checkoutForm) {
-    checkoutForm.addEventListener('submit', (e) => {
+    checkoutForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      showCheckoutError(null);
 
       // Gather checkout data
-      const name = document.getElementById('chkName').value.trim();
-      const phone = document.getElementById('chkPhone').value.trim();
-      const address = document.getElementById('chkAddress').value.trim();
-      const landmark = document.getElementById('chkLandmark').value.trim();
+      const name = (document.getElementById('chkName')?.value || '').trim();
+      const phone = (document.getElementById('chkPhone')?.value || '').trim();
+      const email = (document.getElementById('chkEmail')?.value || '').trim();
+      const address = (document.getElementById('chkAddress')?.value || '').trim();
+      const area = (document.getElementById('chkArea')?.value || '').trim();
+      const city = (document.getElementById('chkCity')?.value || '').trim();
+      const state = (document.getElementById('chkState')?.value || '').trim();
+      const pincode = (document.getElementById('chkPincode')?.value || '').trim();
+      const landmark = (document.getElementById('chkLandmark')?.value || '').trim();
       const activePaymentCard = document.querySelector('.payment-option-card.active');
-      const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'cod';
+      const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'razorpay';
 
-      if (!name || !phone || !address) {
-        alert('Please fill in all the required checkout details.');
+      if (!name || !phone || !email || !address || !city || !state || !pincode) {
+        showCheckoutError('Please fill in all the required delivery fields (Name, Mobile, Email, Address, City, State, Pincode).');
         return;
       }
 
-      // Generate random simulated order number
-      const orderNum = `KM-${Math.floor(1000 + Math.random() * 9000)}`;
+      const cleanMobile = phone.replace(/\D/g, '');
+      if (cleanMobile.length < 10) {
+        showCheckoutError('Please enter a valid 10-digit mobile number.');
+        return;
+      }
 
-      // Calculate totals
+      const cleanPin = pincode.replace(/\D/g, '');
+      if (cleanPin.length !== 6) {
+        showCheckoutError('Please enter a valid 6-digit delivery pincode.');
+        return;
+      }
+
+      if (cart.length === 0) {
+        showCheckoutError('Your cart is empty. Please add products to cart.');
+        return;
+      }
+
+      // If shipping not yet calculated, calculate now before proceeding
+      if (!isShippingCalculated) {
+        checkoutSubmitBtn.disabled = true;
+        if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Calculating delivery rate...';
+        await calculateShippingRate(cleanPin);
+        checkoutSubmitBtn.disabled = false;
+        if (!isShippingCalculated) {
+          showCheckoutError('Unable to calculate shipping for pincode ' + cleanPin + '. Please check if delivery is available.');
+          renderCheckoutSummary();
+          return;
+        }
+      }
+
+      // --- FLOW A: RAZORPAY ONLINE PAYMENT ---
+      if (paymentMethod === 'razorpay') {
+        if (typeof window.Razorpay === 'undefined') {
+          showCheckoutError('Razorpay payment SDK could not be loaded. Please check your internet connection and refresh.');
+          return;
+        }
+
+        checkoutSubmitBtn.disabled = true;
+        if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Securing order...';
+
+        try {
+          const createRes = await fetch('/api/checkout/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name,
+              mobile: cleanMobile,
+              email,
+              addressLine1: address,
+              area,
+              city,
+              state,
+              pincode: cleanPin,
+              landmark,
+              items: cart.map(i => ({
+                productId: i.id,
+                weightVariant: i.size,
+                quantity: i.qty
+              })),
+              couponCode: currentCoupon || undefined
+            })
+          });
+
+          const createData = await createRes.json();
+          if (!createData.success) {
+            throw new Error(createData.message || 'Failed to create payment session');
+          }
+
+          const rzpOptions = {
+            key: createData.keyId,
+            amount: createData.amount,
+            currency: createData.currency || 'INR',
+            name: 'Kamadhenu Honey Farms',
+            description: `Order ${createData.orderNumber || ''} - Pure Raw Honey`,
+            image: '/assets/raw_honey.jpg',
+            order_id: createData.razorpayOrderId,
+            prefill: {
+              name: name,
+              email: email,
+              contact: cleanMobile
+            },
+            theme: {
+              color: '#d8a64f'
+            },
+            modal: {
+              ondismiss: function() {
+                checkoutSubmitBtn.disabled = false;
+                renderCheckoutSummary();
+              }
+            },
+            handler: async function(paymentResponse) {
+              checkoutSubmitBtn.disabled = true;
+              if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
+
+              try {
+                const verifyRes = await fetch('/api/checkout/verify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    razorpay_order_id: paymentResponse.razorpay_order_id,
+                    razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                    razorpay_signature: paymentResponse.razorpay_signature,
+                    customerDetails: {
+                      name,
+                      mobile: cleanMobile,
+                      email,
+                      addressLine1: address,
+                      area,
+                      city,
+                      state,
+                      pincode: cleanPin,
+                      landmark
+                    },
+                    items: cart.map(i => ({
+                      productId: i.id,
+                      weightVariant: i.size,
+                      quantity: i.qty
+                    })),
+                    couponCode: currentCoupon || undefined
+                  })
+                });
+
+                const verifyData = await verifyRes.json();
+                if (verifyData.success) {
+                  cart = [];
+                  saveCart();
+                  currentCoupon = null;
+                  closeCheckout();
+                  window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(verifyData.orderNumber)}`;
+                } else {
+                  throw new Error(verifyData.message || 'Payment verification failed');
+                }
+              } catch (vErr) {
+                console.error('Payment verification failed:', vErr);
+                showCheckoutError(vErr.message || `Payment completed (ID: ${paymentResponse.razorpay_payment_id}) but verification timed out. Please contact us on WhatsApp.`);
+                checkoutSubmitBtn.disabled = false;
+                renderCheckoutSummary();
+              }
+            }
+          };
+
+          const rzp = new window.Razorpay(rzpOptions);
+          rzp.on('payment.failed', function(failureResponse) {
+            showCheckoutError(`Payment failed: ${failureResponse.error?.description || 'Declined by bank'}`);
+            checkoutSubmitBtn.disabled = false;
+            renderCheckoutSummary();
+          });
+          rzp.open();
+        } catch (err) {
+          console.error('Razorpay initialization error:', err);
+          showCheckoutError(err.message || 'Error communicating with payment gateway');
+          checkoutSubmitBtn.disabled = false;
+          renderCheckoutSummary();
+        }
+        return;
+      }
+
+      // --- FLOW B: CASH ON DELIVERY (COD) ---
+      const orderNum = `KHF-COD-${Math.floor(100000 + Math.random() * 900000)}`;
       const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
       let discount = 0;
       if (currentCoupon) {
@@ -849,64 +1139,42 @@ document.addEventListener('DOMContentLoaded', () => {
           discount = codeData.value;
         }
       }
-      const finalTotal = Math.max(0, subtotal - discount + deliveryCharges);
+      const finalTotal = Math.max(0, subtotal - discount + currentShippingCharge);
 
-      // Compile items formatted invoice
       let itemsListText = '';
       cart.forEach((item, index) => {
-        itemsListText += `${index + 1}. *${item.name}* (${item.size})\n` +
-                         `   Qty: ${item.qty} × Price: ₹${item.price} -> Subtotal: ₹${item.price * item.qty}\n`;
+        itemsListText += `${index + 1}. *${item.name}* (${item.size}) × ${item.qty} = ₹${item.price * item.qty}\n`;
       });
 
-      // Build structured elegant invoice text
-      const invoiceText = `🌾 *KAMADHENU HONEY FARMS ORDER* 🌾\n` +
+      const invoiceText = `🌾 *KAMADHENU HONEY FARMS - COD ORDER* 🌾\n` +
         `----------------------------------------\n` +
-        `📋 *INVOICE DETAILS*\n` +
-        `----------------------------------------\n` +
-        `• *Order ID:* ${orderNum}\n` +
+        `• *Order Reference:* ${orderNum}\n` +
         `• *Customer:* ${name}\n` +
-        `• *Phone:* ${phone}\n` +
+        `• *Mobile:* ${cleanMobile}\n` +
+        `• *Email:* ${email}\n` +
         `• *Delivery Address:*\n` +
-        `  ${address}\n` +
+        `  ${address}, ${area}, ${city}, ${state} - ${cleanPin}\n` +
         (landmark ? `  *Landmark:* ${landmark}\n` : '') +
-        `• *Payment Mode:* ${paymentMethod === 'cod' ? 'Cash On Delivery' : 'Online Bank Transfer'}\n` +
+        `• *Payment Mode:* Cash On Delivery (Doorstep)\n` +
         `----------------------------------------\n` +
-        `📦 *ORDERED PRODUCTS:*\n` +
-        `----------------------------------------\n` +
-        `${itemsListText}` +
+        `📦 *ORDERED ITEMS:*\n${itemsListText}` +
         `----------------------------------------\n` +
         `• *Subtotal:* ₹${subtotal}\n` +
-        (discount > 0 ? `• *Discount Applied (${currentCoupon}):* -₹${discount}\n` : '') +
-        `• *Delivery Charges:* ₹${deliveryCharges} (FREE)\n` +
+        (discount > 0 ? `• *Discount:* -₹${discount}\n` : '') +
+        `• *Delivery Charge:* ₹${currentShippingCharge}\n` +
+        `💰 *TOTAL PAYABLE ON DELIVERY:* *₹${finalTotal}*\n` +
         `----------------------------------------\n` +
-        `💰 *TOTAL PAYABLE:* *₹${finalTotal}*\n` +
-        `----------------------------------------\n` +
-        `Hi Kamadhenu Honey Farms, I have completed my checkout process. Please confirm this order!`;
+        `Please confirm my Cash On Delivery shipment!`;
 
-      // Save this order into tracker database locally for simulation
-      trackingDatabase[orderNum] = {
-        status: 'received',
-        name: name,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        steps: ['received']
-      };
-
-      // Redirect to WhatsApp
       const waUrl = `https://wa.me/${PRIMARY_WHATSAPP}?text=${encodeURIComponent(invoiceText)}`;
       window.open(waUrl, '_blank');
 
-      // Clear checkout states
       cart = [];
       saveCart();
       currentCoupon = null;
-      if (couponInput) couponInput.value = '';
-      if (couponFeedback) couponFeedback.style.display = 'none';
       checkoutForm.reset();
-      
       closeCheckout();
-
-      // Show friendly confirmation alert
-      alert(`Thank you, ${name}! Your invoice has been generated as Order ${orderNum}. We have opened WhatsApp to complete your checkout directly with our team.`);
+      alert(`Thank you, ${name}! Your Cash On Delivery order reference is ${orderNum}. WhatsApp has opened to confirm your shipment with our dispatch team.`);
     });
   }
 

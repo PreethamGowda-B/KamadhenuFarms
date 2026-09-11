@@ -324,6 +324,13 @@ export default function AdminShopsPage() {
 
           <div className="flex items-center gap-2">
             <Link
+              href="/admin/orders"
+              className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow transition"
+            >
+              <ShoppingBag className="w-4 h-4 text-amber-400" />
+              Online Orders
+            </Link>
+            <Link
               href="/shop-form"
               target="_blank"
               className="bg-amber-500 hover:bg-amber-400 text-amber-950 text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow transition"

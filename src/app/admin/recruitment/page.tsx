@@ -24,7 +24,8 @@ import {
   Loader2,
   Download,
   X,
-  Store
+  Store,
+  ShoppingBag
 } from 'lucide-react';
 import { ApplicationRecord } from '@/lib/store';
 
@@ -335,6 +336,13 @@ export default function AdminRecruitmentPage() {
             </button>
 
             <div className="pt-4 border-t border-gray-800 space-y-1.5">
+              <Link
+                href="/admin/orders"
+                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-950/70 border border-amber-700/60 hover:bg-amber-900 transition-colors shadow-sm"
+              >
+                <ShoppingBag className="w-4 h-4 text-amber-400" /> Online Orders (Razorpay) 🛍️
+              </Link>
+
               <Link
                 href="/admin/shops"
                 className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-amber-300 bg-gold-950/70 border border-gold-700/60 hover:bg-gold-900 transition-colors shadow-sm"
