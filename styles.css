@@ -1833,12 +1833,21 @@ header nav {
   transition: var(--transition-smooth);
 }
 
+details.faq-item summary.faq-header,
 .faq-header {
   padding: 24px 30px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
+  list-style: none;
+  outline: none;
+  user-select: none;
+}
+
+details.faq-item summary::-webkit-details-marker,
+details.faq-item summary::marker {
+  display: none;
 }
 
 .faq-header h3 {
@@ -1867,22 +1876,28 @@ header nav {
   transition: transform 0.3s ease;
 }
 
+details.faq-item[open],
 .faq-item.active {
   border-color: var(--primary-gold);
   box-shadow: var(--glass-shadow);
 }
 
+details.faq-item[open] .faq-icon,
 .faq-item.active .faq-icon {
   background: var(--primary-gold);
   color: var(--warm-white);
 }
 
+details.faq-item[open] .faq-icon svg,
 .faq-item.active .faq-icon svg {
   transform: rotate(180deg);
 }
 
+details.faq-item[open] .faq-content,
 .faq-item.active .faq-content {
-  max-height: 800px;
+  display: block !important;
+  max-height: 1000px !important;
+  opacity: 1;
 }
 
 .faq-content {
@@ -5068,7 +5083,6 @@ body.overflow-hidden {
   .journey,
   .benefits,
   .testimonials,
-  .faq,
   footer {
     content-visibility: auto;
     contain-intrinsic-size: 500px;

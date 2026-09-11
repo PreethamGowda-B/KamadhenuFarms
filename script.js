@@ -1270,20 +1270,39 @@ document.addEventListener('DOMContentLoaded', () => {
      ========================================================================== */
   const toggleFaqItem = (item) => {
     if (!item) return;
-    const isActive = item.classList.contains('active');
+    const isDetails = item.tagName && item.tagName.toLowerCase() === 'details';
+    const isOpen = isDetails ? item.hasAttribute('open') : item.classList.contains('active');
     const allFaqs = document.querySelectorAll('.faq-item');
     
+    // Close other FAQ items for accordion behavior
     allFaqs.forEach(otherItem => {
-      otherItem.classList.remove('active');
-      const content = otherItem.querySelector('.faq-content');
-      if (content) content.style.maxHeight = null;
+      if (otherItem !== item) {
+        if (otherItem.tagName && otherItem.tagName.toLowerCase() === 'details') {
+          otherItem.removeAttribute('open');
+        }
+        otherItem.classList.remove('active');
+        const content = otherItem.querySelector('.faq-content');
+        if (content) content.style.maxHeight = null;
+      }
     });
 
-    if (!isActive) {
+    if (!isOpen) {
+      if (isDetails) {
+        item.setAttribute('open', '');
+      }
       item.classList.add('active');
       const faqContent = item.querySelector('.faq-content');
       if (faqContent) {
-        faqContent.style.maxHeight = (faqContent.scrollHeight + 40) + 'px';
+        faqContent.style.maxHeight = (faqContent.scrollHeight + 50) + 'px';
+      }
+    } else {
+      if (isDetails) {
+        item.removeAttribute('open');
+      }
+      item.classList.remove('active');
+      const faqContent = item.querySelector('.faq-content');
+      if (faqContent) {
+        faqContent.style.maxHeight = null;
       }
     }
   };
@@ -1293,15 +1312,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (faqHeader) {
       faqHeader.addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         toggleFaqItem(item);
       });
     }
   });
 
-  // Global delegated click listener in case of DOM manipulation
+  // Global delegated click listener in case of dynamic DOM manipulation or mobile touch
   document.addEventListener('click', (e) => {
     const header = e.target.closest('.faq-header');
     if (header) {
+      e.preventDefault();
       const item = header.closest('.faq-item');
       if (item) {
         toggleFaqItem(item);
