@@ -251,6 +251,6 @@ export const config = {
     /*
      * Match all request paths except static assets
      */
-    '/((?!_next/static|_next/image|favicon|apple-touch-icon|android-chrome|icon|apple-icon|site\\.webmanifest|assets/|styles\\.css|script\\.js).*)',
+    '/((?!_next/static|_next/image|favicon|apple-touch-icon|android-chrome|icon|apple-icon|site\\.webmanifest|robots\\.txt|sitemap\\.xml|assets/|styles\\.css|script\\.js).*)',
   ],
 };

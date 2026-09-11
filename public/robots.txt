@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+User-agent: Googlebot-Favicon
+Allow: /
+
+Sitemap: https://www.kamadhenuhoneyfarms.in/sitemap.xml
