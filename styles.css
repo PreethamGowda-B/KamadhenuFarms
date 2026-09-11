@@ -1881,6 +1881,10 @@ header nav {
   transform: rotate(180deg);
 }
 
+.faq-item.active .faq-content {
+  max-height: 800px;
+}
+
 .faq-content {
   max-height: 0;
   overflow: hidden;

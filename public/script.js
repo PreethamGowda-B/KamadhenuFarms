@@ -1239,26 +1239,47 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     FAQ Accordion Logic
+     FAQ Accordion Logic (Direct + Delegated Resilient Click Handlers)
      ========================================================================== */
-  faqItems.forEach(item => {
-    const faqHeader = item.querySelector('.faq-header');
-    const faqContent = item.querySelector('.faq-content');
-
-    faqHeader.addEventListener('click', () => {
-      const isActive = item.classList.contains('active');
-      
-      // Close all other FAQs
-      faqItems.forEach(otherItem => {
-        otherItem.classList.remove('active');
-        otherItem.querySelector('.faq-content').style.maxHeight = null;
-      });
-
-      if (!isActive) {
-        item.classList.add('active');
-        faqContent.style.maxHeight = faqContent.scrollHeight + "px";
-      }
+  const toggleFaqItem = (item) => {
+    if (!item) return;
+    const isActive = item.classList.contains('active');
+    const allFaqs = document.querySelectorAll('.faq-item');
+    
+    allFaqs.forEach(otherItem => {
+      otherItem.classList.remove('active');
+      const content = otherItem.querySelector('.faq-content');
+      if (content) content.style.maxHeight = null;
     });
+
+    if (!isActive) {
+      item.classList.add('active');
+      const faqContent = item.querySelector('.faq-content');
+      if (faqContent) {
+        faqContent.style.maxHeight = (faqContent.scrollHeight + 40) + 'px';
+      }
+    }
+  };
+
+  document.querySelectorAll('.faq-item').forEach(item => {
+    const faqHeader = item.querySelector('.faq-header');
+    if (faqHeader) {
+      faqHeader.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleFaqItem(item);
+      });
+    }
+  });
+
+  // Global delegated click listener in case of DOM manipulation
+  document.addEventListener('click', (e) => {
+    const header = e.target.closest('.faq-header');
+    if (header) {
+      const item = header.closest('.faq-item');
+      if (item) {
+        toggleFaqItem(item);
+      }
+    }
   });
 
   /* ==========================================================================
