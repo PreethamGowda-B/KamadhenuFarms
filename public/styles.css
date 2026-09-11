@@ -3430,22 +3430,10 @@ header.scrolled .logo-bee {
    Preloader Styles
    ========================================================================== */
 .preloader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--cream-bg);
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: opacity 0.8s ease, visibility 0.8s ease;
-}
-
-.preloader.hidden {
-  opacity: 0;
-  visibility: hidden;
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .preloader-content {
@@ -5055,6 +5043,11 @@ body.overflow-hidden {
   #cart-confetti-canvas {
     display: none !important;
     animation: none !important;
+  }
+
+  .card-thumb-nav {
+    opacity: 0.95 !important;
+    transform: translate(-50%, 0) !important;
   }
 
   .gold-foil-text,

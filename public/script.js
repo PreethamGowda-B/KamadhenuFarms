@@ -615,24 +615,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
       productGrid.appendChild(productCard);
 
-      // Wire up card thumbnail gallery clicks
-      if (hasGallery) {
+      // Wire up card thumbnail gallery clicks & automatic slideshow
+      if (hasGallery && product.images.length > 1) {
         const thumbBtns = productCard.querySelectorAll('.thumb-nav-btn');
         const mainImg = productCard.querySelector('.product-media img');
+        let currentImgIdx = 0;
         
         const switchImage = (index) => {
+          currentImgIdx = (index + product.images.length) % product.images.length;
           thumbBtns.forEach(b => b.classList.remove('active'));
-          const btn = thumbBtns[index];
-          if (btn) {
+          const btn = thumbBtns[currentImgIdx];
+          if (btn && mainImg) {
             btn.classList.add('active');
-            mainImg.src = btn.dataset.imgSrc;
+            mainImg.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            mainImg.style.opacity = '0.7';
+            setTimeout(() => {
+              mainImg.src = btn.dataset.imgSrc;
+              mainImg.style.opacity = '1';
+            }, 150);
           }
         };
 
+        // Automatically change image every 3.5 seconds
+        let autoSlideTimer = setInterval(() => {
+          switchImage(currentImgIdx + 1);
+        }, 3500);
+
+        // Pause on user hover to inspect, resume when unhovered
+        productCard.addEventListener('mouseenter', () => {
+          if (autoSlideTimer) clearInterval(autoSlideTimer);
+        });
+        productCard.addEventListener('mouseleave', () => {
+          if (autoSlideTimer) clearInterval(autoSlideTimer);
+          autoSlideTimer = setInterval(() => {
+            switchImage(currentImgIdx + 1);
+          }, 3500);
+        });
+
         thumbBtns.forEach((btn, idx) => {
           btn.addEventListener('click', (e) => {
-            if (e) e.stopPropagation(); // prevent card overlay triggers
+            if (e) e.stopPropagation();
+            if (autoSlideTimer) clearInterval(autoSlideTimer);
             switchImage(idx);
+            autoSlideTimer = setInterval(() => {
+              switchImage(currentImgIdx + 1);
+            }, 3500);
           });
         });
       }
