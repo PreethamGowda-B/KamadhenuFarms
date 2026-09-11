@@ -265,7 +265,7 @@ export default function AdminRecruitmentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream-bg flex flex-col lg:flex-row relative">
+    <div className="p-6 sm:p-10 space-y-8 relative">
       
       {/* Floating Toast Notification */}
       {toast && (
@@ -281,99 +281,8 @@ export default function AdminRecruitmentPage() {
         </div>
       )}
 
-      {/* Sidebar Navigation */}
-      <aside className="w-full lg:w-64 bg-charcoal text-cream-bg p-6 shrink-0 border-r border-gold-900 flex flex-col justify-between space-y-6">
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gold-500 flex items-center justify-center text-xl shadow-md">
-              🛡️
-            </div>
-            <div>
-              <h2 className="font-serif font-bold text-lg text-gold-400 leading-tight">Admin Portal</h2>
-              <p className="text-[11px] text-gray-400">admin@kamadhenuhoneyfarms.in</p>
-            </div>
-          </div>
-
-          <nav className="space-y-1.5 pt-2">
-            <button
-              onClick={() => setStatusFilter('ALL')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                statusFilter === 'ALL' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-              }`}
-            >
-              <span className="flex items-center gap-2"><Users className="w-4 h-4" /> All Applicants</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.total}</span>
-            </button>
-
-            <button
-              onClick={() => setStatusFilter('INTERVIEW_SCHEDULED')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                statusFilter === 'INTERVIEW_SCHEDULED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-              }`}
-            >
-              <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-400" /> Interviews</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.shortlisted}</span>
-            </button>
-
-            <button
-              onClick={() => setStatusFilter('HIRED')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                statusFilter === 'HIRED' || statusFilter === 'SELECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-              }`}
-            >
-              <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Hired Agents</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.hired}</span>
-            </button>
-
-            <button
-              onClick={() => setStatusFilter('REJECTED')}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                statusFilter === 'REJECTED' ? 'bg-gold-500 text-charcoal-dark font-bold' : 'hover:bg-charcoal-light text-gray-300'
-              }`}
-            >
-              <span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-rose-400" /> Rejected</span>
-              <span className="bg-charcoal px-2 py-0.5 rounded-full text-[10px]">{metrics.rejected}</span>
-            </button>
-
-            <div className="pt-4 border-t border-gray-800 space-y-1.5">
-              <Link
-                href="/admin/orders"
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-950/70 border border-amber-700/60 hover:bg-amber-900 transition-colors shadow-sm"
-              >
-                <ShoppingBag className="w-4 h-4 text-amber-400" /> Online Orders (Razorpay) 🛍️
-              </Link>
-
-              <Link
-                href="/admin/shops"
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold text-amber-300 bg-gold-950/70 border border-gold-700/60 hover:bg-gold-900 transition-colors shadow-sm"
-              >
-                <Store className="w-4 h-4 text-gold-400" /> Shop CRM & Reorders 🔔
-              </Link>
-
-              <Link
-                href="/admin/recruitment/analytics"
-                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold text-gold-400 hover:bg-charcoal-light transition-colors"
-              >
-                <BarChart3 className="w-4 h-4" /> Recruitment Analytics
-              </Link>
-            </div>
-          </nav>
-        </div>
-
-        {/* Logout Action Button */}
-        <div className="pt-6 border-t border-gray-800">
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-950/60 border border-rose-600/40 text-rose-300 hover:bg-rose-900 rounded-xl text-xs font-semibold transition-colors"
-          >
-            <LogOut className="w-4 h-4" /> {loggingOut ? 'Signing Out...' : 'Sign Out Admin'}
-          </button>
-        </div>
-      </aside>
-
       {/* Main Dashboard Body */}
-      <main className="flex-1 p-6 sm:p-10 space-y-8 overflow-x-auto">
+      <div className="space-y-8">
         
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -403,6 +312,69 @@ export default function AdminRecruitmentPage() {
               <TrendingUp className="w-4 h-4 mr-1.5" /> View Analytics Charts
             </Link>
           </div>
+        </div>
+
+        {/* Quick Applicant Status Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setStatusFilter('ALL')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              statusFilter === 'ALL'
+                ? 'bg-gold-500 text-charcoal-dark font-bold shadow-sm'
+                : 'bg-white border border-gold-200 text-gray-700 hover:bg-gold-50'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>All Applicants</span>
+            <span className="bg-charcoal/10 text-charcoal px-2 py-0.5 rounded-full text-[10px] font-mono">
+              {metrics.total}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('INTERVIEW_SCHEDULED')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              statusFilter === 'INTERVIEW_SCHEDULED'
+                ? 'bg-gold-500 text-charcoal-dark font-bold shadow-sm'
+                : 'bg-white border border-gold-200 text-gray-700 hover:bg-gold-50'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
+            <span>Interviews</span>
+            <span className="bg-charcoal/10 text-charcoal px-2 py-0.5 rounded-full text-[10px] font-mono">
+              {metrics.shortlisted}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('HIRED')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              statusFilter === 'HIRED' || statusFilter === 'SELECTED'
+                ? 'bg-gold-500 text-charcoal-dark font-bold shadow-sm'
+                : 'bg-white border border-gold-200 text-gray-700 hover:bg-gold-50'
+            }`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Hired Agents</span>
+            <span className="bg-charcoal/10 text-charcoal px-2 py-0.5 rounded-full text-[10px] font-mono">
+              {metrics.hired}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('REJECTED')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
+              statusFilter === 'REJECTED'
+                ? 'bg-gold-500 text-charcoal-dark font-bold shadow-sm'
+                : 'bg-white border border-gold-200 text-gray-700 hover:bg-gold-50'
+            }`}
+          >
+            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+            <span>Rejected</span>
+            <span className="bg-charcoal/10 text-charcoal px-2 py-0.5 rounded-full text-[10px] font-mono">
+              {metrics.rejected}
+            </span>
+          </button>
         </div>
 
         {/* Database-Driven Dynamic Metrics Cards */}
@@ -663,7 +635,7 @@ export default function AdminRecruitmentPage() {
           )}
         </div>
 
-      </main>
+      </div>
 
       {/* Schedule Interview Modal */}
       {interviewModalApp && (
