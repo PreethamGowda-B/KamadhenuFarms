@@ -1,4 +1,5 @@
 {
+  "prisma.pinToPrisma6": true,
   "cSpell.words": [
     "Preetham",
     "Gowda",
@@ -62,6 +63,8 @@
     "taverskere",
     "Hygenic",
     "Hygenically",
+    "Hygienic",
+    "Hygienically",
     "Andhra",
     "Telangana",
     "Nadu",
