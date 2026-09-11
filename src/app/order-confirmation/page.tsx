@@ -60,6 +60,10 @@ interface OrderData {
     landmark?: string | null;
   };
   items: OrderItem[];
+  advanceAmount?: number | null;
+  advancePaidAmount?: number | null;
+  codRemainingAmount?: number | null;
+  codBalanceCollectedAt?: string | null;
   payment?: {
     provider: string;
     paymentId: string;
@@ -142,6 +146,9 @@ function ConfirmationContent() {
   const displaySubtotal = order ? order.subtotal : displayTotal;
   const displayShipping = order ? order.shippingFee : 0;
   const displayDiscount = order ? order.discount : 0;
+  const isCodOrder = (order?.paymentMethod || '').toUpperCase() === 'COD';
+  const advancePaid = order?.advancePaidAmount ?? (isCodOrder ? (order?.advanceAmount ?? Math.ceil(displayTotal * 0.5)) : displayTotal);
+  const codRemaining = order?.codRemainingAmount ?? (isCodOrder ? Math.max(0, displayTotal - advancePaid) : 0);
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#2C2416] py-8 sm:py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden print:p-0 print:bg-white">
@@ -226,14 +233,20 @@ function ConfirmationContent() {
           {/* Headline & Verification Badge */}
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-50 to-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-bold tracking-wide uppercase px-4 py-1.5 rounded-full mb-3 shadow-sm">
             <Sparkles className="w-4 h-4 text-amber-600" />
-            <span>Payment Verified • Order Placed Successfully</span>
+            <span>
+              {isCodOrder
+                ? 'Bangalore Cash on Delivery • 50% Advance Received'
+                : 'Payment Verified • Order Placed Successfully'}
+            </span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-serif font-bold text-[#1C170E] mb-3">
             Thank you for ordering, {order?.customer?.name || 'Valued Customer'}!
           </h1>
           <p className="text-stone-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Your payment has been captured and confirmed. Our apiary team in Taverekere, Bangalore has received your order and is preparing your pure honey for cushioned dispatch.
+            {isCodOrder
+              ? `Your 50% advance payment of ₹${advancePaid} has been verified and confirmed. Our apiary team in Taverekere, Bangalore has received your order. The remaining balance of ₹${codRemaining} will be collected in cash or UPI upon doorstep delivery.`
+              : 'Your payment has been captured and confirmed. Our apiary team in Taverekere, Bangalore has received your order and is preparing your pure honey for cushioned dispatch.'}
           </p>
 
           {/* Order Quick Details Pill Bar */}
@@ -243,15 +256,31 @@ function ConfirmationContent() {
               <span className="text-base sm:text-lg font-mono font-bold text-amber-900 break-all">{displayOrderNum}</span>
             </div>
             <div className="p-2 border-b sm:border-b-0 sm:border-r border-amber-200/60">
-              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider block">Total Amount Paid</span>
-              <span className="text-base sm:text-lg font-bold text-emerald-800">₹{displayTotal} <span className="text-xs font-normal text-stone-500">(All Taxes Incl.)</span></span>
+              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider block">
+                {isCodOrder ? '50% Advance Paid Online' : 'Total Amount Paid'}
+              </span>
+              <span className="text-base sm:text-lg font-bold text-emerald-800">
+                ₹{isCodOrder ? advancePaid : displayTotal}{' '}
+                <span className="text-xs font-normal text-stone-500">
+                  {isCodOrder ? `(Total ₹${displayTotal})` : '(All Taxes Incl.)'}
+                </span>
+              </span>
             </div>
             <div className="p-2">
-              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider block">Payment Status</span>
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md mt-0.5">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>100% Secured</span>
+              <span className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider block">
+                {isCodOrder ? 'Balance on Delivery' : 'Payment Status'}
               </span>
+              {isCodOrder ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md mt-0.5">
+                  <CreditCard className="w-3.5 h-3.5 text-amber-700" />
+                  <span>₹{codRemaining} on Doorstep</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md mt-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>100% Secured</span>
+                </span>
+              )}
             </div>
           </div>
 
@@ -269,8 +298,12 @@ function ConfirmationContent() {
                   </span>
                   <span className="text-[10px] font-bold text-emerald-700 uppercase">Step 1</span>
                 </div>
-                <span className="text-xs font-bold text-emerald-950">Payment Verified</span>
-                <span className="text-[11px] text-emerald-700">Bank captured</span>
+                <span className="text-xs font-bold text-emerald-950">
+                  {isCodOrder ? '50% Advance Paid' : 'Payment Verified'}
+                </span>
+                <span className="text-[11px] text-emerald-700">
+                  {isCodOrder ? `₹${advancePaid} Razorpay captured` : 'Bank captured'}
+                </span>
               </div>
 
               {/* Step 2 */}
@@ -306,8 +339,12 @@ function ConfirmationContent() {
                   </span>
                   <span className="text-[10px] font-bold text-stone-500 uppercase">Upcoming</span>
                 </div>
-                <span className="text-xs font-bold text-stone-800">Courier Dispatch</span>
-                <span className="text-[11px] text-stone-500">AWB Tracking SMS</span>
+                <span className="text-xs font-bold text-stone-800">
+                  {isCodOrder ? 'Delivery & Balance' : 'Courier Dispatch'}
+                </span>
+                <span className="text-[11px] text-stone-500">
+                  {isCodOrder ? `Pay ₹${codRemaining} on arrival` : 'AWB Tracking SMS'}
+                </span>
               </div>
             </div>
           </div>
@@ -424,7 +461,9 @@ function ConfirmationContent() {
               </span>
               <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-200 text-xs font-bold">
                 <CreditCard className="w-4 h-4 text-emerald-600" />
-                <span>Payment Mode: {order?.paymentMethod === 'cod' ? 'Cash On Delivery' : 'Razorpay Secure Checkout (UPI/Card)'}</span>
+                <span>
+                  Payment Mode: {isCodOrder ? 'Bangalore Cash on Delivery (50% Advance Online)' : 'Razorpay Secure Checkout (UPI/Card)'}
+                </span>
               </div>
               {order?.payment?.paymentId && (
                 <div className="text-stone-500 font-mono text-xs">
@@ -432,8 +471,17 @@ function ConfirmationContent() {
                 </div>
               )}
               <div className="text-stone-500 text-xs">
-                Payment Verification: <strong className="text-emerald-700">PAID & CAPTURED</strong>
+                Payment Verification:{' '}
+                <strong className="text-emerald-700">
+                  {isCodOrder ? `50% ADVANCE PAID (₹${advancePaid})` : 'PAID & CAPTURED'}
+                </strong>
               </div>
+              {isCodOrder && (
+                <div className="text-amber-900 font-medium text-xs">
+                  Doorstep COD Balance:{' '}
+                  <strong className="text-amber-950">₹{codRemaining} (Due on delivery)</strong>
+                </div>
+              )}
             </div>
           </div>
 
@@ -528,10 +576,27 @@ function ConfirmationContent() {
                   <span className="font-mono font-bold">-₹{displayDiscount}</span>
                 </div>
               )}
-              <div className="pt-2 border-t-2 border-stone-200 flex justify-between items-center text-base sm:text-lg font-bold text-stone-950">
-                <span>Total Paid:</span>
-                <span className="text-amber-900 font-mono text-xl">₹{displayTotal}</span>
-              </div>
+              {isCodOrder ? (
+                <>
+                  <div className="pt-2 border-t-2 border-stone-200 flex justify-between items-center text-sm font-bold text-stone-900">
+                    <span>Total Order Value:</span>
+                    <span className="font-mono text-base">₹{displayTotal}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm font-semibold text-emerald-700">
+                    <span>50% Advance Paid Online:</span>
+                    <span className="font-mono text-base">-₹{advancePaid}</span>
+                  </div>
+                  <div className="pt-2 border-t border-dashed border-stone-300 flex justify-between items-center text-base sm:text-lg font-bold text-amber-950">
+                    <span>Payable on Delivery:</span>
+                    <span className="text-amber-900 font-mono text-xl">₹{codRemaining}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="pt-2 border-t-2 border-stone-200 flex justify-between items-center text-base sm:text-lg font-bold text-stone-950">
+                  <span>Total Paid:</span>
+                  <span className="text-amber-900 font-mono text-xl">₹{displayTotal}</span>
+                </div>
+              )}
             </div>
           </div>
 

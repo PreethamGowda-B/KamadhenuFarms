@@ -27,7 +27,15 @@ export async function GET(req: NextRequest) {
     if (status !== 'ALL') {
       if (['NEW', 'CONFIRMED', 'PROCESSING', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'RETURNED'].includes(status)) {
         where.orderStatus = status;
-      } else if (['PAID', 'PAYMENT_PENDING', 'FAILED', 'REFUNDED'].includes(status)) {
+      } else if (status === 'COD') {
+        where.paymentMethod = 'COD';
+      } else if (status === 'FULLY_PAID' || status === 'PAID') {
+        where.paymentStatus = { in: ['PAID', 'FULLY_PAID'] };
+      } else if (status === 'ADVANCE_PENDING' || status === 'COD_ADVANCE_PENDING') {
+        where.paymentStatus = 'COD_ADVANCE_PENDING';
+      } else if (status === 'BALANCE_PENDING' || status === 'COD_ADVANCE_PAID' || status === 'COD_BALANCE_PENDING') {
+        where.paymentStatus = { in: ['COD_ADVANCE_PAID', 'COD_BALANCE_PENDING'] };
+      } else if (['PAYMENT_PENDING', 'FAILED', 'REFUNDED'].includes(status)) {
         where.paymentStatus = status;
       }
     }
@@ -79,12 +87,14 @@ export async function GET(req: NextRequest) {
       failedPaymentsCount,
       refundsCount,
       pendingShipmentsCount,
+      codOrdersCount,
+      codBalancePendingCount,
       todayRevenueAgg,
       monthlyRevenueAgg,
     ] = await Promise.all([
       prisma.order.count({ where: { createdAt: { gte: startOfToday } } }),
       prisma.order.count({ where: { orderStatus: 'NEW' } }),
-      prisma.order.count({ where: { paymentStatus: 'PAID' } }),
+      prisma.order.count({ where: { paymentStatus: { in: ['PAID', 'FULLY_PAID'] } } }),
       prisma.order.count({ where: { orderStatus: 'PROCESSING' } }),
       prisma.order.count({ where: { orderStatus: 'PACKED' } }),
       prisma.order.count({ where: { orderStatus: 'SHIPPED' } }),
@@ -93,17 +103,19 @@ export async function GET(req: NextRequest) {
       prisma.order.count({ where: { paymentStatus: 'REFUNDED' } }),
       prisma.order.count({
         where: {
-          paymentStatus: 'PAID',
+          paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] },
           orderStatus: { in: ['NEW', 'CONFIRMED', 'PROCESSING', 'PACKED'] },
         },
       }),
+      prisma.order.count({ where: { paymentMethod: 'COD' } }),
+      prisma.order.count({ where: { paymentStatus: { in: ['COD_ADVANCE_PAID', 'COD_BALANCE_PENDING'] } } }),
       prisma.order.aggregate({
         _sum: { total: true },
-        where: { paymentStatus: 'PAID', createdAt: { gte: startOfToday } },
+        where: { paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] }, createdAt: { gte: startOfToday } },
       }),
       prisma.order.aggregate({
         _sum: { total: true },
-        where: { paymentStatus: 'PAID', createdAt: { gte: startOfMonth } },
+        where: { paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] }, createdAt: { gte: startOfMonth } },
       }),
     ]);
 
@@ -116,6 +128,8 @@ export async function GET(req: NextRequest) {
       shipped: shippedCount,
       delivered: deliveredCount,
       pendingShipments: pendingShipmentsCount,
+      codOrders: codOrdersCount,
+      codBalancePending: codBalancePendingCount,
       failedPayments: failedPaymentsCount,
       refunds: refundsCount,
       todayRevenue: todayRevenueAgg._sum.total || 0,

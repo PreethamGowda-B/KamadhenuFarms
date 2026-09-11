@@ -444,6 +444,10 @@ enum PaymentStatus {
   FAILED
   REFUND_PENDING
   REFUNDED
+  COD_ADVANCE_PENDING
+  COD_ADVANCE_PAID
+  COD_BALANCE_PENDING
+  FULLY_PAID
 }
 
 enum OrderStatus {
@@ -521,13 +525,20 @@ model Order {
   total              Float
   currency           String          @default("INR")
   
-  paymentStatus      PaymentStatus   @default(PAYMENT_PENDING)
-  orderStatus        OrderStatus     @default(NEW)
+  paymentStatus          PaymentStatus   @default(PAYMENT_PENDING)
+  orderStatus            OrderStatus     @default(NEW)
   
-  razorpayOrderId    String?         @unique
-  razorpayPaymentId  String?
+  paymentMethod          String          @default("RAZORPAY") // RAZORPAY or COD
+  advanceAmount          Float           @default(0)
+  advancePaidAmount      Float           @default(0)
+  codRemainingAmount     Float           @default(0)
+  codBalanceCollectedAt  DateTime?
+  codBalanceCollectedBy  String?
   
-  notes              String?
+  razorpayOrderId        String?         @unique
+  razorpayPaymentId      String?
+  
+  notes                  String?
   referralCode       String?
   items              OrderItem[]
   payments           Payment[]

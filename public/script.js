@@ -657,11 +657,11 @@ document.addEventListener('DOMContentLoaded', () => {
               Add to Cart
             </button>
             <div class="product-actions-row">
-              <button class="btn btn-gold wa-order-single-trigger">
+              <button class="btn btn-gold wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
                 </svg>
-                WhatsApp
+                Bulk Orders
               </button>
               <a href="${product.meeshoLink}" target="_blank" class="btn btn-charcoal meesho-buy-trigger">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
@@ -773,27 +773,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // WhatsApp single product quick order
-      if (waOrder) {
-        waOrder.addEventListener('click', () => {
-          const qty = 1;
-          const price = product.prices[selectedSize];
-          const total = price * qty;
-          
-          const invoiceText = `🌾 *KAMADHENU HONEY FARMS* 🌾\n` +
-            `-------------------------------\n` +
-            `*QUICK WHATSAPP ORDER*\n` +
-            `-------------------------------\n` +
-            `• *Item:* ${product.name}\n` +
-            `• *Size:* ${selectedSize}\n` +
-            `• *Quantity:* ${qty}\n` +
-            `• *Unit Price:* ₹${price}\n` +
-            `-------------------------------\n` +
-            `💰 *Total Price:* ₹${total}\n` +
-            `-------------------------------\n` +
-            `Hi Kamadhenu Honey Farms, I would like to order this item. Please share bank/UPI details or confirm Cash On Delivery.`;
-          
-          const waUrl = `https://wa.me/${PRIMARY_WHATSAPP}?text=${encodeURIComponent(invoiceText)}`;
+      // Bulk Orders WhatsApp inquiry trigger
+      const bulkOrderBtn = productCard.querySelector('.wa-bulk-order-trigger');
+      if (bulkOrderBtn) {
+        bulkOrderBtn.addEventListener('click', () => {
+          const bulkMsg = `Hello Kamadhenu Honey Farms, I am interested in placing a bulk/wholesale honey order. Please share your bulk pricing and details.`;
+          const waUrl = `https://wa.me/${PRIMARY_WHATSAPP}?text=${encodeURIComponent(bulkMsg)}`;
           window.open(waUrl, '_blank');
         });
       }
@@ -922,10 +907,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const isBangalorePin = (pin, cityVal) => {
+    const clean = (pin || '').replace(/\D/g, '').trim();
+    if (clean.length !== 6) return false;
+    if (clean.startsWith('560')) return true;
+    const rural = ['562106', '562107', '562114', '562120', '562122', '562123', '562125', '562129', '562130', '562135', '562143', '562149', '562157', '562162'];
+    if (rural.includes(clean)) return true;
+    if (clean.startsWith('562') && cityVal && /bangalore|bengaluru/i.test(cityVal)) return true;
+    return false;
+  };
+
+  const updateCodBangaloreAvailability = (pinVal) => {
+    const city = document.getElementById('chkCity')?.value || '';
+    const isBangalore = isBangalorePin(pinVal, city);
+    const codCard = document.getElementById('codPaymentCard') || document.querySelector('.payment-option-card[data-method="cod"]');
+    const codNotice = document.getElementById('codBangaloreNotice');
+
+    if (codCard) {
+      if (isBangalore) {
+        codCard.style.opacity = '1';
+        codCard.style.pointerEvents = 'auto';
+        if (codNotice) codNotice.style.display = 'none';
+      } else {
+        if (codCard.classList.contains('active')) {
+          paymentCards.forEach(c => c.classList.remove('active'));
+          const rzpCard = document.querySelector('.payment-option-card[data-method="razorpay"]');
+          if (rzpCard) rzpCard.classList.add('active');
+        }
+        codCard.style.opacity = '0.55';
+        codCard.style.pointerEvents = 'none';
+        if (codNotice) codNotice.style.display = 'block';
+      }
+    }
+  };
+
   if (chkPincodeInput) {
     chkPincodeInput.addEventListener('input', (e) => {
       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
       e.target.value = val;
+      updateCodBangaloreAvailability(val);
       clearTimeout(pincodeCalculationTimer);
       if (val.length === 6) {
         pincodeCalculationTimer = setTimeout(() => calculateShippingRate(val), 350);
@@ -937,9 +957,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     chkPincodeInput.addEventListener('blur', (e) => {
       const val = e.target.value.replace(/\D/g, '');
+      updateCodBangaloreAvailability(val);
       if (val.length === 6) {
         calculateShippingRate(val);
       }
+    });
+  }
+
+  const chkCityInput = document.getElementById('chkCity');
+  if (chkCityInput) {
+    chkCityInput.addEventListener('input', () => {
+      if (chkPincodeInput) updateCodBangaloreAvailability(chkPincodeInput.value);
     });
   }
 
@@ -948,6 +976,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
     showCheckoutError(null);
+    if (chkPincodeInput) updateCodBangaloreAvailability(chkPincodeInput.value);
     renderCheckoutSummary();
     if (chkPincodeInput && chkPincodeInput.value.trim().length === 6) {
       calculateShippingRate(chkPincodeInput.value.trim());
@@ -1012,14 +1041,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const finalTotal = Math.max(0, subtotal - discount + shippingCharge);
     checkoutTotalEl.textContent = `₹${finalTotal}`;
 
-    // Update submit button text
+    // Update submit button text and COD breakdown
     const activePaymentCard = document.querySelector('.payment-option-card.active');
     const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'razorpay';
-    if (checkoutSubmitBtnText) {
-      if (paymentMethod === 'razorpay') {
+    const codBreakdownEl = document.getElementById('checkoutCodBreakdown');
+    const codAdvanceEl = document.getElementById('checkoutCodAdvance');
+    const codRemainingEl = document.getElementById('checkoutCodRemaining');
+
+    if (paymentMethod === 'cod') {
+      const advanceAmount = Math.ceil(finalTotal * 0.50);
+      const remainingAmount = Math.max(0, finalTotal - advanceAmount);
+      if (codBreakdownEl) codBreakdownEl.style.display = 'block';
+      if (codAdvanceEl) codAdvanceEl.textContent = `₹${advanceAmount}`;
+      if (codRemainingEl) codRemainingEl.textContent = `₹${remainingAmount}`;
+      if (checkoutSubmitBtnText) {
+        checkoutSubmitBtnText.textContent = `Pay 50% Advance with Razorpay ₹${advanceAmount} (₹${remainingAmount} on Delivery)`;
+      }
+    } else {
+      if (codBreakdownEl) codBreakdownEl.style.display = 'none';
+      if (checkoutSubmitBtnText) {
         checkoutSubmitBtnText.textContent = `Pay Securely with Razorpay ₹${finalTotal}`;
-      } else {
-        checkoutSubmitBtnText.textContent = `Confirm Cash On Delivery Order ₹${finalTotal}`;
       }
     }
   };
@@ -1034,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Handle Checkout submission and Razorpay payment / COD
+  // Handle Checkout submission and Razorpay payment / COD (50% Advance Online)
   if (checkoutForm) {
     checkoutForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1081,6 +1122,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Strict Bangalore verification for Cash on Delivery
+      if (paymentMethod === 'cod' && !isBangalorePin(cleanPin, city)) {
+        isCheckoutSubmitting = false;
+        showCheckoutError('Cash on Delivery is currently available only within Bangalore. Please select Pay Online or enter a Bangalore delivery address.');
+        return;
+      }
+
       // If shipping not yet calculated, calculate now before proceeding
       if (!isShippingCalculated) {
         checkoutSubmitBtn.disabled = true;
@@ -1095,187 +1143,143 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // --- FLOW A: RAZORPAY ONLINE PAYMENT ---
-      if (paymentMethod === 'razorpay') {
-        if (typeof window.Razorpay === 'undefined') {
-          isCheckoutSubmitting = false;
-          showCheckoutError('Razorpay payment SDK could not be loaded. Please check your internet connection and refresh.');
-          return;
-        }
-
-        checkoutSubmitBtn.disabled = true;
-        if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Securing order...';
-
-        try {
-          const createRes = await fetchWithTimeout('/api/checkout/create-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name,
-              mobile: cleanMobile,
-              email,
-              addressLine1: address,
-              area,
-              city,
-              state,
-              pincode: cleanPin,
-              landmark,
-              items: cart.map(i => ({
-                productId: i.id,
-                weightVariant: i.size,
-                quantity: i.qty
-              })),
-              couponCode: currentCoupon || undefined
-            })
-          }, 15000);
-
-          const createData = await createRes.json();
-          if (!createData.success) {
-            throw new Error(createData.message || 'Failed to create payment session');
-          }
-
-          const rzpOptions = {
-            key: createData.keyId,
-            amount: createData.amount,
-            currency: createData.currency || 'INR',
-            name: 'Kamadhenu Honey Farms',
-            description: `Order ${createData.orderNumber || ''} - Pure Raw Honey`,
-            image: '/assets/raw_honey.jpg',
-            order_id: createData.razorpayOrderId,
-            prefill: {
-              name: name,
-              email: email,
-              contact: cleanMobile
-            },
-            theme: {
-              color: '#d8a64f'
-            },
-            modal: {
-              ondismiss: function() {
-                isCheckoutSubmitting = false;
-                checkoutSubmitBtn.disabled = false;
-                renderCheckoutSummary();
-              }
-            },
-            handler: async function(paymentResponse) {
-              checkoutSubmitBtn.disabled = true;
-              if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
-
-              try {
-                const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    razorpay_order_id: paymentResponse.razorpay_order_id,
-                    razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                    razorpay_signature: paymentResponse.razorpay_signature,
-                    customerDetails: {
-                      name,
-                      mobile: cleanMobile,
-                      email,
-                      addressLine1: address,
-                      area,
-                      city,
-                      state,
-                      pincode: cleanPin,
-                      landmark
-                    },
-                    items: cart.map(i => ({
-                      productId: i.id,
-                      weightVariant: i.size,
-                      quantity: i.qty
-                    })),
-                    couponCode: currentCoupon || undefined
-                  })
-                }, 20000);
-
-                const verifyData = await verifyRes.json();
-                if (verifyData.success) {
-                  cart = [];
-                  saveCart();
-                  currentCoupon = null;
-                  closeCheckout();
-                  window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(verifyData.orderNumber)}`;
-                } else {
-                  throw new Error(verifyData.message || 'Payment verification failed');
-                }
-              } catch (vErr) {
-                console.error('Payment verification failed:', vErr);
-                showCheckoutError(vErr.message || `Payment completed (ID: ${paymentResponse.razorpay_payment_id}) but verification timed out. Please contact us on WhatsApp.`);
-                isCheckoutSubmitting = false;
-                checkoutSubmitBtn.disabled = false;
-                renderCheckoutSummary();
-              }
-            }
-          };
-
-          const rzp = new window.Razorpay(rzpOptions);
-          rzp.on('payment.failed', function(failureResponse) {
-            showCheckoutError(`Payment failed: ${failureResponse.error?.description || 'Declined by bank'}`);
-            isCheckoutSubmitting = false;
-            checkoutSubmitBtn.disabled = false;
-            renderCheckoutSummary();
-          });
-          rzp.open();
-        } catch (err) {
-          console.error('Razorpay initialization error:', err);
-          showCheckoutError(err.message || 'Error communicating with payment gateway');
-          isCheckoutSubmitting = false;
-          checkoutSubmitBtn.disabled = false;
-          renderCheckoutSummary();
-        }
+      // Both Razorpay Full Payment and Bangalore COD 50% Advance use Razorpay SDK
+      if (typeof window.Razorpay === 'undefined') {
+        isCheckoutSubmitting = false;
+        showCheckoutError('Razorpay payment SDK could not be loaded. Please check your internet connection and refresh.');
         return;
       }
 
-      // --- FLOW B: CASH ON DELIVERY (COD) ---
-      const orderNum = `KHF-COD-${Math.floor(100000 + Math.random() * 900000)}`;
-      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      let discount = 0;
-      if (currentCoupon) {
-        const codeData = validCoupons[currentCoupon];
-        if (codeData.type === 'percent') {
-          discount = Math.round(subtotal * (codeData.value / 100));
-        } else if (codeData.type === 'fixed') {
-          discount = codeData.value;
-        }
+      checkoutSubmitBtn.disabled = true;
+      if (checkoutSubmitBtnText) {
+        checkoutSubmitBtnText.textContent = paymentMethod === 'cod' ? 'Securing 50% advance...' : 'Securing order...';
       }
-      const finalTotal = Math.max(0, subtotal - discount + currentShippingCharge);
 
-      let itemsListText = '';
-      cart.forEach((item, index) => {
-        itemsListText += `${index + 1}. *${item.name}* (${item.size}) × ${item.qty} = ₹${item.price * item.qty}\n`;
-      });
+      try {
+        const createRes = await fetchWithTimeout('/api/checkout/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            mobile: cleanMobile,
+            email,
+            addressLine1: address,
+            area,
+            city,
+            state,
+            pincode: cleanPin,
+            landmark,
+            items: cart.map(i => ({
+              productId: i.id,
+              weightVariant: i.size,
+              quantity: i.qty
+            })),
+            couponCode: currentCoupon || undefined,
+            paymentMethod: paymentMethod // 'razorpay' or 'cod'
+          })
+        }, 15000);
 
-      const invoiceText = `🌾 *KAMADHENU HONEY FARMS - COD ORDER* 🌾\n` +
-        `----------------------------------------\n` +
-        `• *Order Reference:* ${orderNum}\n` +
-        `• *Customer:* ${name}\n` +
-        `• *Mobile:* ${cleanMobile}\n` +
-        `• *Email:* ${email}\n` +
-        `• *Delivery Address:*\n` +
-        `  ${address}, ${area}, ${city}, ${state} - ${cleanPin}\n` +
-        (landmark ? `  *Landmark:* ${landmark}\n` : '') +
-        `• *Payment Mode:* Cash On Delivery (Doorstep)\n` +
-        `----------------------------------------\n` +
-        `📦 *ORDERED ITEMS:*\n${itemsListText}` +
-        `----------------------------------------\n` +
-        `• *Subtotal:* ₹${subtotal}\n` +
-        (discount > 0 ? `• *Discount:* -₹${discount}\n` : '') +
-        `• *Delivery Charge:* ₹${currentShippingCharge}\n` +
-        `💰 *TOTAL PAYABLE ON DELIVERY:* *₹${finalTotal}*\n` +
-        `----------------------------------------\n` +
-        `Please confirm my Cash On Delivery shipment!`;
+        const createData = await createRes.json();
+        if (!createData.success) {
+          throw new Error(createData.message || 'Failed to create payment session');
+        }
 
-      const waUrl = `https://wa.me/${PRIMARY_WHATSAPP}?text=${encodeURIComponent(invoiceText)}`;
-      window.open(waUrl, '_blank');
+        const isCodOrder = paymentMethod === 'cod';
+        const descriptionText = isCodOrder
+          ? `50% Advance for Order ${createData.orderNumber || ''} (₹${createData.codRemainingAmount} on Delivery)`
+          : `Order ${createData.orderNumber || ''} - Pure Raw Honey`;
 
-      cart = [];
-      saveCart();
-      currentCoupon = null;
-      isCheckoutSubmitting = false;
-      checkoutForm.reset();
-      closeCheckout();
-      alert(`Thank you, ${name}! Your Cash On Delivery order reference is ${orderNum}. WhatsApp has opened to confirm your shipment with our dispatch team.`);
+        const rzpOptions = {
+          key: createData.keyId,
+          amount: createData.amount, // Server-calculated 50% advance for COD, or 100% full payment for Razorpay
+          currency: createData.currency || 'INR',
+          name: 'Kamadhenu Honey Farms',
+          description: descriptionText,
+          image: '/assets/raw_honey.jpg',
+          order_id: createData.razorpayOrderId,
+          prefill: {
+            name: name,
+            email: email,
+            contact: cleanMobile
+          },
+          theme: {
+            color: '#d8a64f'
+          },
+          modal: {
+            ondismiss: function() {
+              isCheckoutSubmitting = false;
+              checkoutSubmitBtn.disabled = false;
+              renderCheckoutSummary();
+            }
+          },
+          handler: async function(paymentResponse) {
+            checkoutSubmitBtn.disabled = true;
+            if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
+
+            try {
+              const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: paymentResponse.razorpay_order_id,
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                  paymentMethod: paymentMethod, // 'razorpay' or 'cod'
+                  customerDetails: {
+                    name,
+                    mobile: cleanMobile,
+                    email,
+                    addressLine1: address,
+                    area,
+                    city,
+                    state,
+                    pincode: cleanPin,
+                    landmark
+                  },
+                  items: cart.map(i => ({
+                    productId: i.id,
+                    weightVariant: i.size,
+                    quantity: i.qty
+                  })),
+                  couponCode: currentCoupon || undefined
+                })
+              }, 20000);
+
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                cart = [];
+                saveCart();
+                currentCoupon = null;
+                closeCheckout();
+                window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(verifyData.orderNumber)}`;
+              } else {
+                throw new Error(verifyData.message || 'Payment verification failed');
+              }
+            } catch (vErr) {
+              console.error('Payment verification failed:', vErr);
+              showCheckoutError(vErr.message || `Payment completed (ID: ${paymentResponse.razorpay_payment_id}) but verification timed out. Please contact us on WhatsApp.`);
+              isCheckoutSubmitting = false;
+              checkoutSubmitBtn.disabled = false;
+              renderCheckoutSummary();
+            }
+          }
+        };
+
+        const rzp = new window.Razorpay(rzpOptions);
+        rzp.on('payment.failed', function(failureResponse) {
+          showCheckoutError(`Payment failed: ${failureResponse.error?.description || 'Declined by bank'}`);
+          isCheckoutSubmitting = false;
+          checkoutSubmitBtn.disabled = false;
+          renderCheckoutSummary();
+        });
+        rzp.open();
+      } catch (err) {
+        console.error('Razorpay initialization error:', err);
+        showCheckoutError(err.message || 'Error communicating with payment gateway');
+        isCheckoutSubmitting = false;
+        checkoutSubmitBtn.disabled = false;
+        renderCheckoutSummary();
+      }
     });
   }
 

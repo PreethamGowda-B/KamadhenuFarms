@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRazorpayClient } from '@/lib/razorpay';
 import { calculateShippingCharge } from '@/lib/shipping';
 import { validateDiscountOrReferralCode } from '@/lib/referral';
+import { isBangaloreDelivery } from '@/lib/location';
 
 // Server-side authoritative product pricing
 const AUTHORITATIVE_PRICES: Record<string, { name: string; prices: Record<string, number> }> = {
@@ -45,7 +46,10 @@ export async function POST(req: NextRequest) {
       landmark,
       items,
       couponCode,
+      paymentMethod = 'razorpay',
     } = body;
+
+    const isCod = String(paymentMethod).toLowerCase() === 'cod';
 
     // Validate customer inputs
     if (!name?.trim() || !mobile?.trim() || !email?.trim()) {
@@ -66,6 +70,17 @@ export async function POST(req: NextRequest) {
     if (!addressLine1?.trim() || !city?.trim() || !state?.trim() || !pincode?.trim()) {
       return NextResponse.json(
         { success: false, message: 'Please provide complete street address, city, state, and pincode' },
+        { status: 400 }
+      );
+    }
+
+    // Strict Server-Side Bangalore Restriction for Cash on Delivery
+    if (isCod && !isBangaloreDelivery(pincode, city)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Cash on Delivery is currently available only within Bangalore.',
+        },
         { status: 400 }
       );
     }
@@ -142,16 +157,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Compute Final Verified Total
+    // 4. Compute Final Verified Total & 50% Advance for COD
     const finalTotal = Math.max(1, subtotal - discount + shippingFee);
+    const advanceAmount = isCod ? Math.ceil(finalTotal * 0.50) : finalTotal;
+    const codRemainingAmount = isCod ? (finalTotal - advanceAmount) : 0;
+    const chargedPaise = Math.round(advanceAmount * 100);
 
-    // 5. Create Razorpay Standard Order
+    // 5. Create Razorpay Standard Order (charges full amount for Razorpay, or 50% advance for COD)
     const razorpay = getRazorpayClient();
     const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(finalTotal * 100), // in paise
+      amount: chargedPaise, // in paise
       currency: 'INR',
       notes: {
         brand: 'KAMADHENU_HONEY_FARMS',
+        paymentMethod: isCod ? 'COD' : 'RAZORPAY',
         customerName: name.trim(),
         customerEmail: email.trim(),
         customerMobile: cleanMobile,
@@ -159,6 +178,9 @@ export async function POST(req: NextRequest) {
         shippingFee: String(shippingFee),
         subtotal: String(subtotal),
         discount: String(discount),
+        finalTotal: String(finalTotal),
+        advanceAmount: String(advanceAmount),
+        codRemainingAmount: String(codRemainingAmount),
       },
     });
 
@@ -168,10 +190,13 @@ export async function POST(req: NextRequest) {
       razorpayOrderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
+      paymentMethod: isCod ? 'COD' : 'RAZORPAY',
       subtotal,
       shippingFee,
       discount,
       finalTotal,
+      advanceAmount,
+      codRemainingAmount,
       courierName: shippingResult.courierName,
       estimatedDays: shippingResult.estimatedDays,
     });

@@ -78,6 +78,32 @@ export async function PATCH(
     if (paymentStatus) updateData.paymentStatus = paymentStatus;
     if (notes !== undefined) updateData.notes = notes;
 
+    // Support marking COD balance as collected
+    if (body.action === 'COLLECT_COD_BALANCE' || body.collectCodBalance) {
+      updateData.paymentStatus = 'FULLY_PAID';
+      updateData.codBalanceCollectedAt = new Date();
+      updateData.codBalanceCollectedBy = admin.email;
+      if (body.markDelivered) {
+        updateData.orderStatus = 'DELIVERED';
+      }
+
+      // Record COD cash collection in Payment table
+      if (currentOrder.codRemainingAmount > 0) {
+        await prisma.payment.create({
+          data: {
+            orderId: id,
+            provider: 'CASH_ON_DELIVERY',
+            razorpayOrderId: `COD-BAL-${currentOrder.orderNumber}`,
+            razorpayPaymentId: `COD-CASH-${Date.now()}`,
+            amount: currentOrder.codRemainingAmount,
+            currency: 'INR',
+            status: 'PAID',
+            paymentMethod: 'CASH',
+          },
+        });
+      }
+    }
+
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: updateData,

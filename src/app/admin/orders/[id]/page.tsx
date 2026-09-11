@@ -111,6 +111,31 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
     }
   };
 
+  const handleCollectCodBalance = async () => {
+    const remaining = order.codRemainingAmount || Math.max(0, order.total - (order.advancePaidAmount || Math.ceil(order.total * 0.5)));
+    if (!confirm(`Confirm collection of remaining COD balance ₹${remaining} from customer? This will mark payment as FULLY_PAID and optionally set order to DELIVERED.`)) return;
+
+    try {
+      setActionLoading(true);
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'COLLECT_COD_BALANCE', markDelivered: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrder(data.order);
+        alert(`COD balance ₹${remaining} collected and recorded. Order is now FULLY_PAID.`);
+      } else {
+        alert(data.message || 'Failed to collect COD balance');
+      }
+    } catch (err) {
+      alert('Error collecting COD balance');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDispatchShipment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shipmentForm.courierProvider.trim() || !shipmentForm.trackingNumber.trim()) {
@@ -251,6 +276,21 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               </button>
             )}
 
+            {/* COD Balance Collection Button */}
+            {(order.paymentMethod === 'COD' || order.paymentMethod === 'cod') &&
+              (order.paymentStatus === 'COD_ADVANCE_PAID' || order.paymentStatus === 'COD_BALANCE_PENDING') && (
+                <button
+                  disabled={actionLoading}
+                  onClick={handleCollectCodBalance}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-sm animate-pulse"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    Mark COD Balance Collected (₹{order.codRemainingAmount || Math.max(0, order.total - (order.advancePaidAmount || Math.ceil(order.total * 0.5)))})
+                  </span>
+                </button>
+              )}
+
             {/* Direct Order Status Selector */}
             <select
               value={order.orderStatus}
@@ -273,6 +313,60 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
 
       {/* Main Grid */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Bangalore COD Status Banner */}
+        {(order.paymentMethod === 'COD' || order.paymentMethod === 'cod') && (
+          <div
+            className={`rounded-2xl p-4 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 col-span-1 lg:col-span-3 ${
+              order.paymentStatus === 'FULLY_PAID'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                : 'bg-amber-50 border-amber-300 text-amber-950'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${
+                  order.paymentStatus === 'FULLY_PAID' ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-amber-950'
+                }`}
+              >
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm">
+                  {order.paymentStatus === 'FULLY_PAID'
+                    ? 'Bangalore Cash on Delivery: FULLY SETTLED'
+                    : 'Bangalore Cash on Delivery Order (50% Advance Paid Online)'}
+                </h4>
+                <p className="text-xs opacity-90">
+                  Total Value: <strong>₹{order.total}</strong> • 50% Advance Online:{' '}
+                  <strong>₹{order.advancePaidAmount || Math.ceil(order.total * 0.5)}</strong> •{' '}
+                  {order.paymentStatus === 'FULLY_PAID' ? (
+                    <span className="font-bold text-emerald-800">
+                      Remaining COD Balance ₹{order.codRemainingAmount || (order.total - (order.advancePaidAmount || Math.ceil(order.total * 0.5)))} Collected{' '}
+                      {order.codBalanceCollectedAt ? `on ${new Date(order.codBalanceCollectedAt).toLocaleDateString('en-IN')}` : ''}
+                      {order.codBalanceCollectedBy ? ` by ${order.codBalanceCollectedBy}` : ''}
+                    </span>
+                  ) : (
+                    <span className="font-bold text-amber-900">
+                      Balance Due on Delivery: ₹{order.codRemainingAmount || (order.total - (order.advancePaidAmount || Math.ceil(order.total * 0.5)))}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            {order.paymentStatus !== 'FULLY_PAID' && (
+              <button
+                disabled={actionLoading}
+                onClick={handleCollectCodBalance}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm shrink-0 flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>
+                  Mark COD Balance Collected (₹{order.codRemainingAmount || (order.total - (order.advancePaidAmount || Math.ceil(order.total * 0.5)))})
+                </span>
+              </button>
+            )}
+          </div>
+        )}
         {/* Left 2 Cols: Products, Address, and Shipment */}
         <div className="lg:col-span-2 space-y-6">
           {/* Ordered Products Box */}
@@ -456,6 +550,9 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                   className="w-full bg-stone-50 border border-stone-300 rounded-xl px-2.5 py-1.5 font-bold text-xs focus:outline-none"
                 >
                   <option value="PAID">PAID</option>
+                  <option value="COD_ADVANCE_PAID">COD_ADVANCE_PAID (50% Received)</option>
+                  <option value="COD_BALANCE_PENDING">COD_BALANCE_PENDING (Doorstep Due)</option>
+                  <option value="FULLY_PAID">FULLY_PAID (COD Settled)</option>
                   <option value="PAYMENT_PENDING">PAYMENT_PENDING</option>
                   <option value="FAILED">FAILED</option>
                   <option value="REFUND_PENDING">REFUND_PENDING</option>
@@ -466,9 +563,36 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               <div>
                 <span className="text-stone-500 block">Payment Method</span>
                 <strong className="text-stone-900">
-                  {latestPayment?.paymentMethod || (order.razorpayPaymentId ? 'Razorpay Online (UPI/Cards)' : 'Cash On Delivery')}
+                  {order.paymentMethod === 'COD' || order.paymentMethod === 'cod'
+                    ? 'Bangalore Cash on Delivery (50% Advance)'
+                    : latestPayment?.paymentMethod || (order.razorpayPaymentId ? 'Razorpay Online (UPI/Cards)' : 'Online Payment')}
                 </strong>
               </div>
+
+              {(order.paymentMethod === 'COD' || order.paymentMethod === 'cod') && (
+                <>
+                  <div className="bg-amber-50/70 p-2.5 rounded-xl border border-amber-200/70 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-stone-600">50% Advance Online:</span>
+                      <strong className="text-emerald-800 font-mono">
+                        ₹{order.advancePaidAmount || Math.ceil(order.total * 0.5)}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-stone-600">COD Balance Due:</span>
+                      <strong className="text-amber-900 font-mono">
+                        ₹{order.codRemainingAmount || (order.total - (order.advancePaidAmount || Math.ceil(order.total * 0.5)))}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between text-[11px] pt-1 border-t border-amber-200/50">
+                      <span className="text-stone-500">Settlement:</span>
+                      <span className="font-bold text-stone-800">
+                        {order.paymentStatus === 'FULLY_PAID' ? 'Closed / Fully Collected' : 'Pending on Delivery'}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div>
                 <span className="text-stone-500 block">Payment Date / Time</span>
@@ -494,7 +618,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
               </div>
 
               <div className="pt-1">
-                <span className="text-stone-500 block">Final Total Captured</span>
+                <span className="text-stone-500 block">Total Order Amount</span>
                 <strong className="font-mono text-amber-900 text-base">₹{order.total}</strong>
               </div>
             </div>

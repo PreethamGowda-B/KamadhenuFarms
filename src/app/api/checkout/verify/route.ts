@@ -4,6 +4,7 @@ import { verifyPaymentSignature } from '@/lib/razorpay';
 import { generateNextOrderNumber } from '@/lib/orderNumber';
 import { calculateShippingCharge } from '@/lib/shipping';
 import { validateDiscountOrReferralCode } from '@/lib/referral';
+import { isBangaloreDelivery } from '@/lib/location';
 
 const AUTHORITATIVE_PRICES: Record<string, { name: string; prices: Record<string, number> }> = {
   p1: {
@@ -41,7 +42,10 @@ export async function POST(req: NextRequest) {
       customerDetails,
       items,
       couponCode,
+      paymentMethod = 'razorpay',
     } = body;
+
+    const isCod = String(paymentMethod).toLowerCase() === 'cod';
 
     // 1. Verify Razorpay Payment Signature Server-Side
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -65,7 +69,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Check if this Razorpay Order has already been confirmed (Idempotency)
+    // 2. Strict Server-Side Bangalore Restriction for Cash on Delivery
+    if (isCod && !isBangaloreDelivery(customerDetails.pincode, customerDetails.city)) {
+      return NextResponse.json(
+        { success: false, message: 'Cash on Delivery is currently available only within Bangalore.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Check if this Razorpay Order has already been confirmed (Idempotency)
     const existingOrder = await prisma.order.findUnique({
       where: { razorpayOrderId: razorpay_order_id },
       include: {
@@ -83,7 +95,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Re-verify financial amounts and referral/coupon discounts server-side
+    // 4. Re-verify financial amounts and referral/coupon discounts server-side
     let subtotal = 0;
     const validatedItems: any[] = [];
 
@@ -125,10 +137,14 @@ export async function POST(req: NextRequest) {
     const discount = validation.valid ? validation.calculatedDiscount : 0;
     const finalTotal = Math.max(1, subtotal - discount + shippingFee);
 
-    // 4. Generate Unique Sequential Order Number (e.g. KHF-ORD-000001)
+    // 50% Advance calculation for COD orders
+    const advanceAmount = isCod ? Math.ceil(finalTotal * 0.50) : finalTotal;
+    const codRemainingAmount = isCod ? (finalTotal - advanceAmount) : 0;
+
+    // 5. Generate Unique Sequential Order Number (e.g. KHF-ORD-000001)
     const orderNumber = await generateNextOrderNumber();
 
-    // 5. Database Persistence inside a Transaction
+    // 6. Database Persistence inside a Transaction
     const createdOrder = await prisma.$transaction(async (tx) => {
       // Find or Create Customer
       const cleanMobile = customerDetails.mobile.replace(/\D/g, '');
@@ -161,7 +177,7 @@ export async function POST(req: NextRequest) {
       const priorPaidOrdersCount = await tx.order.count({
         where: {
           customerId: customer.id,
-          paymentStatus: 'PAID',
+          paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] },
         },
       });
       const isGenuinelyNewCustomer = priorPaidOrdersCount === 0;
@@ -193,8 +209,12 @@ export async function POST(req: NextRequest) {
           discount,
           total: finalTotal,
           currency: 'INR',
-          paymentStatus: 'PAID',
+          paymentMethod: isCod ? 'COD' : 'RAZORPAY',
+          paymentStatus: isCod ? 'COD_ADVANCE_PAID' : 'PAID',
           orderStatus: 'NEW',
+          advanceAmount: isCod ? advanceAmount : 0,
+          advancePaidAmount: isCod ? advanceAmount : 0,
+          codRemainingAmount: isCod ? codRemainingAmount : 0,
           referralCode: validation.valid ? validation.code : null,
           razorpayOrderId: razorpay_order_id,
           razorpayPaymentId: razorpay_payment_id,
@@ -216,9 +236,9 @@ export async function POST(req: NextRequest) {
               razorpayOrderId: razorpay_order_id,
               razorpayPaymentId: razorpay_payment_id,
               razorpaySignature: razorpay_signature,
-              amount: finalTotal,
+              amount: advanceAmount, // Recorded advance paid online
               currency: 'INR',
-              paymentMethod: 'ONLINE',
+              paymentMethod: isCod ? 'COD_ADVANCE' : 'ONLINE',
               status: 'PAID',
             },
           },

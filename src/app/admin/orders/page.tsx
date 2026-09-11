@@ -43,6 +43,8 @@ export default function AdminOrdersPage() {
     todayRevenue: 0,
     monthlyRevenue: 0,
     totalOrders: 0,
+    codOrdersCount: 0,
+    codBalancePendingCount: 0,
   });
 
   const [loading, setLoading] = useState(true);
@@ -110,7 +112,41 @@ export default function AdminOrdersPage() {
     );
   };
 
-  const getPaymentStatusBadge = (status: string) => {
+  const getPaymentStatusBadge = (status: string, ord?: any) => {
+    const isCod = ord?.paymentMethod === 'COD' || ord?.paymentMethod === 'cod';
+
+    if (isCod) {
+      if (status === 'COD_ADVANCE_PAID' || status === 'COD_BALANCE_PENDING') {
+        return (
+          <div className="space-y-0.5">
+            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border bg-amber-100 text-amber-900 border-amber-300">
+              COD: 50% Adv Paid
+            </span>
+            <span className="block text-[10px] font-semibold text-stone-600">
+              Paid: ₹{ord.advancePaidAmount || Math.ceil(ord.total * 0.5)} • Due: <strong className="text-amber-900">₹{ord.codRemainingAmount || (ord.total - (ord.advancePaidAmount || Math.ceil(ord.total * 0.5)))}</strong>
+            </span>
+          </div>
+        );
+      }
+      if (status === 'FULLY_PAID') {
+        return (
+          <div className="space-y-0.5">
+            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border bg-emerald-100 text-emerald-900 border-emerald-300">
+              COD: Fully Collected
+            </span>
+            <span className="block text-[10px] text-emerald-700">₹{ord.total} Settled</span>
+          </div>
+        );
+      }
+      if (status === 'COD_ADVANCE_PENDING') {
+        return (
+          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md border bg-yellow-100 text-yellow-800 border-yellow-300">
+            COD Advance Pending
+          </span>
+        );
+      }
+    }
+
     const styles: Record<string, string> = {
       PAID: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       PAYMENT_PENDING: 'bg-amber-100 text-amber-800 border-amber-300',
@@ -269,6 +305,16 @@ export default function AdminOrdersPage() {
             <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Total Ledger</span>
             <span className="text-2xl font-serif font-bold text-stone-800">{metrics.totalOrders}</span>
           </div>
+
+          <div className="bg-amber-50/60 rounded-2xl p-4 border border-amber-300 shadow-sm">
+            <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">COD Orders</span>
+            <span className="text-2xl font-serif font-bold text-amber-950">{metrics.codOrdersCount || 0}</span>
+          </div>
+
+          <div className="bg-orange-50/60 rounded-2xl p-4 border border-orange-300 shadow-sm">
+            <span className="text-[11px] font-bold text-orange-800 uppercase tracking-wider block">COD Balance Due</span>
+            <span className="text-2xl font-serif font-bold text-orange-950">{metrics.codBalancePendingCount || 0}</span>
+          </div>
         </div>
 
         {/* Search & Status Filter Bar */}
@@ -292,6 +338,9 @@ export default function AdminOrdersPage() {
                 { key: 'ALL', label: 'All' },
                 { key: 'NEW', label: 'New' },
                 { key: 'PAID', label: 'Paid' },
+                { key: 'COD', label: 'COD Orders' },
+                { key: 'BALANCE_PENDING', label: 'COD Due' },
+                { key: 'FULLY_PAID', label: 'Fully Paid' },
                 { key: 'PROCESSING', label: 'Processing' },
                 { key: 'PACKED', label: 'Packed' },
                 { key: 'SHIPPED', label: 'Shipped' },
@@ -384,7 +433,7 @@ export default function AdminOrdersPage() {
                           ₹{ord.total}
                         </td>
                         <td className="py-3 px-4">
-                          {getPaymentStatusBadge(ord.paymentStatus)}
+                          {getPaymentStatusBadge(ord.paymentStatus, ord)}
                         </td>
                         <td className="py-3 px-4">
                           {getOrderStatusBadge(ord.orderStatus)}
