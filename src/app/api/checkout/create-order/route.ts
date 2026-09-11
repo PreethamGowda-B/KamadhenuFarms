@@ -7,17 +7,17 @@ const AUTHORITATIVE_PRICES: Record<string, { name: string; prices: Record<string
   p1: {
     name: 'Pure Raw Honey',
     prices: {
-      '250g': 250,
-      '500g': 399,
-      '1kg': 749,
+      '250g': 1,
+      '500g': 1,
+      '1kg': 1,
     },
   },
   p2: {
     name: 'Dry Fruits Honey',
     prices: {
-      '250g': 399,
-      '500g': 599,
-      '1kg': 999,
+      '250g': 1,
+      '500g': 1,
+      '1kg': 1,
     },
   },
 };

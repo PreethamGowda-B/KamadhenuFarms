@@ -32,9 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
       category: 'raw',
       baseDesc: 'Unprocessed, raw honey collected directly from pristine organic bee boxes.',
       prices: {
-        '250g': 250,
-        '500g': 399,
-        '1kg': 749
+        '250g': 1,
+        '500g': 1,
+        '1kg': 1
       },
       image: 'assets/raw_honey.jpg',
       images: [
@@ -57,9 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
       category: 'infused',
       baseDesc: 'Premium raw honey rich in hand-sorted almonds, cashews, pistachios, and walnuts.',
       prices: {
-        '250g': 399,
-        '500g': 599,
-        '1kg': 999
+        '250g': 1,
+        '500g': 1,
+        '1kg': 1
       },
       image: 'assets/dry_fruits_honey_details.jpg',
       images: [

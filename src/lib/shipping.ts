@@ -191,6 +191,9 @@ function calculateZonalRate(
   };
 }
 
+// Temporary 1 Rupee Testing Mode
+export const IS_TEST_MODE = true;
+
 /**
  * Main Shipping Calculation Function
  */
@@ -198,14 +201,34 @@ export async function calculateShippingCharge(
   deliveryPincode: string,
   items: CartItemForShipping[]
 ): Promise<ShippingCalculationResult> {
+  const cleaned = (deliveryPincode || '').trim();
+  if (!/^[1-9][0-9]{5}$/.test(cleaned)) {
+    return {
+      serviceable: false,
+      shippingFee: 0,
+      courierName: 'Standard Courier',
+      estimatedDays: '',
+      error: 'Please enter a valid 6-digit delivery pincode',
+    };
+  }
+
+  if (IS_TEST_MODE) {
+    return {
+      serviceable: true,
+      shippingFee: 0,
+      courierName: 'Express Delivery (Free for Testing)',
+      estimatedDays: '1-2 Business Days',
+    };
+  }
+
   const weightKg = calculateGrossWeightKg(items);
 
   // Try live Shiprocket rate first if credentials exist
-  const shiprocketResult = await calculateShiprocketRate(deliveryPincode, weightKg);
+  const shiprocketResult = await calculateShiprocketRate(cleaned, weightKg);
   if (shiprocketResult) {
     return shiprocketResult;
   }
 
   // Fallback to verified zonal pricing engine
-  return calculateZonalRate(deliveryPincode, weightKg);
+  return calculateZonalRate(cleaned, weightKg);
 }
