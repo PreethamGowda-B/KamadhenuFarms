@@ -1344,68 +1344,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     FAQ Accordion Logic (Direct + Delegated Resilient Click Handlers)
+     FAQ Accordion Logic (Native HTML5 Details + Smooth Accordion Behavior)
      ========================================================================== */
-  const toggleFaqItem = (item) => {
-    if (!item) return;
-    const isDetails = item.tagName && item.tagName.toLowerCase() === 'details';
-    const isOpen = isDetails ? item.hasAttribute('open') : item.classList.contains('active');
-    const allFaqs = document.querySelectorAll('.faq-item');
-    
-    // Close other FAQ items for accordion behavior
-    allFaqs.forEach(otherItem => {
-      if (otherItem !== item) {
-        if (otherItem.tagName && otherItem.tagName.toLowerCase() === 'details') {
-          otherItem.removeAttribute('open');
-        }
-        otherItem.classList.remove('active');
-        const content = otherItem.querySelector('.faq-content');
-        if (content) content.style.maxHeight = null;
+  const faqDetailsList = document.querySelectorAll('details.faq-item');
+  faqDetailsList.forEach(detail => {
+    detail.addEventListener('toggle', () => {
+      if (detail.open) {
+        detail.classList.add('active');
+        // Close other FAQ items for accordion behavior
+        faqDetailsList.forEach(other => {
+          if (other !== detail && other.open) {
+            other.removeAttribute('open');
+            other.classList.remove('active');
+          }
+        });
+      } else {
+        detail.classList.remove('active');
       }
     });
-
-    if (!isOpen) {
-      if (isDetails) {
-        item.setAttribute('open', '');
-      }
-      item.classList.add('active');
-      const faqContent = item.querySelector('.faq-content');
-      if (faqContent) {
-        faqContent.style.maxHeight = (faqContent.scrollHeight + 50) + 'px';
-      }
-    } else {
-      if (isDetails) {
-        item.removeAttribute('open');
-      }
-      item.classList.remove('active');
-      const faqContent = item.querySelector('.faq-content');
-      if (faqContent) {
-        faqContent.style.maxHeight = null;
-      }
-    }
-  };
-
-  document.querySelectorAll('.faq-item').forEach(item => {
-    const faqHeader = item.querySelector('.faq-header');
-    if (faqHeader) {
-      faqHeader.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleFaqItem(item);
-      });
-    }
-  });
-
-  // Global delegated click listener in case of dynamic DOM manipulation or mobile touch
-  document.addEventListener('click', (e) => {
-    const header = e.target.closest('.faq-header');
-    if (header) {
-      e.preventDefault();
-      const item = header.closest('.faq-item');
-      if (item) {
-        toggleFaqItem(item);
-      }
-    }
   });
 
   /* ==========================================================================
