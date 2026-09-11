@@ -191,8 +191,8 @@ function calculateZonalRate(
   };
 }
 
-// Temporary 1 Rupee Testing Mode
-export const IS_TEST_MODE = true;
+// Testing Mode disabled - standard shipping rates active
+export const IS_TEST_MODE = false;
 
 /**
  * Main Shipping Calculation Function
