@@ -483,11 +483,28 @@ model Customer {
   referralUsagesAsReferrer ReferralUsage[]   @relation("ReferrerUsages")
   referralUsagesAsReferred ReferralUsage[]   @relation("ReferredCustomerUsages")
   referralOffers           ReferralOffer[]   @relation("ReferrerCustomerOffers")
+  sessions                 CustomerSession[]
   createdAt                DateTime   @default(now())
   updatedAt                DateTime   @updatedAt
 
   @@index([mobile])
   @@index([email])
+}
+
+model CustomerSession {
+  id           String    @id @default(cuid())
+  sessionToken String    @unique
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([sessionToken])
+  @@index([customerId])
+  @@index([expiresAt])
 }
 
 model Address {

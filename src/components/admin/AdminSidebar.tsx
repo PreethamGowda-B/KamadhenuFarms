@@ -8,6 +8,7 @@ import {
   Gift,
   Store,
   Users,
+  UserCheck,
   BarChart3,
   Settings,
   LogOut,
@@ -45,6 +46,13 @@ export default function AdminSidebar() {
       icon: ShoppingBag,
       active: pathname.startsWith('/admin/orders') || pathname.startsWith('/orders'),
       badge: 'Live',
+    },
+    {
+      label: 'Customer Directory',
+      sub: 'Memory & Order History',
+      href: '/admin/customers',
+      icon: UserCheck,
+      active: pathname.startsWith('/admin/customers') || pathname.startsWith('/customers'),
     },
     {
       label: 'Referrals & Offers',

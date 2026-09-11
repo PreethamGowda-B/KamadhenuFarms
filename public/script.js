@@ -259,6 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (target === 'orders') {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      openOrders();
+      return;
+    }
+
     if (target && target.startsWith('#')) {
       if (e && typeof e.preventDefault === 'function') e.preventDefault();
       const targetEl = document.querySelector(target);
@@ -593,6 +599,356 @@ document.addEventListener('DOMContentLoaded', () => {
   openCartBtns.forEach(btn => btn.addEventListener('click', openCart));
   if (closeCartBtn) closeCartBtn.addEventListener('click', closeCart);
   if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
+
+  /* ==========================================================================
+     Customer Memory & Order History Architecture
+     ========================================================================== */
+  const openOrdersBtns = document.querySelectorAll('.open-orders-btn');
+  const ordersOverlay = document.getElementById('ordersOverlay');
+  const ordersDrawer = document.getElementById('ordersDrawer');
+  const closeOrdersBtn = document.getElementById('closeOrdersBtn');
+  const customerOrdersContainer = document.getElementById('customerOrdersContainer');
+  const customerWelcomeSub = document.getElementById('customerWelcomeSub');
+  const customerLogoutBtn = document.getElementById('customerLogoutBtn');
+  const openOrdersNavBtn = document.getElementById('openOrdersBtn');
+  const mobileOrdersLink = document.getElementById('mobileOrdersLink');
+  const mobileOrdersLabel = document.getElementById('mobileOrdersLabel');
+  const savedAddressesSection = document.getElementById('savedAddressesSection');
+  const savedAddressesList = document.getElementById('savedAddressesList');
+  const btnNewAddress = document.getElementById('btnNewAddress');
+  let currentCustomer = null;
+
+  function openOrders() {
+    closeCart();
+    if (ordersOverlay) ordersOverlay.classList.add('active');
+    if (ordersDrawer) ordersDrawer.classList.add('active');
+    document.body.classList.add('overflow-hidden');
+    loadCustomerOrders();
+  }
+
+  function closeOrders() {
+    if (ordersOverlay) ordersOverlay.classList.remove('active');
+    if (ordersDrawer) ordersDrawer.classList.remove('active');
+    if (!mobileNav || !mobileNav.classList.contains('active')) {
+      document.body.classList.remove('overflow-hidden');
+    }
+  }
+
+  if (closeOrdersBtn) closeOrdersBtn.addEventListener('click', closeOrders);
+  if (ordersOverlay) ordersOverlay.addEventListener('click', closeOrders);
+  openOrdersBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openOrders();
+    });
+  });
+
+  if (customerLogoutBtn) {
+    customerLogoutBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/api/customer/logout', { method: 'POST' });
+      } catch (e) {}
+      currentCustomer = null;
+      if (openOrdersNavBtn) openOrdersNavBtn.style.display = 'none';
+      if (mobileOrdersLink) mobileOrdersLink.style.display = 'none';
+      if (savedAddressesSection) savedAddressesSection.style.display = 'none';
+      closeOrders();
+      showToast('Signed out of customer memory');
+    });
+  }
+
+  async function checkCustomerSession() {
+    try {
+      const res = await fetch('/api/customer/me', { credentials: 'same-origin' });
+      const data = await res.json();
+      if (data && data.authenticated && data.customer) {
+        currentCustomer = data;
+        const firstName = data.customer.name.trim().split(' ')[0] || 'Customer';
+
+        if (openOrdersNavBtn) {
+          openOrdersNavBtn.style.display = 'inline-flex';
+          openOrdersNavBtn.title = `My Orders (${firstName})`;
+        }
+        if (mobileOrdersLink) {
+          mobileOrdersLink.style.display = 'flex';
+          if (mobileOrdersLabel) {
+            mobileOrdersLabel.textContent = `My Orders (${data.ordersCount || 0})`;
+          }
+        }
+        if (customerWelcomeSub) {
+          customerWelcomeSub.textContent = `Welcome back, ${firstName}! • ${data.customer.mobile}`;
+        }
+
+        // Pre-fill checkout contact info if empty
+        const chkName = document.getElementById('chkName');
+        const chkPhone = document.getElementById('chkPhone');
+        const chkEmail = document.getElementById('chkEmail');
+        if (chkName && !chkName.value) chkName.value = data.customer.name;
+        if (chkPhone && !chkPhone.value) chkPhone.value = data.customer.mobile;
+        if (chkEmail && !chkEmail.value) chkEmail.value = data.customer.email;
+
+        // Render saved addresses if available
+        if (data.savedAddresses && data.savedAddresses.length > 0) {
+          renderSavedAddresses(data.savedAddresses);
+        }
+      }
+    } catch (err) {
+      console.debug('No returning customer session:', err);
+    }
+  }
+
+  function renderSavedAddresses(addresses) {
+    if (!savedAddressesSection || !savedAddressesList) return;
+    savedAddressesList.innerHTML = '';
+
+    if (!addresses || addresses.length === 0) {
+      savedAddressesSection.style.display = 'none';
+      return;
+    }
+
+    savedAddressesSection.style.display = 'block';
+
+    addresses.forEach((addr, idx) => {
+      const card = document.createElement('div');
+      card.className = `saved-addr-card ${idx === 0 ? 'selected' : ''}`;
+      card.innerHTML = `
+        <input type="radio" name="selectedSavedAddress" class="saved-addr-radio" id="savedAddr_${addr.id}" ${idx === 0 ? 'checked' : ''}>
+        <div class="saved-addr-details">
+          <div class="saved-addr-recipient">
+            <span>${addr.recipientName || currentCustomer?.customer?.name} (${addr.mobileNumber || currentCustomer?.customer?.mobile})</span>
+            <span style="font-family:monospace; color:#8c7851;">${addr.pincode}</span>
+          </div>
+          <div>${addr.addressLine1}${addr.addressLine2 ? ', ' + addr.addressLine2 : ''}${addr.area ? ', ' + addr.area : ''}</div>
+          <div style="color:#718096; font-size:0.75rem;">${addr.city}, ${addr.state}${addr.landmark ? ' • ' + addr.landmark : ''}</div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.saved-addr-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const radio = card.querySelector('.saved-addr-radio');
+        if (radio) radio.checked = true;
+
+        // Populate form inputs
+        const chkName = document.getElementById('chkName');
+        const chkPhone = document.getElementById('chkPhone');
+        const chkAddress = document.getElementById('chkAddress');
+        const chkArea = document.getElementById('chkArea');
+        const chkCity = document.getElementById('chkCity');
+        const chkState = document.getElementById('chkState');
+        const chkPincode = document.getElementById('chkPincode');
+        const chkLandmark = document.getElementById('chkLandmark');
+
+        if (chkName && addr.recipientName) chkName.value = addr.recipientName;
+        if (chkPhone && addr.mobileNumber) chkPhone.value = addr.mobileNumber;
+        if (chkAddress) chkAddress.value = addr.addressLine1;
+        if (chkArea) chkArea.value = addr.area || '';
+        if (chkCity) chkCity.value = addr.city || 'Bengaluru';
+        if (chkState) chkState.value = addr.state || 'Karnataka';
+        if (chkPincode) chkPincode.value = addr.pincode;
+        if (chkLandmark) chkLandmark.value = addr.landmark || '';
+
+        // Trigger shipping calculation and Bangalore COD check
+        if (chkPincode && chkPincode.value.trim().length === 6) {
+          calculateShippingRate(chkPincode.value.trim());
+        }
+        if (typeof updateCodBangaloreAvailability === 'function') {
+          updateCodBangaloreAvailability(addr.pincode);
+        }
+      });
+
+      savedAddressesList.appendChild(card);
+    });
+
+    // Auto-populate first address if address input is currently blank
+    const firstAddr = addresses[0];
+    const chkAddress = document.getElementById('chkAddress');
+    if (firstAddr && chkAddress && !chkAddress.value) {
+      const chkName = document.getElementById('chkName');
+      const chkPhone = document.getElementById('chkPhone');
+      const chkArea = document.getElementById('chkArea');
+      const chkCity = document.getElementById('chkCity');
+      const chkState = document.getElementById('chkState');
+      const chkPincode = document.getElementById('chkPincode');
+      const chkLandmark = document.getElementById('chkLandmark');
+
+      if (chkName && firstAddr.recipientName) chkName.value = firstAddr.recipientName;
+      if (chkPhone && firstAddr.mobileNumber) chkPhone.value = firstAddr.mobileNumber;
+      chkAddress.value = firstAddr.addressLine1;
+      if (chkArea) chkArea.value = firstAddr.area || '';
+      if (chkCity) chkCity.value = firstAddr.city || 'Bengaluru';
+      if (chkState) chkState.value = firstAddr.state || 'Karnataka';
+      if (chkPincode) chkPincode.value = firstAddr.pincode;
+      if (chkLandmark) chkLandmark.value = firstAddr.landmark || '';
+
+      if (chkPincode && chkPincode.value.trim().length === 6) {
+        calculateShippingRate(chkPincode.value.trim());
+      }
+      if (typeof updateCodBangaloreAvailability === 'function') {
+        updateCodBangaloreAvailability(firstAddr.pincode);
+      }
+    }
+  }
+
+  if (btnNewAddress) {
+    btnNewAddress.addEventListener('click', () => {
+      document.querySelectorAll('.saved-addr-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('.saved-addr-radio').forEach(r => r.checked = false);
+      const chkAddress = document.getElementById('chkAddress');
+      const chkArea = document.getElementById('chkArea');
+      const chkPincode = document.getElementById('chkPincode');
+      const chkLandmark = document.getElementById('chkLandmark');
+      if (chkAddress) chkAddress.value = '';
+      if (chkArea) chkArea.value = '';
+      if (chkPincode) chkPincode.value = '';
+      if (chkLandmark) chkLandmark.value = '';
+      if (chkAddress) chkAddress.focus();
+    });
+  }
+
+  async function loadCustomerOrders() {
+    if (!customerOrdersContainer) return;
+    customerOrdersContainer.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px; color:#8c7851;">
+        <p style="font-weight:600; font-size:0.9rem;">Fetching your order history...</p>
+      </div>
+    `;
+
+    try {
+      const res = await fetch('/api/customer/orders', { credentials: 'same-origin' });
+      const data = await res.json();
+
+      if (!data.success || !data.orders || data.orders.length === 0) {
+        customerOrdersContainer.innerHTML = `
+          <div style="text-align:center; padding: 50px 20px; color:#718096;">
+            <div style="font-size: 3rem; margin-bottom: 12px;">🍯</div>
+            <h4 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 6px;">No Previous Orders Found</h4>
+            <p style="font-size: 0.85rem; max-width: 280px; margin: 0 auto 20px;">
+              Your completed orders and tracking details will appear here automatically.
+            </p>
+            <button class="btn btn-gold" id="btnShopFromOrders" style="padding: 10px 24px;">Explore Honey Collection</button>
+          </div>
+        `;
+        const btnShop = document.getElementById('btnShopFromOrders');
+        if (btnShop) {
+          btnShop.addEventListener('click', () => {
+            closeOrders();
+            const prodSection = document.getElementById('products');
+            if (prodSection) prodSection.scrollIntoView({ behavior: 'smooth' });
+          });
+        }
+        return;
+      }
+
+      customerOrdersContainer.innerHTML = '';
+
+      data.orders.forEach(order => {
+        const card = document.createElement('div');
+        card.className = 'customer-order-card';
+
+        const dateStr = new Date(order.createdAt).toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+
+        let statusClass = 'status-new';
+        if (order.orderStatus === 'CONFIRMED') statusClass = 'status-confirmed';
+        else if (order.orderStatus === 'SHIPPED') statusClass = 'status-shipped';
+        else if (order.orderStatus === 'DELIVERED') statusClass = 'status-delivered';
+        else if (order.orderStatus === 'CANCELLED') statusClass = 'status-cancelled';
+
+        // Products HTML
+        const productsHtml = (order.items || []).map(it => `
+          <div class="order-product-row">
+            <div>
+              <span class="order-product-name">${it.productNameSnapshot || 'Honey'}</span>
+              <span class="order-product-meta">(${it.weightVariant}) × ${it.quantity}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; color:#2d3748;">₹${it.totalPrice}</span>
+              <button class="btn-buy-again btn-item-reorder" 
+                data-product-id="${it.productId}" 
+                data-size="${it.weightVariant}" 
+                data-qty="${it.quantity}" 
+                title="Reorder ${it.productNameSnapshot}">
+                Buy Again
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        // Address HTML
+        const addr = order.shippingAddress;
+        const addrStr = addr ? `${addr.addressLine1}, ${addr.city} (${addr.pincode})` : 'Delivery address recorded';
+
+        // Tracking HTML
+        let trackingHtml = '';
+        if (order.shipment && order.shipment.trackingNumber) {
+          trackingHtml = `
+            <div style="margin-top: 8px; padding: 8px 12px; background: #ebf8ff; border-radius: 8px; font-size: 0.78rem; color: #2b6cb0; display:flex; justify-content:space-between; align-items:center;">
+              <span>Courier: <b>${order.shipment.courierProvider}</b> (${order.shipment.trackingNumber})</span>
+              ${order.shipment.trackingUrl ? `<a href="${order.shipment.trackingUrl}" target="_blank" rel="noopener" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Package</a>` : ''}
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="order-card-header">
+            <div>
+              <span class="order-number-pill">${order.orderNumber}</span>
+              <span style="font-size:0.75rem; color:#a0aec0; margin-left:8px;">${dateStr}</span>
+            </div>
+            <span class="order-status-badge ${statusClass}">${order.orderStatus}</span>
+          </div>
+
+          <div class="order-card-products">
+            ${productsHtml}
+          </div>
+
+          <div style="font-size:0.75rem; color:#718096; background:#f7fafc; padding:8px 12px; border-radius:8px;">
+            📍 <b>Delivered to:</b> ${addrStr}
+          </div>
+
+          ${trackingHtml}
+
+          <div class="order-card-footer">
+            <span style="font-size:0.8rem; color:#718096;">
+              Payment: <b style="color:#2d3748;">${order.paymentMethod}</b> (${order.paymentStatus})
+            </span>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="order-total-amount">₹${order.total}</span>
+            </div>
+          </div>
+        `;
+
+        // Wire Reorder buttons
+        card.querySelectorAll('.btn-item-reorder').forEach(b => {
+          b.addEventListener('click', () => {
+            const pId = b.getAttribute('data-product-id');
+            const pSize = b.getAttribute('data-size');
+            const pQty = parseInt(b.getAttribute('data-qty') || '1', 10);
+            
+            // Add with current live prices
+            addItemToCart(pId, pSize, pQty, true);
+            closeOrders();
+            showToast(`Added ${pSize} to cart at current live price!`);
+          });
+        });
+
+        customerOrdersContainer.appendChild(card);
+      });
+    } catch (err) {
+      customerOrdersContainer.innerHTML = `
+        <div style="text-align:center; padding: 40px 20px; color:#e53e3e;">
+          <p style="font-weight:600; font-size:0.9rem;">Unable to load orders right now.</p>
+          <button class="btn btn-charcoal" id="btnRetryOrders" style="margin-top:12px; padding:6px 16px;">Try Again</button>
+        </div>
+      `;
+      const retryBtn = document.getElementById('btnRetryOrders');
+      if (retryBtn) retryBtn.addEventListener('click', loadCustomerOrders);
+    }
+  }
 
   /* ==========================================================================
      Product Display Generation & Search-Filters
@@ -992,6 +1348,9 @@ document.addEventListener('DOMContentLoaded', () => {
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
     showCheckoutError(null);
+    if (currentCustomer && currentCustomer.savedAddresses) {
+      renderSavedAddresses(currentCustomer.savedAddresses);
+    }
     if (chkPincodeInput) updateCodBangaloreAvailability(chkPincodeInput.value);
     renderCheckoutSummary();
     if (chkPincodeInput && chkPincodeInput.value.trim().length === 6) {
@@ -2196,6 +2555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderCart();
     initializeTestimonials();
     initializeUpcomingGallery();
+    checkCustomerSession();
 
     // Disable heavy 3D tilt and continuous particle loops on mobile for 60fps smooth scrolling
     if (window.innerWidth > 768) {

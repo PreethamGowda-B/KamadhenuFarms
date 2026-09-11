@@ -5,6 +5,7 @@ import { generateNextOrderNumber } from '@/lib/orderNumber';
 import { calculateShippingCharge } from '@/lib/shipping';
 import { validateDiscountOrReferralCode } from '@/lib/referral';
 import { isBangaloreDelivery } from '@/lib/location';
+import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
 
 const AUTHORITATIVE_PRICES: Record<string, { name: string; prices: Record<string, number> }> = {
   p1: {
@@ -334,12 +335,26 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ [Order Created] Order ${createdOrder.orderNumber} successfully confirmed.`);
 
-    return NextResponse.json({
+    // Generate secure customer session token and attach HttpOnly cookie
+    let sessionToken: string | null = null;
+    try {
+      sessionToken = await createCustomerSession(createdOrder.customerId, req);
+    } catch (sessionErr) {
+      console.error('Failed to create customer session:', sessionErr);
+    }
+
+    const response = NextResponse.json({
       success: true,
       orderNumber: createdOrder.orderNumber,
       orderId: createdOrder.id,
       amount: createdOrder.total,
     });
+
+    if (sessionToken) {
+      attachCustomerSessionCookie(response, sessionToken);
+    }
+
+    return response;
   } catch (error: any) {
     console.error('Payment verification error:', error);
     return NextResponse.json(

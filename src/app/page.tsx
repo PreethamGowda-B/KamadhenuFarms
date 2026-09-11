@@ -18,10 +18,10 @@ export default function RootHomePage() {
 
   return (
     <>
-      <link rel="stylesheet" href="/styles.css?v=20260911_v8" />
+      <link rel="stylesheet" href="/styles.css?v=20260911_v9" />
       <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
-      <script src="/script.js?v=20260911_v8" defer />
+      <script src="/script.js?v=20260911_v9" defer />
     </>
   );
 }

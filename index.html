@@ -116,6 +116,13 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </button>
+        <!-- Customer Memory My Orders trigger -->
+        <button class="nav-icon-btn open-orders-btn" id="openOrdersBtn" title="My Orders" style="display:none;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          <span class="customer-badge-dot" id="customerBadgeDot"></span>
+        </button>
         <!-- Shopping cart drawer trigger -->
         <button class="nav-icon-btn open-cart-btn" title="Cart">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -194,6 +201,10 @@
             <a href="#" class="mobile-nav-item open-tracker-btn" onclick="window.handleMobileNavLink(event, 'tracker')">
               <span class="nav-icon">📦</span>
               <span>Track Order</span>
+            </a>
+            <a href="#" class="mobile-nav-item open-orders-btn" id="mobileOrdersLink" style="display:none;" onclick="window.handleMobileNavLink(event, 'orders')">
+              <span class="nav-icon">🛍️</span>
+              <span id="mobileOrdersLabel">My Orders</span>
             </a>
           </div>
         </div>
@@ -1707,6 +1718,38 @@
   </div>
 
   <!-- ==========================================================================
+       Customer "My Orders" Drawer Overlay
+       ========================================================================== -->
+  <div class="cart-overlay" id="ordersOverlay"></div>
+  <div class="cart-drawer orders-drawer" id="ordersDrawer">
+    <!-- Header -->
+    <div class="cart-header">
+      <div>
+        <h3 style="margin-bottom: 2px;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          My Orders
+        </h3>
+        <span class="customer-welcome-sub" id="customerWelcomeSub">Welcome back!</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="orders-logout-btn" id="customerLogoutBtn" title="Sign Out">Sign Out</button>
+        <button class="cart-close-btn" id="closeOrdersBtn" title="Close Orders">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Items container -->
+    <div class="orders-items-container" id="customerOrdersContainer">
+      <!-- Injected by script.js -->
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        Checkout Modal Overlay
        ========================================================================== -->
   <div class="modal-overlay" id="checkoutModalOverlay">
@@ -1725,6 +1768,17 @@
         <div class="checkout-billing">
           <h3>Delivery Information</h3>
           <form id="checkoutForm">
+            <!-- Saved Addresses for Returning Customer -->
+            <div id="savedAddressesSection" class="saved-addresses-section" style="display: none;">
+              <div class="saved-addresses-header">
+                <span class="saved-addr-title">📍 Select Delivery Address</span>
+                <button type="button" class="btn-new-address" id="btnNewAddress">+ Deliver to New Address</button>
+              </div>
+              <div class="saved-addresses-list" id="savedAddressesList">
+                <!-- Injected dynamically by script.js -->
+              </div>
+            </div>
+
             <div class="checkout-form-grid">
               <div class="form-group full-width">
                 <label for="chkName">Recipient Full Name *</label>

@@ -150,6 +150,8 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith('/referrals/') ||
       pathname === '/shops' ||
       pathname.startsWith('/shops/') ||
+      pathname === '/customers' ||
+      pathname.startsWith('/customers/') ||
       pathname === '/analytics' || 
       pathname === '/settings' ||
       pathname.startsWith('/admin')
@@ -183,6 +185,13 @@ export async function middleware(req: NextRequest) {
       if (pathname.startsWith('/shops/')) {
         const id = pathname.replace('/shops/', '');
         return NextResponse.rewrite(new URL(`/admin/shops/${id}`, req.url));
+      }
+      if (pathname === '/customers') {
+        return NextResponse.rewrite(new URL('/admin/customers', req.url));
+      }
+      if (pathname.startsWith('/customers/')) {
+        const id = pathname.replace('/customers/', '');
+        return NextResponse.rewrite(new URL(`/admin/customers/${id}`, req.url));
       }
       if (pathname === '/analytics') {
         return NextResponse.rewrite(new URL('/admin/recruitment/analytics', req.url));
