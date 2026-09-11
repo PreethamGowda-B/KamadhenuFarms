@@ -333,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('kamadhenu_cart', JSON.stringify(cart));
     updateBadges();
     renderCart();
+    renderCheckoutSummary();
   };
 
   const saveWishlist = () => {
@@ -362,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Update totals
       cartSubtotalEl.textContent = '₹0';
-      cartDiscountRow.style.display = 'none';
+      if (cartDiscountRow) cartDiscountRow.style.display = 'none';
       cartTotalEl.textContent = '₹0';
       checkoutBtn.setAttribute('disabled', 'true');
       return;
@@ -392,13 +393,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="cart-item-bottom">
             <span class="cart-item-price">₹${item.price * item.qty}</span>
             <div class="cart-item-qty">
-              <button class="qty-btn dec-qty-cart" data-index="${index}">-</button>
+              <button class="qty-btn dec-qty-cart" data-index="${index}" title="Decrease quantity">-</button>
               <input type="text" class="qty-input" value="${item.qty}" readonly>
-              <button class="qty-btn inc-qty-cart" data-index="${index}">+</button>
+              <button class="qty-btn inc-qty-cart" data-index="${index}" title="Increase quantity">+</button>
             </div>
           </div>
         </div>
-        <button class="cart-item-remove remove-cart-item" data-index="${index}">
+        <button class="cart-item-remove remove-cart-item" data-index="${index}" title="Remove item">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -413,52 +414,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Coupon Calculations
     let discount = 0;
-    if (currentCoupon) {
+    if (currentCoupon && validCoupons[currentCoupon]) {
       const codeData = validCoupons[currentCoupon];
       if (codeData.type === 'percent') {
         discount = Math.round(subtotal * (codeData.value / 100));
       } else if (codeData.type === 'fixed') {
-        discount = codeData.value;
+        discount = Math.min(subtotal, codeData.value);
       }
       cartDiscountRow.style.display = 'flex';
       cartDiscountEl.textContent = `-₹${discount}`;
     } else {
-      cartDiscountRow.style.display = 'none';
+      if (cartDiscountRow) cartDiscountRow.style.display = 'none';
+      if (currentCoupon && !validCoupons[currentCoupon]) {
+        currentCoupon = null;
+      }
     }
 
     const finalTotal = Math.max(0, subtotal - discount + deliveryCharges);
     cartTotalEl.textContent = `₹${finalTotal}`;
 
-    // Wire up events
-    document.querySelectorAll('.dec-qty-cart').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(e.target.dataset.index);
-        if (cart[idx].qty > 1) {
-          cart[idx].qty--;
+    // Wire up events safely with closest() selector
+    cartItemsContainer.querySelectorAll('.dec-qty-cart').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const button = e.target.closest('.dec-qty-cart');
+        const idx = parseInt(button.dataset.index, 10);
+        if (!isNaN(idx) && cart[idx]) {
+          if (cart[idx].qty > 1) {
+            cart[idx].qty--;
+          } else {
+            cart.splice(idx, 1);
+          }
           saveCart();
-        } else {
-          // Remove if drops to zero
+        }
+      };
+    });
+
+    cartItemsContainer.querySelectorAll('.inc-qty-cart').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const button = e.target.closest('.inc-qty-cart');
+        const idx = parseInt(button.dataset.index, 10);
+        if (!isNaN(idx) && cart[idx]) {
+          cart[idx].qty++;
+          saveCart();
+        }
+      };
+    });
+
+    cartItemsContainer.querySelectorAll('.remove-cart-item').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const button = e.target.closest('.remove-cart-item');
+        const idx = parseInt(button.dataset.index, 10);
+        if (!isNaN(idx) && cart[idx]) {
           cart.splice(idx, 1);
           saveCart();
         }
-      });
-    });
-
-    document.querySelectorAll('.inc-qty-cart').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(e.target.dataset.index);
-        cart[idx].qty++;
-        saveCart();
-      });
-    });
-
-    document.querySelectorAll('.remove-cart-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const button = e.target.closest('.remove-cart-item');
-        const idx = parseInt(button.dataset.index);
-        cart.splice(idx, 1);
-        saveCart();
-      });
+      };
     });
   };
 
@@ -1024,17 +1040,19 @@ document.addEventListener('DOMContentLoaded', () => {
     checkoutSubtotalEl.textContent = `₹${subtotal}`;
 
     let discount = 0;
-    if (currentCoupon) {
+    if (currentCoupon && validCoupons[currentCoupon]) {
       const codeData = validCoupons[currentCoupon];
       if (codeData.type === 'percent') {
         discount = Math.round(subtotal * (codeData.value / 100));
       } else if (codeData.type === 'fixed') {
-        discount = codeData.value;
+        discount = Math.min(subtotal, codeData.value);
       }
-      checkoutDiscountRow.style.display = 'flex';
-      checkoutDiscountEl.textContent = `-₹${discount}`;
+      if (checkoutDiscountRow) {
+        checkoutDiscountRow.style.display = 'flex';
+        checkoutDiscountEl.textContent = `-₹${discount}`;
+      }
     } else {
-      checkoutDiscountRow.style.display = 'none';
+      if (checkoutDiscountRow) checkoutDiscountRow.style.display = 'none';
     }
 
     const shippingCharge = isShippingCalculated ? currentShippingCharge : 0;

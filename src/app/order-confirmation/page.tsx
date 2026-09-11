@@ -22,6 +22,7 @@ import {
   MapPin,
   Mail,
   User,
+  Loader2,
 } from 'lucide-react';
 
 interface OrderItem {
@@ -120,9 +121,48 @@ function ConfirmationContent() {
     }
   };
 
-  // Print / Save as PDF handler
-  const handleDownloadInvoice = () => {
-    window.print();
+  const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
+
+  // Print / Direct PDF download handler across Mobile and Desktop
+  const handleDownloadInvoice = async () => {
+    const invoiceEl = document.getElementById('official-invoice');
+    if (!invoiceEl) {
+      window.print();
+      return;
+    }
+
+    setDownloadingPdf(true);
+
+    try {
+      if (typeof window !== 'undefined' && !(window as any).html2pdf) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load html2pdf'));
+          document.head.appendChild(script);
+        });
+      }
+
+      if ((window as any).html2pdf) {
+        const opt = {
+          margin: [8, 8, 8, 8],
+          filename: `Kamadhenu-Invoice-${displayOrderNum}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, logging: false },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        await (window as any).html2pdf().set(opt).from(invoiceEl).save();
+      } else {
+        window.print();
+      }
+    } catch (e) {
+      console.warn('html2pdf failed or blocked, falling back to window.print()', e);
+      window.print();
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const formattedDate = order?.createdAt
@@ -362,10 +402,28 @@ function ConfirmationContent() {
 
             <button
               onClick={handleDownloadInvoice}
-              className="bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-md transition active:scale-[0.98] text-sm"
+              disabled={downloadingPdf}
+              className="bg-stone-900 hover:bg-stone-800 disabled:opacity-75 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-md transition active:scale-[0.98] text-sm cursor-pointer"
             >
-              <Download className="w-4 h-4" />
-              <span>Download / Print Bill</span>
+              {downloadingPdf ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  <span>Generating Invoice PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Download Invoice PDF</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => window.print()}
+              className="bg-stone-200/80 hover:bg-stone-300 text-stone-900 font-bold py-3 px-5 rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98] text-sm cursor-pointer"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print Bill</span>
             </button>
 
             <Link
@@ -606,13 +664,25 @@ function ConfirmationContent() {
               <p className="font-semibold text-stone-700">Thank you for supporting Karnataka beekeepers!</p>
               <p>For re-orders and gift hampers, visit kamadhenuhoneyfarms.in</p>
             </div>
-            <div className="no-print">
+            <div className="no-print flex items-center gap-2">
               <button
                 onClick={handleDownloadInvoice}
-                className="bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 px-5 rounded-xl inline-flex items-center gap-2 shadow-sm transition active:scale-95 text-xs"
+                disabled={downloadingPdf}
+                className="bg-stone-900 hover:bg-stone-800 disabled:opacity-75 text-white font-bold py-2.5 px-4 rounded-xl inline-flex items-center gap-2 shadow-sm transition active:scale-95 text-xs cursor-pointer"
+              >
+                {downloadingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>Download PDF</span>
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold py-2.5 px-4 rounded-xl inline-flex items-center gap-2 shadow-sm transition active:scale-95 text-xs cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Print or Save Invoice PDF</span>
+                <span>Print</span>
               </button>
             </div>
           </div>
