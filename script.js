@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
           switchImage(currentImgIdx + 1);
         }, 3500);
 
-        // Pause on user hover to inspect, resume when unhovered
+        // Pause on user hover to inspect, resume when mouse leaves
         productCard.addEventListener('mouseenter', () => {
           if (autoSlideTimer) clearInterval(autoSlideTimer);
         });
