@@ -228,6 +228,8 @@ header {
   height: var(--header-height);
   z-index: 999;
   transition: var(--transition-smooth);
+  will-change: transform, height;
+  transform: translateZ(0);
 }
 
 header.scrolled {
@@ -912,6 +914,8 @@ header nav {
   height: 100%;
   perspective: 1500px;
   transform-style: preserve-3d;
+  will-change: transform;
+  contain: layout style;
 }
 
 .product-card:hover {
@@ -3813,12 +3817,12 @@ body:not(.loaded) {
 
 /* ----- Keyframe Library ----- */
 @keyframes upcomingGlowPulse {
-  0%, 100% { opacity: 0.18; transform: scale(1);   filter: blur(45px); }
-  50%       { opacity: 0.38; transform: scale(1.25); filter: blur(55px); }
+  0%, 100% { opacity: 0.18; transform: scale(1) translateZ(0); }
+  50%       { opacity: 0.38; transform: scale(1.18) translateZ(0); }
 }
 @keyframes upcomingGlowPulse2 {
-  0%, 100% { opacity: 0.12; transform: scale(1.1);  filter: blur(50px); }
-  50%       { opacity: 0.28; transform: scale(0.85); filter: blur(40px); }
+  0%, 100% { opacity: 0.12; transform: scale(1.08) translateZ(0); }
+  50%       { opacity: 0.28; transform: scale(0.9) translateZ(0); }
 }
 @keyframes shimmerRingExpand {
   0%   { transform: translate(-50%,-50%) scale(0.6); opacity: 0.7; }
@@ -3900,8 +3904,10 @@ body:not(.loaded) {
   top: -10%; right: -10%;
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(60px);
+  filter: blur(50px);
   z-index: 1;
+  will-change: transform, opacity;
+  transform: translateZ(0);
   animation: upcomingGlowPulse 8s ease-in-out infinite;
 }
 
@@ -3913,8 +3919,10 @@ body:not(.loaded) {
   bottom: -10%; left: -8%;
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(55px);
+  filter: blur(45px);
   z-index: 1;
+  will-change: transform, opacity;
+  transform: translateZ(0);
   animation: upcomingGlowPulse2 10s ease-in-out infinite;
 }
 

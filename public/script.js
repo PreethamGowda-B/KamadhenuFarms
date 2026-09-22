@@ -194,23 +194,49 @@ document.addEventListener('DOMContentLoaded', () => {
   let carouselInterval = null;
 
   /* ==========================================================================
-     Navbar & Menu Logic
+     Unified High-Performance Scroll Manager (Single rAF Tick, Hardware Composited)
      ========================================================================== */
-  // Sticky Navbar Blur Swap
-  let isNavScrolling = false;
-  window.addEventListener('scroll', () => {
-    if (!isNavScrolling) {
+  const backToTopBtn = document.getElementById('backToTopBtn');
+  const heroMedia = document.querySelector('.hero-media');
+  const heroContent = document.querySelector('.hero-content');
+
+  let isScrollScheduled = false;
+  const handleScrollThrottled = () => {
+    if (!isScrollScheduled) {
       window.requestAnimationFrame(() => {
-        if (window.scrollY > 50) {
-          header.classList.add('scrolled');
-        } else {
-          header.classList.remove('scrolled');
+        const scrollY = window.scrollY;
+        // 1. Header scrolled state
+        if (header) {
+          if (scrollY > 50) {
+            header.classList.add('scrolled');
+          } else {
+            header.classList.remove('scrolled');
+          }
         }
-        isNavScrolling = false;
+        // 2. Back to top button visibility
+        if (backToTopBtn) {
+          if (scrollY > 600) {
+            backToTopBtn.classList.add('visible');
+          } else {
+            backToTopBtn.classList.remove('visible');
+          }
+        }
+        // 3. Hero parallax using translate3d for GPU compositor execution
+        if (window.innerWidth >= 768 && scrollY < window.innerHeight) {
+          if (heroMedia) {
+            heroMedia.style.transform = `translate3d(0, ${scrollY * 0.15}px, 0)`;
+          }
+          if (heroContent) {
+            heroContent.style.transform = `translate3d(0, ${scrollY * 0.05}px, 0)`;
+            heroContent.style.opacity = Math.max(0, 1 - (scrollY / (window.innerHeight * 0.8)));
+          }
+        }
+        isScrollScheduled = false;
       });
-      isNavScrolling = true;
+      isScrollScheduled = true;
     }
-  }, { passive: true });
+  };
+  window.addEventListener('scroll', handleScrollThrottled, { passive: true });
 
   // Mobile Hamburger toggling (Global & Delegated)
   window.toggleMobileNav = function(e) {
@@ -1069,30 +1095,46 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         };
 
-        // Automatically change image every 3.5 seconds
-        let autoSlideTimer = setInterval(() => {
-          switchImage(currentImgIdx + 1);
-        }, 3500);
+        // Automatically change image when card is visible on screen
+        let autoSlideTimer = null;
+        const startAutoSlide = () => {
+          if (autoSlideTimer || document.hidden) return;
+          autoSlideTimer = setInterval(() => {
+            if (!document.hidden) switchImage(currentImgIdx + 1);
+          }, 4500);
+        };
+        const stopAutoSlide = () => {
+          if (autoSlideTimer) {
+            clearInterval(autoSlideTimer);
+            autoSlideTimer = null;
+          }
+        };
 
         // Pause on user hover to inspect, resume when mouse leaves
-        productCard.addEventListener('mouseenter', () => {
-          if (autoSlideTimer) clearInterval(autoSlideTimer);
-        });
+        productCard.addEventListener('mouseenter', stopAutoSlide);
         productCard.addEventListener('mouseleave', () => {
-          if (autoSlideTimer) clearInterval(autoSlideTimer);
-          autoSlideTimer = setInterval(() => {
-            switchImage(currentImgIdx + 1);
-          }, 3500);
+          if (cardIsVisible) startAutoSlide();
         });
+
+        let cardIsVisible = false;
+        const cardObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            cardIsVisible = entry.isIntersecting;
+            if (cardIsVisible) {
+              startAutoSlide();
+            } else {
+              stopAutoSlide();
+            }
+          });
+        }, { threshold: 0.15 });
+        cardObserver.observe(productCard);
 
         thumbBtns.forEach((btn, idx) => {
           btn.addEventListener('click', (e) => {
             if (e) e.stopPropagation();
-            if (autoSlideTimer) clearInterval(autoSlideTimer);
+            stopAutoSlide();
             switchImage(idx);
-            autoSlideTimer = setInterval(() => {
-              switchImage(currentImgIdx + 1);
-            }, 3500);
+            if (cardIsVisible) startAutoSlide();
           });
         });
       }
@@ -1949,22 +1991,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const backToTopBtn = document.getElementById('backToTopBtn');
   if (backToTopBtn) {
-    let isBtnScrolling = false;
-    window.addEventListener('scroll', () => {
-      if (!isBtnScrolling) {
-        window.requestAnimationFrame(() => {
-          if (window.scrollY > 600) {
-            backToTopBtn.classList.add('visible');
-          } else {
-            backToTopBtn.classList.remove('visible');
-          }
-          isBtnScrolling = false;
-        });
-        isBtnScrolling = true;
-      }
-    }, { passive: true });
     backToTopBtn.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -2005,78 +2032,55 @@ document.addEventListener('DOMContentLoaded', () => {
     statsObserver.observe(statsSection);
   }
 
-  const addTiltEffect = () => {
-    if (window.innerWidth < 768) return;
-    document.querySelectorAll('.product-card, .glass-card').forEach(card => {
+  /* ==========================================================================
+     High-Performance Unified Tilt & Dynamic Lighting (Cached Rect, Zero Layout Thrash)
+     ========================================================================== */
+  const addTiltAndLightingEffect = () => {
+    if (window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cards = document.querySelectorAll('.product-card, .glass-card, .benefit-card');
+    cards.forEach(card => {
       let ticking = false;
+      let cachedRect = null;
+      const isTiltable = card.classList.contains('product-card') || card.classList.contains('glass-card');
+
+      card.addEventListener('mouseenter', () => {
+        cachedRect = card.getBoundingClientRect();
+      }, { passive: true });
+
       card.addEventListener('mousemove', (e) => {
         if (!ticking) {
           window.requestAnimationFrame(() => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -4;
-            const rotateY = ((x - centerX) / centerX) * 4;
-            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
+            if (!cachedRect) cachedRect = card.getBoundingClientRect();
+            const x = e.clientX - cachedRect.left;
+            const y = e.clientY - cachedRect.top;
+            const w = cachedRect.width || 1;
+            const h = cachedRect.height || 1;
+
+            card.style.setProperty('--mouse-x', `${((x / w) * 100).toFixed(1)}%`);
+            card.style.setProperty('--mouse-y', `${((y / h) * 100).toFixed(1)}%`);
+
+            if (isTiltable) {
+              const centerX = w / 2;
+              const centerY = h / 2;
+              const rotateX = (((y - centerY) / centerY) * -3).toFixed(2);
+              const rotateY = (((x - centerX) / centerX) * 3).toFixed(2);
+              card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+            }
             ticking = false;
           });
           ticking = true;
         }
       }, { passive: true });
+
       card.addEventListener('mouseleave', () => {
-        card.style.transform = '';
-      });
-    });
-  };
-
-  const heroMedia = document.querySelector('.hero-media');
-  const heroContent = document.querySelector('.hero-content');
-  let isHeroScrolling = false;
-  window.addEventListener('scroll', () => {
-    if (window.innerWidth < 768) return;
-    if (!isHeroScrolling) {
-      window.requestAnimationFrame(() => {
-        const scrollY = window.scrollY;
-        if (scrollY < window.innerHeight) {
-          if (heroMedia) heroMedia.style.transform = `translateY(${scrollY * 0.15}px)`;
-          if (heroContent) {
-            heroContent.style.transform = `translateY(${scrollY * 0.05}px)`;
-            heroContent.style.opacity = Math.max(0, 1 - (scrollY / (window.innerHeight * 0.8)));
-          }
-        }
-        isHeroScrolling = false;
-      });
-      isHeroScrolling = true;
-    }
-  }, { passive: true });
-
-  /* ==========================================================================
-     Dynamic Glare & 3D Lighting Effects
-     ========================================================================== */
-  const addDynamicLighting = () => {
-    if (window.innerWidth < 768) return;
-    const cards = document.querySelectorAll('.product-card, .glass-card, .benefit-card');
-    
-    cards.forEach(card => {
-      let ticking = false;
-      card.addEventListener('mousemove', e => {
-        if (!ticking) {
-          window.requestAnimationFrame(() => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            card.style.setProperty('--mouse-x', `${(x / rect.width) * 100}%`);
-            card.style.setProperty('--mouse-y', `${(y / rect.height) * 100}%`);
-            ticking = false;
-          });
-          ticking = true;
-        }
+        cachedRect = null;
+        if (isTiltable) card.style.transform = '';
       }, { passive: true });
     });
   };
+
+  const addTiltEffect = addTiltAndLightingEffect;
+  const addDynamicLighting = () => {};
 
   /* ==========================================================================
      Upcoming Products — 3D Gallery & Cinematic Interactions
@@ -2132,57 +2136,62 @@ document.addEventListener('DOMContentLoaded', () => {
   const initUpcoming3DTilt = () => {
     const cards = document.querySelectorAll('.upcoming-card');
     if (!cards.length) return;
-    if (window.innerWidth < 768 || window.matchMedia('(max-width: 992px)').matches) return;
+    if (window.innerWidth < 768 || window.matchMedia('(max-width: 992px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    const MAX_TILT  = 10;
-    const MAX_SHIFT = 6;
+    const MAX_TILT  = 8;
+    const MAX_SHIFT = 4;
 
     cards.forEach(card => {
       const content = card.querySelector('.upcoming-content');
       const media   = card.querySelector('.upcoming-media-placeholder');
       let raf       = null;
+      let cachedRect = null;
 
       const applyTilt = (rx, ry, progress) => {
-        card.style.transform  = `perspective(1200px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(${progress * 8}px)`;
-        card.style.boxShadow  = `${-ry * 2}px ${rx * 2 + 20}px 60px rgba(0,0,0,0.6), 0 0 ${40 + progress * 40}px rgba(216,166,79,${0.06 + progress * 0.12})`;
-        if (content) content.style.transform = `translateX(${-ry * MAX_SHIFT / MAX_TILT}px) translateY(${rx * MAX_SHIFT / MAX_TILT}px)`;
-        if (media)   media.style.transform   = `translateX(${ry * 3 / MAX_TILT}px) translateY(${-rx * 3 / MAX_TILT}px)`;
+        card.style.transform = `perspective(1200px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateZ(${(progress * 6).toFixed(1)}px)`;
+        if (content) content.style.transform = `translate3d(${(-ry * MAX_SHIFT / MAX_TILT).toFixed(1)}px, ${(rx * MAX_SHIFT / MAX_TILT).toFixed(1)}px, 0)`;
+        if (media)   media.style.transform   = `translate3d(${(ry * 2 / MAX_TILT).toFixed(1)}px, ${(-rx * 2 / MAX_TILT).toFixed(1)}px, 0)`;
       };
 
       const resetTilt = () => {
         card.style.transform  = '';
-        card.style.boxShadow  = '';
         if (content) content.style.transform = '';
         if (media)   media.style.transform   = '';
       };
 
+      card.addEventListener('mouseenter', () => {
+        card.style.transition = 'none';
+        cachedRect = card.getBoundingClientRect();
+      }, { passive: true });
+
       card.addEventListener('mousemove', (e) => {
         if (raf) cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
-          const rect     = card.getBoundingClientRect();
-          const dx       = e.clientX - (rect.left + rect.width  / 2);
-          const dy       = e.clientY - (rect.top  + rect.height / 2);
-          const rx       = -(dy / (rect.height / 2)) * MAX_TILT;
-          const ry       =  (dx / (rect.width  / 2)) * MAX_TILT;
-          const progress =  Math.hypot(dx / rect.width, dy / rect.height);
+          if (!cachedRect) cachedRect = card.getBoundingClientRect();
+          const w = cachedRect.width || 1;
+          const h = cachedRect.height || 1;
+          const dx       = e.clientX - (cachedRect.left + w / 2);
+          const dy       = e.clientY - (cachedRect.top  + h / 2);
+          const rx       = -(dy / (h / 2)) * MAX_TILT;
+          const ry       =  (dx / (w / 2)) * MAX_TILT;
+          const progress =  Math.min(1, Math.hypot(dx / w, dy / h));
           applyTilt(rx, ry, progress);
         });
       }, { passive: true });
 
-      card.addEventListener('mouseenter', () => { card.style.transition = 'none'; });
-
       card.addEventListener('mouseleave', () => {
         if (raf) cancelAnimationFrame(raf);
-        card.style.transition = 'transform 0.7s cubic-bezier(0.16,1,0.3,1), box-shadow 0.7s cubic-bezier(0.16,1,0.3,1)';
+        cachedRect = null;
+        card.style.transition = 'transform 0.5s cubic-bezier(0.16,1,0.3,1)';
         resetTilt();
-        setTimeout(() => { card.style.transition = ''; }, 700);
-      });
+        setTimeout(() => { card.style.transition = ''; }, 500);
+      }, { passive: true });
     });
   };
 
   /* ---- Floating Gold Particle Canvas ---- */
   const initUpcomingParticles = () => {
-    if (window.innerWidth < 768) return; // Skip heavy canvas loop on mobile
+    if (window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // Skip heavy canvas loop on mobile or low power
     const section = document.querySelector('.upcoming-products');
     if (!section) return;
 
@@ -2232,21 +2241,38 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    const particles = Array.from({ length: 25 }, () => new Particle());
-    let rafId;
+    const particles = Array.from({ length: 18 }, () => new Particle());
+    let rafId = null;
 
     const loop = () => {
+      if (document.hidden) {
+        rafId = null;
+        return;
+      }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particles.forEach(p => { p.update(); p.draw(); });
       rafId = requestAnimationFrame(loop);
     };
 
-    // Only animate when visible
+    // Only animate when visible, avoiding duplicate loops
     const io = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) { loop(); }
-      else { cancelAnimationFrame(rafId); }
+      if (entries[0].isIntersecting) {
+        if (!rafId) loop();
+      } else {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      }
     }, { threshold: 0.05 });
     io.observe(section);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && rafId) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    });
   };
 
   /* ---- Cinematic Card Entrance (scroll-triggered) ---- */
