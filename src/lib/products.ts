@@ -86,7 +86,7 @@ export const PRODUCTS: Record<string, ProductConfig> = {
     category: 'honeycomb',
     baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',
     prices: {
-      '500g': 499,
+      '500g': 899,
     },
     image: 'assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png',
     images: [
