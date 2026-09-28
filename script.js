@@ -65,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'assets/raw_honey_details.jpg',
         'assets/raw_honey_overhead.jpg'
       ],
-      meeshoLink: 'https://www.meesho.com/s/p/fhkgl3',
       placeholderIcon: `
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-.778.099-1.533.284-2.253" />
@@ -89,11 +88,58 @@ document.addEventListener('DOMContentLoaded', () => {
         'assets/dry_fruits_honey_landscape.jpg',
         'assets/dry_fruits_honey.jpg'
       ],
-      meeshoLink: 'https://www.meesho.com/s/p/fr48vn',
       placeholderIcon: `
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1A3.75 3.75 0 0012 18z" />
+        </svg>
+      `
+    },
+    'p3': {
+      id: 'p3',
+      name: 'Bee-Crafted Honey Comb Jar',
+      subtitle: 'Built by Bees. Not by Machines.',
+      category: 'honeycomb',
+      baseDesc: 'A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey. Harvested exactly as nature intended.',
+      prices: {
+        '500g': 599
+      },
+      image: 'assets/ChatGPT Image Jun 13, 2026, 07_29_45 PM.png',
+      images: [
+        'assets/ChatGPT Image Jun 13, 2026, 07_29_45 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_31_52 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_36_11 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_51_53 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_54_12 PM.png'
+      ],
+      placeholderIcon: `
+        <svg viewBox="0 0 100 100" class="luxury-jar-svg">
+          <path d="M35,25 Q35,20 40,20 L60,20 Q65,20 65,25 L65,30 L35,30 Z" fill="none" stroke="var(--primary-gold)" stroke-width="2" />
+          <rect x="30" y="30" width="40" height="8" rx="2" fill="none" stroke="var(--primary-gold)" stroke-width="2" />
+          <path d="M30,38 Q30,48 25,60 Q20,80 30,85 L70,85 Q80,80 75,60 Q70,48 70,38 Z" fill="none" stroke="var(--primary-gold)" stroke-width="2" />
+        </svg>
+      `
+    },
+    'p4': {
+      id: 'p4',
+      name: 'Raw Honey Comb Box',
+      subtitle: 'Straight From The Hive.',
+      category: 'honeycomb',
+      baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',
+      prices: {
+        '500g': 499
+      },
+      image: 'assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png',
+      images: [
+        'assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_42_34 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_43_33 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_46_15 PM.png',
+        'assets/ChatGPT Image Jun 13, 2026, 07_47_14 PM.png'
+      ],
+      placeholderIcon: `
+        <svg viewBox="0 0 100 100" class="luxury-box-svg">
+          <polygon points="50,15 80,30 80,65 50,80 20,65 20,30" fill="none" stroke="var(--primary-gold)" stroke-width="2" />
         </svg>
       `
     }
@@ -989,6 +1035,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Loop through our product configs
     Object.values(productDatabase).forEach(product => {
+      // Honeycomb products are showcased in their dedicated luxury section below
+      if (product.category === 'honeycomb') return;
+
       // Filter out search matches
       const matchesSearch = product.name.toLowerCase().includes(searchQuery) || product.baseDesc.toLowerCase().includes(searchQuery);
       // Filter out category tabs
@@ -1000,8 +1049,8 @@ document.addEventListener('DOMContentLoaded', () => {
       productCard.className = 'product-card reveal reveal-fade-up';
       productCard.dataset.productId = product.id;
 
-      // Default active size for card is 500g (or the first available size)
-      const defaultSize = '500g';
+      // Select ₹399 variant as default active size if available (Pure Honey 500g, Dry Fruits 250g)
+      const defaultSize = Object.entries(product.prices).find(([_, pr]) => pr === 399)?.[0] || Object.keys(product.prices)[0] || '500g';
       const sizePrice = product.prices[defaultSize];
 
       const hasGallery = product.images && product.images.length > 0;
@@ -1044,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="price-display">
               <span>Price</span>
               <h4 class="card-price-text">₹${sizePrice}</h4>
-              <span class="delivery-notice">(Delivery charges not included)</span>
+              <span class="delivery-notice">(Delivery charges calculated at checkout)</span>
             </div>
           </div>
           <div class="product-actions">
@@ -1055,18 +1104,18 @@ document.addEventListener('DOMContentLoaded', () => {
               Add to Cart
             </button>
             <div class="product-actions-row">
-              <button class="btn btn-gold wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <button class="btn btn-gold buy-now-trigger" title="Buy Now & Proceed to Checkout">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+                Buy Now
+              </button>
+              <button class="btn btn-charcoal wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
                 </svg>
-                Bulk Orders
+                Bulk Inquiry
               </button>
-              <a href="${product.meeshoLink}" target="_blank" class="btn btn-charcoal meesho-buy-trigger">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                  <path d="M17 18a2 2 0 110-4 2 2 0 010 4zM7 18a2 2 0 110-4 2 2 0 010 4zM18.3 15.3l1.5-7.5H6.2l-.4-2H2v2h2.2l2.6 11.5c-.7.6-1.1 1.5-1.1 2.5a3 3 0 003 3h12v-2H8.7c-.5 0-.9-.4-.9-.9l-.1-.6h10.6z"/>
-                </svg>
-                Meesho
-              </a>
             </div>
           </div>
         </div>
@@ -1184,6 +1233,15 @@ document.addEventListener('DOMContentLoaded', () => {
             addToCartBtn.innerHTML = originalContent;
             addToCartBtn.classList.remove('btn-added-state');
           }, 1200);
+        });
+      }
+
+      // Buy Now button
+      const buyNowBtn = productCard.querySelector('.buy-now-trigger');
+      if (buyNowBtn) {
+        buyNowBtn.addEventListener('click', () => {
+          addItemToCart(product.id, selectedSize, 1, false);
+          openCheckout();
         });
       }
 
@@ -1933,41 +1991,55 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     Meesho Mobile Product Selector Drawer Logic
+     Honeycomb Active Product Actions & Live Price Synchronization
      ========================================================================== */
-  const mobileMeeshoBtn = document.getElementById('mobileMeeshoBtn');
-  const meeshoOverlay = document.getElementById('meeshoOverlay');
-  const meeshoSelectorDrawer = document.getElementById('meeshoSelectorDrawer');
-  const closeMeeshoSelectorBtn = document.getElementById('closeMeeshoSelectorBtn');
-
-  const openMeeshoSelector = () => {
-    if (meeshoOverlay && meeshoSelectorDrawer) {
-      meeshoOverlay.classList.add('active');
-      meeshoSelectorDrawer.style.bottom = '0';
-      document.body.classList.add('overflow-hidden');
+  // Sync live configured price from productDatabase to cards
+  document.querySelectorAll('.upcoming-price-display').forEach(el => {
+    const pid = el.dataset.productId;
+    if (productDatabase[pid] && productDatabase[pid].prices['500g']) {
+      el.textContent = `₹${productDatabase[pid].prices['500g']}`;
     }
-  };
+  });
 
-  const closeMeeshoSelector = () => {
-    if (meeshoOverlay && meeshoSelectorDrawer) {
-      meeshoOverlay.classList.remove('active');
-      meeshoSelectorDrawer.style.bottom = '-100%';
-      // Only release overflow-hidden if other overlays are closed
-      if (!mobileNav.classList.contains('active') && !cartDrawer.classList.contains('active')) {
-        document.body.classList.remove('overflow-hidden');
+  // Add to Cart for Honeycomb Products
+  const upcomingAddBtns = document.querySelectorAll('.upcoming-add-cart-btn');
+  upcomingAddBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const pid = btn.dataset.productId;
+      const size = btn.dataset.size || '500g';
+      const orig = btn.innerHTML;
+      btn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="margin-right:4px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg> Added!
+      `;
+      btn.classList.add('btn-added-state');
+
+      const isFirstItem = cart.length === 0;
+      addItemToCart(pid, size, 1, true);
+      openCart();
+
+      if (window.CartCelebration && productDatabase[pid]) {
+        window.CartCelebration.trigger(btn, productDatabase[pid], e, isFirstItem);
       }
-    }
-  };
 
-  if (mobileMeeshoBtn) mobileMeeshoBtn.addEventListener('click', openMeeshoSelector);
-  if (closeMeeshoSelectorBtn) closeMeeshoSelectorBtn.addEventListener('click', closeMeeshoSelector);
-  if (meeshoOverlay) meeshoOverlay.addEventListener('click', closeMeeshoSelector);
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.classList.remove('btn-added-state');
+      }, 1200);
+    });
+  });
 
-  // Close the selector drawer when any of its buttons is clicked
-  if (meeshoSelectorDrawer) {
-    const meeshoDrawerButtons = meeshoSelectorDrawer.querySelectorAll('.btn');
-    meeshoDrawerButtons.forEach(btn => btn.addEventListener('click', closeMeeshoSelector));
-  }
+  // Buy Now for Honeycomb Products
+  const upcomingBuyNowBtns = document.querySelectorAll('.upcoming-buy-now-btn');
+  upcomingBuyNowBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const pid = btn.dataset.productId;
+      const size = btn.dataset.size || '500g';
+      addItemToCart(pid, size, 1, false);
+      openCheckout();
+    });
+  });
 
   /* ==========================================================================
      Premium Interactions (Preloader, Parallax, Tilt, Counters)

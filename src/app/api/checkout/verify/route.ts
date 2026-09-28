@@ -7,24 +7,7 @@ import { validateDiscountOrReferralCode } from '@/lib/referral';
 import { isBangaloreDelivery } from '@/lib/location';
 import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
 
-const AUTHORITATIVE_PRICES: Record<string, { name: string; prices: Record<string, number> }> = {
-  p1: {
-    name: 'Pure Raw Honey',
-    prices: {
-      '250g': 250,
-      '500g': 399,
-      '1kg': 749,
-    },
-  },
-  p2: {
-    name: 'Dry Fruits Honey',
-    prices: {
-      '250g': 399,
-      '500g': 599,
-      '1kg': 999,
-    },
-  },
-};
+import { AUTHORITATIVE_PRICES } from '@/lib/products';
 
 const VALID_COUPONS: Record<string, { type: 'percent' | 'fixed'; value: number }> = {
   KAMADHENU10: { type: 'percent', value: 10 },

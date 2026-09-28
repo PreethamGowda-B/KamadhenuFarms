@@ -1291,7 +1291,7 @@ header nav {
   box-shadow: 0 6px 20px rgba(182, 133, 47, 0.35);
 }
 
-/* Side-by-side WhatsApp + Meesho row */
+/* Side-by-side Buy Now + Bulk Inquiry row */
 .product-actions-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1314,28 +1314,18 @@ header nav {
   flex-shrink: 0;
 }
 
-/* WhatsApp Outline Button */
-.product-actions-row .wa-order-single-trigger {
-  border: 1.5px solid rgba(39, 174, 96, 0.4);
-  color: #27ae60;
+/* Buy Now Button */
+.product-actions-row .buy-now-trigger {
+  background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+  color: #1c1a18;
+  font-weight: 700;
+  border: 1px solid var(--primary-gold);
 }
 
-.product-actions-row .wa-order-single-trigger:hover {
-  background: rgba(39, 174, 96, 0.08);
-  border-color: #27ae60;
+.product-actions-row .buy-now-trigger:hover {
+  background: linear-gradient(135deg, var(--dark-gold), var(--primary-gold));
   transform: translateY(-2px);
-}
-
-/* Meesho Outline Button */
-.product-actions-row .meesho-buy-trigger {
-  border: 1.5px solid rgba(216, 166, 79, 0.35);
-  color: var(--luxury-charcoal);
-}
-
-.product-actions-row .meesho-buy-trigger:hover {
-  background: rgba(216, 166, 79, 0.08);
-  border-color: var(--primary-gold);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(216, 166, 79, 0.35);
 }
 
 .btn-wa-order {
@@ -2958,13 +2948,15 @@ footer {
   background: #128C7E;
 }
 
-.mobile-bottom-bar .sticky-meesho-btn {
-  background: var(--luxury-charcoal);
-  color: #fff;
+.mobile-bottom-bar .sticky-cart-bottom-btn {
+  background: var(--primary-gold);
+  color: #1c1a18;
+  font-weight: 700;
+  border: none;
 }
 
-.mobile-bottom-bar .sticky-meesho-btn:hover {
-  background: #111;
+.mobile-bottom-bar .sticky-cart-bottom-btn:hover {
+  background: var(--dark-gold);
 }
 
 .mobile-bottom-bar .sticky-call-btn {
@@ -5117,8 +5109,7 @@ body.overflow-hidden {
 
   .cart-drawer,
   .checkout-modal,
-  .tracker-modal,
-  .meesho-selector-drawer {
+  .tracker-modal {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
