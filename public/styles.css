@@ -4330,9 +4330,120 @@ body:not(.loaded) {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  align-items: center;
+  gap: 14px;
   width: 100%;
+}
+
+/* Premium Honeycomb Action Button Grid */
+.upcoming-buttons-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.upcoming-buttons-group .btn {
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 50px;
+  font-size: 0.90rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.upcoming-buttons-group .btn svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+/* Ultra-Premium Gold Add to Cart Button */
+.upcoming-add-cart-btn {
+  background: linear-gradient(135deg, #F5CF7A 0%, #D8A64F 40%, #B8852F 100%) !important;
+  color: #14120C !important;
+  border: 1px solid rgba(255, 235, 175, 0.6) !important;
+  box-shadow: 0 4px 18px rgba(216, 166, 79, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.upcoming-add-cart-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: 0.75s ease;
+}
+
+.upcoming-add-cart-btn:hover::after {
+  left: 150%;
+}
+
+.upcoming-add-cart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(216, 166, 79, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  background: linear-gradient(135deg, #FFD98A 0%, #E2B059 40%, #C49139 100%) !important;
+}
+
+.upcoming-add-cart-btn:hover svg {
+  transform: scale(1.12);
+}
+
+.upcoming-add-cart-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(216, 166, 79, 0.3) !important;
+}
+
+/* Ultra-Premium Obsidian Black + Gold Rim Buy Now Button */
+.upcoming-buy-now-btn {
+  background: linear-gradient(135deg, rgba(28, 25, 19, 0.95) 0%, rgba(18, 16, 11, 0.98) 100%) !important;
+  color: #F0C36D !important;
+  border: 1.5px solid var(--primary-gold) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(216, 166, 79, 0.08) !important;
+}
+
+.upcoming-buy-now-btn:hover {
+  background: linear-gradient(135deg, rgba(216, 166, 79, 0.25) 0%, rgba(28, 25, 19, 0.98) 100%) !important;
+  border-color: #F5CF7A !important;
+  color: #FFF !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(216, 166, 79, 0.3), inset 0 0 15px rgba(216, 166, 79, 0.2) !important;
+}
+
+.upcoming-buy-now-btn:hover svg {
+  transform: translateX(3px);
+}
+
+.upcoming-buy-now-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Mobile Layout Preferences (< 480px) */
+@media (max-width: 480px) {
+  .upcoming-buttons-group {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .upcoming-buttons-group .btn {
+    height: 50px;
+    font-size: 0.95rem;
+  }
 }
 
 .btn-early-access {
@@ -5078,51 +5189,61 @@ body.overflow-hidden {
     animation: none !important;
   }
 
-  /* Defer rendering of offscreen sections to eliminate initial scroll stutter */
-  .purity,
-  .stats-showcase,
-  .upcoming-products,
-  .buy-choices,
-  .why-us,
-  .gallery,
-  .journey,
-  .benefits,
-  .testimonials,
-  footer {
-    content-visibility: auto;
-    contain-intrinsic-size: 500px;
-  }
-
-  /* Fast, non-blurry translucent backgrounds without expensive GPU backdrop-filter */
+  /* Fast, non-blurry translucent backgrounds without expensive GPU backdrop-filter on mobile */
   .cart-overlay,
-  .modal-overlay {
+  .modal-overlay,
+  .product-card,
+  .stat-item,
+  .purity-card,
+  .glass-card,
+  .hero-floating-card,
+  .upcoming-card,
+  .why-special-box,
+  .badge-luxury,
+  .mobile-bottom-bar,
+  .cart-drawer,
+  .checkout-modal,
+  .tracker-modal,
+  #cart-celebration-toast,
+  header.scrolled {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: rgba(22, 20, 16, 0.75) !important;
+  }
+
+  .cart-overlay,
+  .modal-overlay {
+    background: rgba(22, 20, 16, 0.78) !important;
   }
 
   .mobile-bottom-bar {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     background: #FFFFFF !important;
-  }
-
-  .cart-drawer,
-  .checkout-modal,
-  .tracker-modal {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08) !important;
   }
 
   #cart-celebration-toast {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
     background: rgba(20, 18, 14, 0.96) !important;
+  }
+
+  .upcoming-card {
+    background: rgba(20, 18, 12, 0.98) !important;
+    border: 1px solid rgba(216, 166, 79, 0.25) !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  /* Instant touch response — removes 300ms mobile tap delay */
+  button,
+  .btn,
+  a,
+  input,
+  select {
+    touch-action: manipulation;
   }
 
   /* Clean touch scrolling on iOS and Android */
   html, body {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
   }
 }
 

@@ -2108,7 +2108,7 @@ document.addEventListener('DOMContentLoaded', () => {
      High-Performance Unified Tilt & Dynamic Lighting (Cached Rect, Zero Layout Thrash)
      ========================================================================== */
   const addTiltAndLightingEffect = () => {
-    if (window.innerWidth < 768 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 992 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const cards = document.querySelectorAll('.product-card, .glass-card, .benefit-card');
     cards.forEach(card => {
       let ticking = false;
@@ -2187,8 +2187,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
 
-      // Auto-play gallery on desktop only
-      if (thumbBtns.length > 1 && window.innerWidth > 768) {
+      // Auto-play gallery on non-touch desktop only
+      if (thumbBtns.length > 1 && window.innerWidth > 992 && !('ontouchstart' in window) && navigator.maxTouchPoints === 0) {
         let currentIndex = 0;
         setInterval(() => {
           currentIndex = (currentIndex + 1) % thumbBtns.length;
@@ -2208,7 +2208,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const initUpcoming3DTilt = () => {
     const cards = document.querySelectorAll('.upcoming-card');
     if (!cards.length) return;
-    if (window.innerWidth < 768 || window.matchMedia('(max-width: 992px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 992 || window.matchMedia('(max-width: 992px)').matches || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const MAX_TILT  = 8;
     const MAX_SHIFT = 4;
