@@ -1458,11 +1458,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Pre-warmed Cashfree SDK singleton to eliminate initialization lag on click
+  let cachedCashfree = null;
+  const getCashfreeSDK = (mode = 'production') => {
+    if (typeof window.Cashfree === 'undefined') return null;
+    if (!cachedCashfree || cachedCashfree._mode !== mode) {
+      try {
+        cachedCashfree = window.Cashfree({ mode });
+        cachedCashfree._mode = mode;
+      } catch (e) {
+        console.warn('Cashfree pre-init warning:', e);
+      }
+    }
+    return cachedCashfree;
+  };
+
   const openCheckout = () => {
     closeCart(); // Close drawer
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
     showCheckoutError(null);
+    getCashfreeSDK('production'); // Warm up Cashfree SDK in advance
     if (currentCustomer && currentCustomer.savedAddresses) {
       renderSavedAddresses(currentCustomer.savedAddresses);
     }
@@ -1621,22 +1637,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // If shipping not yet calculated, calculate now before proceeding
-      if (!isShippingCalculated) {
-        checkoutSubmitBtn.disabled = true;
-        if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Calculating delivery rate...';
-        await calculateShippingRate(cleanPin);
-        checkoutSubmitBtn.disabled = false;
-        if (!isShippingCalculated) {
-          isCheckoutSubmitting = false;
-          showCheckoutError('Unable to calculate shipping for pincode ' + cleanPin + '. Please check if delivery is available.');
-          renderCheckoutSummary();
-          return;
-        }
-      }
-
-      // Verify Cashfree SDK is loaded
-      if (typeof window.Cashfree === 'undefined') {
+      // Verify Cashfree SDK is loaded or accessible
+      const cashfreeSdkInstance = getCashfreeSDK('production') || (typeof window.Cashfree !== 'undefined' ? window.Cashfree({ mode: 'production' }) : null);
+      if (!cashfreeSdkInstance && typeof window.Cashfree === 'undefined') {
         isCheckoutSubmitting = false;
         showCheckoutError('Cashfree payment SDK could not be loaded. Please check your internet connection and refresh.');
         return;
@@ -1644,7 +1647,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       checkoutSubmitBtn.disabled = true;
       if (checkoutSubmitBtnText) {
-        checkoutSubmitBtnText.textContent = paymentMethod === 'cod' ? 'Securing 50% advance...' : 'Initializing payment...';
+        checkoutSubmitBtnText.textContent = paymentMethod === 'cod' ? 'Securing 50% advance...' : 'Opening Cashfree...';
       }
 
       try {
@@ -1677,7 +1680,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const mode = createData.environment === 'production' ? 'production' : 'sandbox';
-        const cashfree = window.Cashfree({ mode });
+        const cashfree = getCashfreeSDK(mode) || window.Cashfree({ mode });
 
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,

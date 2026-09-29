@@ -67,7 +67,6 @@ export async function POST(req: NextRequest) {
 
     // 3. Verify Payment Status directly with Cashfree Official APIs
     const targetOrderId = order.cashfreeOrderId || order.orderNumber;
-    const cfOrder = await getCashfreeOrder(targetOrderId);
     const cfPayments = await getCashfreeOrderPayments(targetOrderId);
 
     // Find any successful payment attempt

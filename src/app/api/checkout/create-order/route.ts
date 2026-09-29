@@ -170,86 +170,6 @@ export async function POST(req: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCustomerName = name.trim();
 
-    let customer = await prisma.customer.findFirst({
-      where: {
-        OR: [
-          { mobile: cleanMobile },
-          { email: cleanEmail },
-        ],
-      },
-    });
-
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: {
-          name: cleanCustomerName,
-          mobile: cleanMobile,
-          email: cleanEmail,
-        },
-      });
-    } else {
-      customer = await prisma.customer.update({
-        where: { id: customer.id },
-        data: { name: cleanCustomerName },
-      });
-    }
-
-    const address = await prisma.address.create({
-      data: {
-        customerId: customer.id,
-        recipientName: cleanCustomerName,
-        mobileNumber: cleanMobile,
-        addressLine1: addressLine1.trim(),
-        addressLine2: addressLine2?.trim() || null,
-        area: area?.trim() || '',
-        city: city.trim(),
-        state: state.trim(),
-        pincode: cleanPincode,
-        landmark: landmark?.trim() || null,
-      },
-    });
-
-    // 7. Persist Pending Order in Database
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        customerId: customer.id,
-        shippingAddressId: address.id,
-        subtotal,
-        shippingFee,
-        discount,
-        total: finalTotal,
-        currency: 'INR',
-        paymentMethod: isCod ? 'COD' : 'CASHFREE',
-        paymentStatus: isCod ? 'COD_ADVANCE_PENDING' : 'PAYMENT_PENDING',
-        orderStatus: 'NEW',
-        advanceAmount: isCod ? advanceAmount : 0,
-        advancePaidAmount: 0,
-        codRemainingAmount: isCod ? codRemainingAmount : 0,
-        referralCode: validatedCode,
-        notes: landmark ? `Landmark: ${landmark}` : null,
-        items: {
-          create: validatedItems.map((it) => ({
-            productId: it.productId,
-            productNameSnapshot: it.productNameSnapshot,
-            weightVariant: it.weightVariant,
-            quantity: it.quantity,
-            unitPrice: it.unitPrice,
-            totalPrice: it.totalPrice,
-            weightKg: it.weightKg,
-          })),
-        },
-        shipments: {
-          create: {
-            courierProvider: shippingResult.courierName || 'Standard Courier',
-            shippingFee,
-            status: 'PENDING',
-          },
-        },
-      },
-    });
-
-    // 8. Create Cashfree Order
     const appBaseUrl = (
       process.env.NEXT_PUBLIC_APP_URL ||
       'https://kamadhenuhoneyfarms.in'
@@ -258,30 +178,105 @@ export async function POST(req: NextRequest) {
     const returnUrl = `${appBaseUrl}/order-confirmation?order_id={order_id}`;
     const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;
 
-    const cashfreeOrder = await createCashfreeOrder({
-      orderId: orderNumber,
-      orderAmount: advanceAmount, // Full payment for online, or 50% advance for COD
-      orderCurrency: 'INR',
-      customer: {
-        customer_id: customer.id,
-        customer_name: cleanCustomerName,
-        customer_email: cleanEmail,
-        customer_phone: cleanMobile,
-      },
-      returnUrl,
-      notifyUrl,
-      orderNote: isCod
-        ? `50% COD Advance for Kamadhenu Honey Farms Order ${orderNumber}`
-        : `Kamadhenu Honey Farms Pure Honey Order ${orderNumber}`,
-    });
+    // 6 & 7 & 8: High-Speed Concurrency: Fire Cashfree Session creation & Database Persistence in Parallel
+    const [cashfreeOrder, order] = await Promise.all([
+      createCashfreeOrder({
+        orderId: orderNumber,
+        orderAmount: advanceAmount, // Full payment for online, or 50% advance for COD
+        orderCurrency: 'INR',
+        customer: {
+          customer_id: `cust_${cleanMobile}`,
+          customer_name: cleanCustomerName,
+          customer_email: cleanEmail,
+          customer_phone: cleanMobile,
+        },
+        returnUrl,
+        notifyUrl,
+        orderNote: isCod
+          ? `50% COD Advance for Kamadhenu Honey Farms Order ${orderNumber}`
+          : `Kamadhenu Honey Farms Pure Honey Order ${orderNumber}`,
+      }),
+      (async () => {
+        let customer = await prisma.customer.findFirst({
+          where: {
+            OR: [
+              { mobile: cleanMobile },
+              { email: cleanEmail },
+            ],
+          },
+        });
 
-    // Link Cashfree Order ID to our Order
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        cashfreeOrderId: cashfreeOrder.order_id,
-      },
-    });
+        if (!customer) {
+          customer = await prisma.customer.create({
+            data: {
+              name: cleanCustomerName,
+              mobile: cleanMobile,
+              email: cleanEmail,
+            },
+          });
+        } else {
+          customer = await prisma.customer.update({
+            where: { id: customer.id },
+            data: { name: cleanCustomerName },
+          });
+        }
+
+        const address = await prisma.address.create({
+          data: {
+            customerId: customer.id,
+            recipientName: cleanCustomerName,
+            mobileNumber: cleanMobile,
+            addressLine1: addressLine1.trim(),
+            addressLine2: addressLine2?.trim() || null,
+            area: area?.trim() || '',
+            city: city.trim(),
+            state: state.trim(),
+            pincode: cleanPincode,
+            landmark: landmark?.trim() || null,
+          },
+        });
+
+        return prisma.order.create({
+          data: {
+            orderNumber,
+            cashfreeOrderId: orderNumber, // Pre-bound without second roundtrip
+            customerId: customer.id,
+            shippingAddressId: address.id,
+            subtotal,
+            shippingFee,
+            discount,
+            total: finalTotal,
+            currency: 'INR',
+            paymentMethod: isCod ? 'COD' : 'CASHFREE',
+            paymentStatus: isCod ? 'COD_ADVANCE_PENDING' : 'PAYMENT_PENDING',
+            orderStatus: 'NEW',
+            advanceAmount: isCod ? advanceAmount : 0,
+            advancePaidAmount: 0,
+            codRemainingAmount: isCod ? codRemainingAmount : 0,
+            referralCode: validatedCode,
+            notes: landmark ? `Landmark: ${landmark}` : null,
+            items: {
+              create: validatedItems.map((it) => ({
+                productId: it.productId,
+                productNameSnapshot: it.productNameSnapshot,
+                weightVariant: it.weightVariant,
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+                totalPrice: it.totalPrice,
+                weightKg: it.weightKg,
+              })),
+            },
+            shipments: {
+              create: {
+                courierProvider: shippingResult.courierName || 'Standard Courier',
+                shippingFee,
+                status: 'PENDING',
+              },
+            },
+          },
+        });
+      })(),
+    ]);
 
     const cashfreeConfig = getCashfreeConfig();
 
