@@ -1299,13 +1299,17 @@ header nav {
 }
 
 .product-actions-row .btn {
-  padding: 8px 10px;
-  font-size: 0.75rem;
+  padding: 10px 12px;
+  font-size: 0.76rem;
   font-weight: 700;
   border-radius: 50px;
   gap: 6px;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .product-actions-row .btn svg {
@@ -1320,12 +1324,37 @@ header nav {
   color: #1c1a18;
   font-weight: 700;
   border: 1px solid var(--primary-gold);
+  box-shadow: 0 2px 8px rgba(216, 166, 79, 0.25);
 }
 
 .product-actions-row .buy-now-trigger:hover {
   background: linear-gradient(135deg, var(--dark-gold), var(--primary-gold));
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(216, 166, 79, 0.35);
+  box-shadow: 0 4px 15px rgba(216, 166, 79, 0.4);
+}
+
+/* Bulk Inquiry Button */
+.product-actions-row .wa-bulk-order-trigger {
+  background: #1c1a18;
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid rgba(216, 166, 79, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.product-actions-row .wa-bulk-order-trigger svg {
+  color: #25D366;
+  fill: currentColor;
+  width: 15px;
+  height: 15px;
+}
+
+.product-actions-row .wa-bulk-order-trigger:hover {
+  background: #2b2520;
+  color: var(--primary-gold);
+  border-color: var(--primary-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(28, 26, 24, 0.35);
 }
 
 .btn-wa-order {
