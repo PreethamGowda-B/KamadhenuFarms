@@ -5746,6 +5746,179 @@ body.overflow-hidden {
   display: inline !important;
 }
 
+/* ==========================================================================
+   Premium Running Announcement Banner (New Arrivals Marquee)
+   ========================================================================== */
+.announcement-marquee-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 62px;
+  margin: 32px 0 24px 0;
+  background: linear-gradient(90deg, #FAF6EE 0%, #FFFDF9 50%, #FAF6EE 100%);
+  border: 1px solid rgba(216, 166, 79, 0.35);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(182, 133, 47, 0.08);
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+/* Subtle edge gradients for smooth fade in/out */
+.announcement-marquee-wrapper::before,
+.announcement-marquee-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.announcement-marquee-wrapper::before {
+  left: 0;
+  background: linear-gradient(to right, rgba(250, 246, 238, 0.95), transparent);
+}
+
+.announcement-marquee-wrapper::after {
+  right: 0;
+  background: linear-gradient(to left, rgba(250, 246, 238, 0.95), transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  align-items: center;
+}
+
+.marquee-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  animation: announcementMarqueeScroll 30s linear infinite;
+  will-change: transform;
+}
+
+.announcement-marquee-wrapper:hover .marquee-group {
+  animation-play-state: paused;
+}
+
+.marquee-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.marquee-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(216, 166, 79, 0.35));
+}
+
+.marquee-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(216, 166, 79, 0.14);
+  color: #8C6219;
+  border: 1px solid rgba(216, 166, 79, 0.4);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.marquee-badge.highlight {
+  background: linear-gradient(135deg, #F5CF7A 0%, #D8A64F 100%);
+  color: #14120C;
+  border-color: #D8A64F;
+  box-shadow: 0 2px 8px rgba(216, 166, 79, 0.3);
+}
+
+.marquee-item {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #3A2A18;
+  letter-spacing: 0.2px;
+}
+
+.marquee-dot {
+  color: #D8A64F;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.marquee-brand {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #8C6219;
+  letter-spacing: 0.5px;
+}
+
+@keyframes announcementMarqueeScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Mobile responsive sizing */
+@media (max-width: 768px) {
+  .announcement-marquee-wrapper {
+    height: 52px;
+    margin: 24px 0 20px 0;
+    border-radius: 10px;
+  }
+  .announcement-marquee-wrapper::before,
+  .announcement-marquee-wrapper::after {
+    width: 28px;
+  }
+  .marquee-segment {
+    gap: 9px;
+    padding: 0 10px;
+  }
+  .marquee-icon {
+    font-size: 1rem;
+  }
+  .marquee-badge {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+  .marquee-item,
+  .marquee-brand {
+    font-size: 0.78rem;
+  }
+  .marquee-dot {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .announcement-marquee-wrapper {
+    height: 48px;
+  }
+  .marquee-segment {
+    gap: 7px;
+    padding: 0 8px;
+  }
+  .marquee-item,
+  .marquee-brand {
+    font-size: 0.74rem;
+  }
+}
+
 
 
 

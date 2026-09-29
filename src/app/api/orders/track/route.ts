@@ -9,22 +9,24 @@ export async function GET(req: NextRequest) {
     const orderNumber = searchParams.get('orderNumber')?.trim().toUpperCase();
     const mobile = searchParams.get('mobile')?.trim().replace(/\D/g, '');
 
-    if (!orderNumber || !mobile) {
+    if (!orderNumber) {
       return NextResponse.json(
-        { success: false, message: 'Please provide both Order Number and Mobile Number' },
+        { success: false, message: 'Please provide Order Number' },
         { status: 400 }
       );
     }
 
-    const order = await prisma.order.findFirst({
-      where: {
-        orderNumber,
-        customer: {
-          mobile: {
-            endsWith: mobile.slice(-10),
-          },
+    const whereClause: any = { orderNumber };
+    if (mobile && mobile.length >= 10) {
+      whereClause.customer = {
+        mobile: {
+          endsWith: mobile.slice(-10),
         },
-      },
+      };
+    }
+
+    const order = await prisma.order.findFirst({
+      where: whereClause,
       include: {
         customer: {
           select: { name: true },

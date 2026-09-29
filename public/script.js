@@ -1780,40 +1780,82 @@ document.addEventListener('DOMContentLoaded', () => {
   const trackerResults = document.getElementById('trackerResults');
 
   if (trackerSubmitBtn) {
-    trackerSubmitBtn.addEventListener('click', () => {
+    trackerSubmitBtn.addEventListener('click', async () => {
       const orderId = trackerInput.value.trim().toUpperCase();
       trackerResults.classList.remove('active');
 
       if (!orderId) {
-        alert('Please enter an Order ID to search.');
+        alert('Please enter your Order ID to track.');
         return;
       }
 
-      const orderData = trackingDatabase[orderId];
-      if (!orderData) {
-        alert(`Order ID "${orderId}" not found. Try testing with order ID: "KM-1029" or "KM-4829".`);
-        return;
-      }
+      trackerSubmitBtn.disabled = true;
+      trackerSubmitBtn.textContent = 'Searching...';
 
-      // Populate Visual tracker
-      document.getElementById('trackIdDisplay').textContent = orderId;
-      document.getElementById('trackDateDisplay').textContent = orderData.date;
-      
-      const steps = ['received', 'packed', 'shipped', 'out-for-delivery'];
-      steps.forEach(step => {
-        const stepEl = document.getElementById(`track-step-${step}`);
-        if (!stepEl) return;
+      try {
+        let orderData = trackingDatabase[orderId];
+        let foundDate = orderData ? orderData.date : 'Today';
+        let foundStatus = orderData ? orderData.status : 'received';
+        let foundSteps = orderData ? orderData.steps : ['received'];
+
+        if (!orderData) {
+          // Query live API for database orders
+          try {
+            const res = await fetch(`/api/orders/track?orderNumber=${encodeURIComponent(orderId)}`);
+            const json = await res.json();
+            if (json.success && json.order) {
+              const o = json.order;
+              foundDate = new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+              const shipmentStatus = o.shipments && o.shipments[0] ? o.shipments[0].status : o.orderStatus;
+              
+              if (shipmentStatus === 'DELIVERED') {
+                foundStatus = 'out-for-delivery';
+                foundSteps = ['received', 'packed', 'shipped', 'out-for-delivery'];
+              } else if (shipmentStatus === 'SHIPPED') {
+                foundStatus = 'shipped';
+                foundSteps = ['received', 'packed', 'shipped'];
+              } else if (shipmentStatus === 'PROCESSING' || shipmentStatus === 'CONFIRMED') {
+                foundStatus = 'packed';
+                foundSteps = ['received', 'packed'];
+              } else {
+                foundStatus = 'received';
+                foundSteps = ['received'];
+              }
+              orderData = { steps: foundSteps, status: foundStatus, date: foundDate };
+            }
+          } catch (e) {
+            console.warn('Live tracking API check error:', e);
+          }
+        }
+
+        if (!orderData) {
+          alert(`Order ID "${orderId}" not found in our database. Please double-check your Order Number or connect with WhatsApp support at +91 9980114675.`);
+          return;
+        }
+
+        // Populate Visual tracker
+        document.getElementById('trackIdDisplay').textContent = orderId;
+        document.getElementById('trackDateDisplay').textContent = foundDate;
         
-        stepEl.className = 'tracker-status-step';
-        if (orderData.steps.includes(step)) {
-          stepEl.classList.add('completed');
-        }
-        if (orderData.status === step) {
-          stepEl.classList.add('active');
-        }
-      });
+        const steps = ['received', 'packed', 'shipped', 'out-for-delivery'];
+        steps.forEach(step => {
+          const stepEl = document.getElementById(`track-step-${step}`);
+          if (!stepEl) return;
+          
+          stepEl.className = 'tracker-status-step';
+          if (foundSteps.includes(step)) {
+            stepEl.classList.add('completed');
+          }
+          if (foundStatus === step) {
+            stepEl.classList.add('active');
+          }
+        });
 
-      trackerResults.classList.add('active');
+        trackerResults.classList.add('active');
+      } finally {
+        trackerSubmitBtn.disabled = false;
+        trackerSubmitBtn.textContent = 'Track';
+      }
     });
   }
 
@@ -2188,6 +2230,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (thumbBtns.length > 1 && window.innerWidth > 992 && !('ontouchstart' in window) && navigator.maxTouchPoints === 0) {
         let currentIndex = 0;
         setInterval(() => {
+          if (!navigator.onLine) return; // Skip image switch when offline or disconnected
           currentIndex = (currentIndex + 1) % thumbBtns.length;
           switchImage(currentIndex);
         }, 6000);
