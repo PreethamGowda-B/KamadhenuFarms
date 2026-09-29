@@ -21,22 +21,136 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Find Order in Database
-    const order = await prisma.order.findFirst({
-      where: {
-        OR: [
-          { orderNumber: lookupKey },
-          { cashfreeOrderId: lookupKey },
-          { id: lookupKey },
-        ],
-      },
-      include: {
-        customer: true,
-        shippingAddress: true,
-        items: true,
-        payments: true,
-      },
-    });
+    // 1. Find Order in Database with retry loop (for replica sync or slight DB pool delay)
+    let order: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      order = await prisma.order.findFirst({
+        where: {
+          OR: [
+            { orderNumber: lookupKey },
+            { cashfreeOrderId: lookupKey },
+            { id: lookupKey },
+          ],
+        },
+        include: {
+          customer: true,
+          shippingAddress: true,
+          items: true,
+          payments: true,
+        },
+      });
+      if (order) break;
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+    }
+
+    // Direct Cashfree Self-Healing Fallback:
+    // If order was somehow not in DB, but customer paid on Cashfree, reconcile and heal immediately!
+    if (!order) {
+      try {
+        const cfOrder = await getCashfreeOrder(lookupKey);
+        const cfPayments = await getCashfreeOrderPayments(lookupKey);
+        const successfulPayment = cfPayments.find((p) => p.payment_status === 'SUCCESS');
+
+        if (successfulPayment || cfOrder.order_status === 'PAID') {
+          const cfOrderAny = cfOrder as any;
+          const cleanPhone = (cfOrderAny.customer_details?.customer_phone || '').replace(/\D/g, '').slice(-10) || '0000000000';
+          const cleanEmail = (cfOrderAny.customer_details?.customer_email || 'customer@kamadhenuhoneyfarms.in').trim().toLowerCase();
+          const cleanName = cfOrderAny.customer_details?.customer_name || 'Valued Customer';
+          const isCodAdvance = (cfOrderAny.order_note || '').toLowerCase().includes('50% cod');
+          const paidAmount = successfulPayment ? successfulPayment.payment_amount : cfOrder.order_amount;
+          const orderTotal = isCodAdvance ? (paidAmount * 2) : paidAmount;
+
+          let customer = await prisma.customer.findFirst({
+            where: { OR: [{ mobile: cleanPhone }, { email: cleanEmail }] },
+          });
+          if (!customer) {
+            customer = await prisma.customer.create({
+              data: { name: cleanName, mobile: cleanPhone, email: cleanEmail },
+            });
+          }
+
+          let address = await prisma.address.findFirst({
+            where: { customerId: customer.id },
+          });
+          if (!address) {
+            address = await prisma.address.create({
+              data: {
+                customerId: customer.id,
+                recipientName: cleanName,
+                mobileNumber: cleanPhone,
+                addressLine1: 'Address provided during checkout',
+                area: 'Bangalore',
+                city: 'Bangalore',
+                state: 'Karnataka',
+                pincode: '560001',
+              },
+            });
+          }
+
+          order = await prisma.order.create({
+            data: {
+              orderNumber: lookupKey,
+              cashfreeOrderId: lookupKey,
+              customerId: customer.id,
+              shippingAddressId: address.id,
+              subtotal: orderTotal,
+              shippingFee: 0,
+              discount: 0,
+              total: orderTotal,
+              currency: 'INR',
+              paymentMethod: isCodAdvance ? 'COD' : 'CASHFREE',
+              paymentStatus: isCodAdvance ? 'COD_ADVANCE_PAID' : 'PAID',
+              orderStatus: 'CONFIRMED',
+              cashfreePaymentId: successfulPayment ? String(successfulPayment.cf_payment_id) : null,
+              advanceAmount: isCodAdvance ? paidAmount : orderTotal,
+              advancePaidAmount: paidAmount,
+              codRemainingAmount: isCodAdvance ? paidAmount : 0,
+              items: {
+                create: [{
+                  productId: 'honey_order',
+                  productNameSnapshot: 'Kamadhenu Pure Raw Honey',
+                  weightVariant: 'Standard',
+                  quantity: 1,
+                  unitPrice: orderTotal,
+                  totalPrice: orderTotal,
+                  weightKg: 0.5,
+                }],
+              },
+              payments: successfulPayment ? {
+                create: [{
+                  provider: 'CASHFREE',
+                  cashfreeOrderId: lookupKey,
+                  cashfreePaymentId: String(successfulPayment.cf_payment_id),
+                  amount: successfulPayment.payment_amount,
+                  currency: successfulPayment.payment_currency || 'INR',
+                  paymentMethod: isCodAdvance ? 'COD_ADVANCE' : 'ONLINE',
+                  status: 'PAID',
+                  paidAt: successfulPayment.payment_completion_time ? new Date(successfulPayment.payment_completion_time) : new Date(),
+                  rawResponse: JSON.stringify(successfulPayment),
+                }],
+              } : undefined,
+              shipments: {
+                create: [{
+                  courierProvider: 'Standard Courier',
+                  shippingFee: 0,
+                  status: 'PENDING',
+                }],
+              },
+            },
+            include: {
+              customer: true,
+              shippingAddress: true,
+              items: true,
+              payments: true,
+            },
+          });
+        }
+      } catch (cfFallbackErr) {
+        console.error('Direct Cashfree fallback lookup failed:', cfFallbackErr);
+      }
+    }
 
     if (!order) {
       return NextResponse.json(

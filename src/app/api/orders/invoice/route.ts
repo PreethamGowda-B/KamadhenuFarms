@@ -15,8 +15,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const order = await prisma.order.findUnique({
-      where: { orderNumber },
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [
+          { orderNumber },
+          { cashfreeOrderId: orderNumber },
+          { id: orderNumber },
+        ],
+      },
       include: {
         customer: true,
         shippingAddress: true,

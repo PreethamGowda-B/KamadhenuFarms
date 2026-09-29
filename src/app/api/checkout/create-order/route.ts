@@ -178,93 +178,87 @@ export async function POST(req: NextRequest) {
     const returnUrl = `${appBaseUrl}/order-confirmation?order_id={order_id}`;
     const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;
 
-    // 6 & 7: Start Database Persistence Task
+    // 6, 7 & 8: Concurrently create database record AND Cashfree order session
     const dbPromise = (async () => {
-      try {
-        let customer = await prisma.customer.findFirst({
-          where: {
-            OR: [
-              { mobile: cleanMobile },
-              { email: cleanEmail },
-            ],
+      let customer = await prisma.customer.findFirst({
+        where: {
+          OR: [
+            { mobile: cleanMobile },
+            { email: cleanEmail },
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (!customer) {
+        customer = await prisma.customer.create({
+          data: {
+            name: cleanCustomerName,
+            mobile: cleanMobile,
+            email: cleanEmail,
           },
           select: { id: true },
         });
-
-        if (!customer) {
-          customer = await prisma.customer.create({
-            data: {
-              name: cleanCustomerName,
-              mobile: cleanMobile,
-              email: cleanEmail,
-            },
-            select: { id: true },
-          });
-        }
-
-        const address = await prisma.address.create({
-          data: {
-            customerId: customer.id,
-            recipientName: cleanCustomerName,
-            mobileNumber: cleanMobile,
-            addressLine1: addressLine1.trim(),
-            addressLine2: addressLine2?.trim() || null,
-            area: area?.trim() || '',
-            city: city.trim(),
-            state: state.trim(),
-            pincode: cleanPincode,
-            landmark: landmark?.trim() || null,
-          },
-          select: { id: true },
-        });
-
-        return await prisma.order.create({
-          data: {
-            orderNumber,
-            cashfreeOrderId: orderNumber, // Pre-bound without second roundtrip
-            customerId: customer.id,
-            shippingAddressId: address.id,
-            subtotal,
-            shippingFee,
-            discount,
-            total: finalTotal,
-            currency: 'INR',
-            paymentMethod: isCod ? 'COD' : 'CASHFREE',
-            paymentStatus: isCod ? 'COD_ADVANCE_PENDING' : 'PAYMENT_PENDING',
-            orderStatus: 'NEW',
-            advanceAmount: isCod ? advanceAmount : 0,
-            advancePaidAmount: 0,
-            codRemainingAmount: isCod ? codRemainingAmount : 0,
-            referralCode: validatedCode,
-            notes: landmark ? `Landmark: ${landmark}` : null,
-            items: {
-              create: validatedItems.map((it) => ({
-                productId: it.productId,
-                productNameSnapshot: it.productNameSnapshot,
-                weightVariant: it.weightVariant,
-                quantity: it.quantity,
-                unitPrice: it.unitPrice,
-                totalPrice: it.totalPrice,
-                weightKg: it.weightKg,
-              })),
-            },
-            shipments: {
-              create: {
-                courierProvider: shippingResult.courierName || 'Standard Courier',
-                shippingFee,
-                status: 'PENDING',
-              },
-            },
-          },
-        });
-      } catch (dbErr) {
-        console.error('Database order persistence background error:', dbErr);
-        return null;
       }
+
+      const address = await prisma.address.create({
+        data: {
+          customerId: customer.id,
+          recipientName: cleanCustomerName,
+          mobileNumber: cleanMobile,
+          addressLine1: addressLine1.trim(),
+          addressLine2: addressLine2?.trim() || null,
+          area: area?.trim() || '',
+          city: city.trim(),
+          state: state.trim(),
+          pincode: cleanPincode,
+          landmark: landmark?.trim() || null,
+        },
+        select: { id: true },
+      });
+
+      return await prisma.order.create({
+        data: {
+          orderNumber,
+          cashfreeOrderId: orderNumber, // Pre-bound without second roundtrip
+          customerId: customer.id,
+          shippingAddressId: address.id,
+          subtotal,
+          shippingFee,
+          discount,
+          total: finalTotal,
+          currency: 'INR',
+          paymentMethod: isCod ? 'COD' : 'CASHFREE',
+          paymentStatus: isCod ? 'COD_ADVANCE_PENDING' : 'PAYMENT_PENDING',
+          orderStatus: 'NEW',
+          advanceAmount: isCod ? advanceAmount : 0,
+          advancePaidAmount: 0,
+          codRemainingAmount: isCod ? codRemainingAmount : 0,
+          referralCode: validatedCode,
+          notes: landmark ? `Landmark: ${landmark}` : null,
+          items: {
+            create: validatedItems.map((it) => ({
+              productId: it.productId,
+              productNameSnapshot: it.productNameSnapshot,
+              weightVariant: it.weightVariant,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+              totalPrice: it.totalPrice,
+              weightKg: it.weightKg,
+            })),
+          },
+          shipments: {
+            create: {
+              courierProvider: shippingResult.courierName || 'Standard Courier',
+              shippingFee,
+              status: 'PENDING',
+            },
+          },
+        },
+      });
     })();
 
-    // 8: Create Cashfree Order Session (Direct API responds in ~320ms)
-    const cashfreeOrder = await createCashfreeOrder({
+    const cashfreePromise = createCashfreeOrder({
       orderId: orderNumber,
       orderAmount: advanceAmount, // Full payment for online, or 50% advance for COD
       orderCurrency: 'INR',
@@ -281,10 +275,11 @@ export async function POST(req: NextRequest) {
         : `Kamadhenu Honey Farms Pure Honey Order ${orderNumber}`,
     });
 
-    // Gracefully await DB up to 600ms if fast; otherwise return immediately so Cashfree opens in 1 second
-    const dbOrder = await Promise.race([
+    // Concurrently await BOTH database order creation and Cashfree order session
+    // This guarantees the database record is 100% committed before checkout opens.
+    const [dbOrder, cashfreeOrder] = await Promise.all([
       dbPromise,
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), 600)),
+      cashfreePromise,
     ]);
 
     const cashfreeConfig = getCashfreeConfig();
@@ -293,7 +288,7 @@ export async function POST(req: NextRequest) {
       success: true,
       paymentSessionId: cashfreeOrder.payment_session_id,
       orderNumber,
-      orderId: dbOrder ? dbOrder.id : orderNumber,
+      orderId: dbOrder.id,
       cashfreeOrderId: cashfreeOrder.order_id,
       environment: cashfreeConfig.env,
       amount: advanceAmount,

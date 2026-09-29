@@ -112,11 +112,22 @@ function ConfirmationContent() {
       }
 
       try {
-        const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
-        const data = await res.json();
-        if (isMounted) {
+        let attempts = 0;
+        let invoiceData = null;
+        while (attempts < 3) {
+          attempts++;
+          const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
+          const data = await res.json();
           if (data.success && data.order) {
-            setOrder(data.order);
+            invoiceData = data.order;
+            break;
+          }
+          if (attempts < 3) await new Promise((r) => setTimeout(r, 800));
+        }
+
+        if (isMounted) {
+          if (invoiceData) {
+            setOrder(invoiceData);
           }
           setLoading(false);
         }

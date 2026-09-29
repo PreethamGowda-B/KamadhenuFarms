@@ -1859,31 +1859,71 @@ document.addEventListener('DOMContentLoaded', () => {
           if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
 
           try {
-            const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderNumber: createData.orderNumber,
-                orderId: createData.orderId,
-                cashfreeOrderId: createData.cashfreeOrderId
-              })
-            }, 20000);
+            let verifyData = null;
+            let verifySuccess = false;
 
-            const verifyData = await verifyRes.json();
-            if (verifyData.success) {
+            // Retry verification up to 3 times to handle network/replication latency
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              try {
+                if (checkoutSubmitBtnText) {
+                  checkoutSubmitBtnText.textContent = attempt === 1
+                    ? 'Verifying payment with bank...'
+                    : `Confirming payment (attempt ${attempt}/3)...`;
+                }
+
+                const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderNumber: createData.orderNumber,
+                    orderId: createData.orderId,
+                    cashfreeOrderId: createData.cashfreeOrderId
+                  })
+                }, 15000);
+
+                const data = await verifyRes.json();
+                if (data.success || data.pending) {
+                  verifyData = data;
+                  verifySuccess = true;
+                  break;
+                } else if (attempt < 3 && (verifyRes.status === 404 || verifyRes.status === 202)) {
+                  await new Promise(r => setTimeout(r, 1000));
+                } else {
+                  verifyData = data;
+                  break;
+                }
+              } catch (retryErr) {
+                if (attempt < 3) {
+                  await new Promise(r => setTimeout(r, 1000));
+                } else {
+                  throw retryErr;
+                }
+              }
+            }
+
+            if (verifySuccess && verifyData) {
               cart = [];
               saveCart();
               currentCoupon = null;
               closeCheckout();
-              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(verifyData.orderNumber)}`;
-            } else if (verifyData.pending) {
-              cart = [];
-              saveCart();
-              closeCheckout();
-              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
-            } else {
-              throw new Error(verifyData.message || 'Payment verification failed');
+              const targetOrder = verifyData.orderNumber || createData.orderNumber;
+              const statusQuery = verifyData.pending ? '&status=pending' : '';
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}${statusQuery}`;
+              return;
             }
+
+            // If verify reported explicit failure (e.g. card declined / cancelled)
+            if (verifyData && verifyData.failed) {
+              throw new Error(verifyData.message || 'Payment was declined or cancelled. Please try again.');
+            }
+
+            // Fallback: If payment modal completed without cancellation, proceed to confirmation page where server verification re-runs
+            cart = [];
+            saveCart();
+            currentCoupon = null;
+            closeCheckout();
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}`;
+            return;
           } catch (vErr) {
             console.error('Payment verification error:', vErr);
             showCheckoutError(vErr.message || `Payment completed on Cashfree but verification timed out. If money was deducted, your order will be confirmed shortly.`);
