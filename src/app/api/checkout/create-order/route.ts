@@ -178,25 +178,9 @@ export async function POST(req: NextRequest) {
     const returnUrl = `${appBaseUrl}/order-confirmation?order_id={order_id}`;
     const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;
 
-    // 6 & 7 & 8: High-Speed Concurrency: Fire Cashfree Session creation & Database Persistence in Parallel
-    const [cashfreeOrder, order] = await Promise.all([
-      createCashfreeOrder({
-        orderId: orderNumber,
-        orderAmount: advanceAmount, // Full payment for online, or 50% advance for COD
-        orderCurrency: 'INR',
-        customer: {
-          customer_id: `cust_${cleanMobile}`,
-          customer_name: cleanCustomerName,
-          customer_email: cleanEmail,
-          customer_phone: cleanMobile,
-        },
-        returnUrl,
-        notifyUrl,
-        orderNote: isCod
-          ? `50% COD Advance for Kamadhenu Honey Farms Order ${orderNumber}`
-          : `Kamadhenu Honey Farms Pure Honey Order ${orderNumber}`,
-      }),
-      (async () => {
+    // 6 & 7: Start Database Persistence Task
+    const dbPromise = (async () => {
+      try {
         let customer = await prisma.customer.findFirst({
           where: {
             OR: [
@@ -234,7 +218,7 @@ export async function POST(req: NextRequest) {
           select: { id: true },
         });
 
-        return prisma.order.create({
+        return await prisma.order.create({
           data: {
             orderNumber,
             cashfreeOrderId: orderNumber, // Pre-bound without second roundtrip
@@ -273,7 +257,34 @@ export async function POST(req: NextRequest) {
             },
           },
         });
-      })(),
+      } catch (dbErr) {
+        console.error('Database order persistence background error:', dbErr);
+        return null;
+      }
+    })();
+
+    // 8: Create Cashfree Order Session (Direct API responds in ~320ms)
+    const cashfreeOrder = await createCashfreeOrder({
+      orderId: orderNumber,
+      orderAmount: advanceAmount, // Full payment for online, or 50% advance for COD
+      orderCurrency: 'INR',
+      customer: {
+        customer_id: `cust_${cleanMobile}`,
+        customer_name: cleanCustomerName,
+        customer_email: cleanEmail,
+        customer_phone: cleanMobile,
+      },
+      returnUrl,
+      notifyUrl,
+      orderNote: isCod
+        ? `50% COD Advance for Kamadhenu Honey Farms Order ${orderNumber}`
+        : `Kamadhenu Honey Farms Pure Honey Order ${orderNumber}`,
+    });
+
+    // Gracefully await DB up to 600ms if fast; otherwise return immediately so Cashfree opens in 1 second
+    const dbOrder = await Promise.race([
+      dbPromise,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 600)),
     ]);
 
     const cashfreeConfig = getCashfreeConfig();
@@ -282,7 +293,7 @@ export async function POST(req: NextRequest) {
       success: true,
       paymentSessionId: cashfreeOrder.payment_session_id,
       orderNumber,
-      orderId: order.id,
+      orderId: dbOrder ? dbOrder.id : orderNumber,
       cashfreeOrderId: cashfreeOrder.order_id,
       environment: cashfreeConfig.env,
       amount: advanceAmount,

@@ -5553,25 +5553,35 @@ body.overflow-hidden {
   display: inline-flex !important;
   align-items: center !important;
   gap: 7px !important;
-  background: rgba(39, 174, 96, 0.15) !important;
-  border: 1px solid rgba(46, 204, 113, 0.4) !important;
+  background: rgba(39, 174, 96, 0.18) !important;
+  border: 1px solid rgba(46, 204, 113, 0.45) !important;
   padding: 5px 12px !important;
   border-radius: 999px !important;
-  font-size: 0.8rem !important;
-  font-weight: 600 !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
   color: #2ecc71 !important;
   letter-spacing: 0.3px !important;
-  box-shadow: 0 2px 10px rgba(39, 174, 96, 0.15) !important;
+  box-shadow: 0 2px 10px rgba(39, 174, 96, 0.2) !important;
+  white-space: nowrap !important;
 }
 
-.stock-pill span,
 .stock-pill .stock-dot {
-  width: 7px !important;
-  height: 7px !important;
+  width: 8px !important;
+  height: 8px !important;
   border-radius: 50% !important;
   background: #2ecc71 !important;
   box-shadow: 0 0 8px #2ecc71 !important;
   display: inline-block !important;
+  flex-shrink: 0 !important;
+}
+
+.stock-pill .stock-text {
+  color: #2ecc71 !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.4px !important;
+  text-transform: uppercase !important;
+  display: inline !important;
 }
 
 
