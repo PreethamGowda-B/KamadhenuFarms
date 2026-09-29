@@ -170,10 +170,14 @@ export async function POST(req: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanCustomerName = name.trim();
 
-    const appBaseUrl = (
+    let appBaseUrl = (
       process.env.NEXT_PUBLIC_APP_URL ||
       'https://kamadhenuhoneyfarms.in'
     ).replace(/\/$/, '');
+
+    if (appBaseUrl.includes('vercel.app')) {
+      appBaseUrl = 'https://kamadhenuhoneyfarms.in';
+    }
 
     const returnUrl = `${appBaseUrl}/order-confirmation?order_id={order_id}`;
     const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;

@@ -2,7 +2,6 @@
 
 import React, { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import {
   CheckCircle2,
   Download,
@@ -456,13 +455,13 @@ function ConfirmationContent() {
               <span>Print Bill</span>
             </button>
 
-            <Link
+            <a
               href="/"
               className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold py-3 px-6 rounded-xl flex items-center gap-2 transition active:scale-[0.98] text-sm"
             >
               <Home className="w-4 h-4" />
               <span>Return to Store</span>
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -731,19 +730,19 @@ function ConfirmationContent() {
             A confirmation receipt has also been logged. Need any assistance? Call or WhatsApp us at <strong>+91 9980114675</strong>.
           </p>
           <div className="flex justify-center gap-4">
-            <Link
+            <a
               href="/"
               className="text-amber-800 hover:text-amber-900 font-bold text-sm underline underline-offset-4"
             >
               ← Return to Kamadhenu Honey Farms Home
-            </Link>
+            </a>
             <span className="text-stone-300">•</span>
-            <Link
+            <a
               href={`/track-order?orderNumber=${encodeURIComponent(displayOrderNum)}`}
               className="text-amber-800 hover:text-amber-900 font-bold text-sm underline underline-offset-4"
             >
               Track Live Courier Status →
-            </Link>
+            </a>
           </div>
         </div>
 
