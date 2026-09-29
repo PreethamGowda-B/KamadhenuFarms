@@ -46,6 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const PRIMARY_WHATSAPP = '919980114675';
   
   // Product Config Database (Price by size)
+  // TEMPORARY TEST PRICING: Set all variants to 1 INR for Cashfree live test
+  // Original prices:
+  // p1: { '250g': 250, '500g': 399, '1kg': 749 }
+  // p2: { '250g': 399, '500g': 599, '1kg': 999 }
+  // p3: { '500g': 599 }
+  // p4: { '500g': 899 }
   const productDatabase = {
     'p1': {
       id: 'p1',
@@ -53,9 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
       category: 'raw',
       baseDesc: 'Unprocessed, raw honey collected directly from pristine organic bee boxes.',
       prices: {
-        '250g': 250,
-        '500g': 399,
-        '1kg': 749
+        '250g': 1,
+        '500g': 1,
+        '1kg': 1
       },
       image: 'assets/raw_honey.jpg',
       images: [
@@ -77,9 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
       category: 'infused',
       baseDesc: 'Premium raw honey rich in hand-sorted almonds, cashews, pistachios, and walnuts.',
       prices: {
-        '250g': 399,
-        '500g': 599,
-        '1kg': 999
+        '250g': 1,
+        '500g': 1,
+        '1kg': 1
       },
       image: 'assets/dry_fruits_honey_details.jpg',
       images: [
@@ -102,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
       category: 'honeycomb',
       baseDesc: 'A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey. Harvested exactly as nature intended.',
       prices: {
-        '500g': 599
+        '500g': 1
       },
       image: 'assets/ChatGPT Image Jun 13, 2026, 07_29_45 PM.png',
       images: [
@@ -127,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
       category: 'honeycomb',
       baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',
       prices: {
-        '500g': 899
+        '500g': 1
       },
       image: 'assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png',
       images: [
@@ -144,6 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
       `
     }
   };
+
+  // Refresh cart items with active product prices in case user has previous local cache
+  cart = cart.map(item => {
+    const dbp = productDatabase[item.id];
+    if (dbp && dbp.prices && dbp.prices[item.size]) {
+      return { ...item, price: dbp.prices[item.size] };
+    }
+    return item;
+  });
 
   // Coupons Database
   const validCoupons = {

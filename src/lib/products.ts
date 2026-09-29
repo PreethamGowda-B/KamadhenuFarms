@@ -19,10 +19,12 @@ export const PRODUCTS: Record<string, ProductConfig> = {
     subtitle: 'Direct From Our Bee Boxes',
     category: 'raw',
     baseDesc: 'Unprocessed, raw honey collected directly from pristine organic bee boxes.',
+    // TEMPORARY TEST PRICING: Set to 1 INR for Cashfree live test
+    // Original prices: 250g: 250, 500g: 399, 1kg: 749
     prices: {
-      '250g': 250,
-      '500g': 399,
-      '1kg': 749,
+      '250g': 1,
+      '500g': 1,
+      '1kg': 1,
     },
     image: 'assets/raw_honey.jpg',
     images: [
@@ -42,10 +44,12 @@ export const PRODUCTS: Record<string, ProductConfig> = {
     subtitle: 'Premium Dry Fruit Infusion',
     category: 'infused',
     baseDesc: 'Premium raw honey rich in hand-sorted almonds, cashews, pistachios, and walnuts.',
+    // TEMPORARY TEST PRICING: Set to 1 INR for Cashfree live test
+    // Original prices: 250g: 399, 500g: 599, 1kg: 999
     prices: {
-      '250g': 399,
-      '500g': 599,
-      '1kg': 999,
+      '250g': 1,
+      '500g': 1,
+      '1kg': 1,
     },
     image: 'assets/dry_fruits_honey_details.jpg',
     images: [
@@ -64,8 +68,10 @@ export const PRODUCTS: Record<string, ProductConfig> = {
     subtitle: 'Built by Bees. Not by Machines.',
     category: 'honeycomb',
     baseDesc: 'A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey. Harvested exactly as nature intended.',
+    // TEMPORARY TEST PRICING: Set to 1 INR for Cashfree live test
+    // Original price: 500g: 599
     prices: {
-      '500g': 599,
+      '500g': 1,
     },
     image: 'assets/ChatGPT Image Jun 13, 2026, 07_29_45 PM.png',
     images: [
@@ -85,8 +91,10 @@ export const PRODUCTS: Record<string, ProductConfig> = {
     subtitle: 'Straight From The Hive.',
     category: 'honeycomb',
     baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',
+    // TEMPORARY TEST PRICING: Set to 1 INR for Cashfree live test
+    // Original price: 500g: 899
     prices: {
-      '500g': 899,
+      '500g': 1,
     },
     image: 'assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png',
     images: [

@@ -191,8 +191,8 @@ function calculateZonalRate(
   };
 }
 
-// Testing Mode disabled - standard shipping rates active
-export const IS_TEST_MODE = false;
+// Testing Mode enabled - standard shipping rates set to 0 INR for live payment testing
+export const IS_TEST_MODE = true;
 
 /**
  * Main Shipping Calculation Function
