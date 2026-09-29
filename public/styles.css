@@ -2304,7 +2304,7 @@ footer {
 }
 
 .cart-drawer.active {
-  right: 0;
+  right: 0 !important;
 }
 
 .cart-header {
@@ -3731,6 +3731,10 @@ body:not(.loaded) {
     right: -100% !important;
     height: 100vh !important;
     height: 100dvh !important;
+  }
+  .cart-drawer.active {
+    right: 0 !important;
+    transform: none !important;
   }
   .cart-items-container {
     padding: 16px !important;
@@ -5919,6 +5923,44 @@ body.overflow-hidden {
   }
 }
 
+/* ==========================================================================
+   Real-Time Stock Status Badges & Alerts
+   ========================================================================== */
+.product-badge.out-of-stock {
+  background: #C53030 !important;
+  color: #FFFFFF !important;
+  border-color: #9B2C2C !important;
+}
 
+.product-badge.restocking {
+  background: linear-gradient(135deg, #DD6B20 0%, #D69E2E 100%) !important;
+  color: #FFFFFF !important;
+  border-color: #C05621 !important;
+  box-shadow: 0 2px 8px rgba(221, 107, 32, 0.35);
+}
 
+.product-restock-alert {
+  margin: 10px 0 14px 0;
+  padding: 8px 12px;
+  background: rgba(221, 107, 32, 0.09);
+  border: 1px dashed rgba(221, 107, 32, 0.45);
+  border-radius: 9px;
+  font-size: 0.78rem;
+  color: #8C370B;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
 
+.btn-disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  background: #A0AEC0 !important;
+  border-color: #A0AEC0 !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  transform: none !important;
+}

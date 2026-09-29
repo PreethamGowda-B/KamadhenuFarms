@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   ShoppingBag,
+  Package,
   Gift,
   Store,
   Users,
@@ -39,6 +40,14 @@ export default function AdminSidebar() {
   };
 
   const navItems = [
+    {
+      label: 'Products & Stock',
+      sub: 'Inventory & Restock Timing',
+      href: '/admin/products',
+      icon: Package,
+      active: pathname.startsWith('/admin/products'),
+      badge: 'Realtime',
+    },
     {
       label: 'Online Orders',
       sub: 'Consumer Orders & Payments',

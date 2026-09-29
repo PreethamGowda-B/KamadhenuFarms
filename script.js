@@ -640,6 +640,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const dbProduct = productDatabase[productId];
     if (!dbProduct) return;
 
+    if (dbProduct.stockStatus === 'OUT_OF_STOCK') {
+      alert(`Sorry, "${dbProduct.name}" is currently out of stock.`);
+      return;
+    }
+
     const unitPrice = dbProduct.prices[size];
     
     // Check if this specific item + size is already in cart
@@ -668,22 +673,30 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
      Cart Drawer Overlay UI Controls
      ========================================================================== */
-  function openCart() {
-    cartOverlay.classList.add('active');
-    cartDrawer.classList.add('active');
+  function openCart(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (cartOverlay) cartOverlay.classList.add('active');
+    if (cartDrawer) cartDrawer.classList.add('active');
     document.body.classList.add('overflow-hidden');
   }
 
-  function closeCart() {
-    cartOverlay.classList.remove('active');
-    cartDrawer.classList.remove('active');
+  function closeCart(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (cartOverlay) cartOverlay.classList.remove('active');
+    if (cartDrawer) cartDrawer.classList.remove('active');
     // Only remove overflow-hidden if mobile-nav isn't active
-    if (!mobileNav.classList.contains('active')) {
+    if (mobileNav && !mobileNav.classList.contains('active')) {
       document.body.classList.remove('overflow-hidden');
     }
   }
 
-  openCartBtns.forEach(btn => btn.addEventListener('click', openCart));
+  // Expose globally for inline buttons and mobile handlers
+  window.openCart = openCart;
+  window.closeCart = closeCart;
+
+  openCartBtns.forEach(btn => {
+    btn.addEventListener('click', openCart);
+  });
   if (closeCartBtn) closeCartBtn.addEventListener('click', closeCart);
   if (cartOverlay) cartOverlay.addEventListener('click', closeCart);
 
@@ -1038,6 +1051,81 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
+     Real-Time Product Stock & Availability Synchronization
+     ========================================================================== */
+  const updateHoneycombStockDisplay = () => {
+    ['p3', 'p4'].forEach(id => {
+      const p = productDatabase[id];
+      if (!p) return;
+      const card = document.querySelector(`.upcoming-card[data-product-id="${id}"]`);
+      if (!card) return;
+
+      const stockPill = card.querySelector('.stock-pill');
+      const addBtn = card.querySelector('.upcoming-add-cart-btn');
+      const buyBtn = card.querySelector('.upcoming-buy-now-btn');
+
+      if (stockPill) {
+        if (p.stockStatus === 'OUT_OF_STOCK') {
+          stockPill.innerHTML = `
+            <span class="stock-dot" style="width:8px; height:8px; border-radius:50%; background:#e53e3e; box-shadow:0 0 8px #e53e3e; display:inline-block;"></span>
+            <span class="stock-text" style="color:#e53e3e !important; font-size:0.78rem; font-weight:700; text-transform:uppercase;">Sold Out</span>
+          `;
+          stockPill.style.background = 'rgba(229, 62, 62, 0.15)';
+          stockPill.style.borderColor = 'rgba(229, 62, 62, 0.4)';
+        } else if (p.stockStatus === 'RESTOCKING_SOON') {
+          stockPill.innerHTML = `
+            <span class="stock-dot" style="width:8px; height:8px; border-radius:50%; background:#dd6b20; box-shadow:0 0 8px #dd6b20; display:inline-block;"></span>
+            <span class="stock-text" style="color:#dd6b20 !important; font-size:0.78rem; font-weight:700; text-transform:uppercase;">Restocking in ${p.restockDays || 3} Days</span>
+          `;
+          stockPill.style.background = 'rgba(221, 107, 32, 0.15)';
+          stockPill.style.borderColor = 'rgba(221, 107, 32, 0.4)';
+        } else {
+          stockPill.innerHTML = `
+            <span class="stock-dot" style="width:8px; height:8px; border-radius:50%; background:#2ecc71; box-shadow:0 0 8px #2ecc71; display:inline-block;"></span>
+            <span class="stock-text" style="color:#2ecc71 !important; font-size:0.78rem; font-weight:700; text-transform:uppercase;">Fresh Apiary Stock</span>
+          `;
+          stockPill.style.background = 'rgba(39, 174, 96, 0.18)';
+          stockPill.style.borderColor = 'rgba(46, 204, 113, 0.45)';
+        }
+      }
+
+      if (p.stockStatus === 'OUT_OF_STOCK') {
+        if (addBtn) { addBtn.disabled = true; addBtn.classList.add('btn-disabled'); addBtn.innerHTML = '<span>Sold Out</span>'; }
+        if (buyBtn) { buyBtn.disabled = true; buyBtn.classList.add('btn-disabled'); buyBtn.innerHTML = '<span>Out of Stock</span>'; }
+      } else if (p.stockStatus === 'RESTOCKING_SOON' && !p.canPreorder) {
+        if (addBtn) { addBtn.disabled = true; addBtn.classList.add('btn-disabled'); addBtn.innerHTML = `<span>Restocking Soon</span>`; }
+        if (buyBtn) { buyBtn.disabled = true; buyBtn.classList.add('btn-disabled'); buyBtn.innerHTML = `<span>Restocking in ${p.restockDays || 3}d</span>`; }
+      } else {
+        if (addBtn) { addBtn.disabled = false; addBtn.classList.remove('btn-disabled'); addBtn.innerHTML = '<span>Add to Cart</span>'; }
+        if (buyBtn) { buyBtn.disabled = false; buyBtn.classList.remove('btn-disabled'); buyBtn.innerHTML = '<span>Buy Now</span>'; }
+      }
+    });
+  };
+
+  const syncRealtimeStock = async () => {
+    try {
+      const res = await fetch('/api/products/inventory', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.inventory) {
+        Object.keys(data.inventory).forEach(id => {
+          if (productDatabase[id]) {
+            const remote = data.inventory[id];
+            productDatabase[id].stockStatus = remote.stockStatus;
+            productDatabase[id].restockDays = remote.restockDays;
+            productDatabase[id].restockNote = remote.restockNote;
+            productDatabase[id].badgeText = remote.badgeText;
+            productDatabase[id].canPreorder = remote.canPreorder;
+          }
+        });
+        renderProductCards();
+        updateHoneycombStockDisplay();
+      }
+    } catch (err) {
+      console.warn('Realtime stock sync error:', err);
+    }
+  };
+
+  /* ==========================================================================
      Product Display Generation & Search-Filters
      ========================================================================== */
   const renderProductCards = () => {
@@ -1079,8 +1167,90 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       ` : '';
 
+      // Stock status styling & logic
+      const isOutOfStock = product.stockStatus === 'OUT_OF_STOCK';
+      const isRestocking = product.stockStatus === 'RESTOCKING_SOON';
+
+      let badgeHtml = '';
+      if (isOutOfStock) {
+        badgeHtml = '<div class="product-badge out-of-stock">Sold Out</div>';
+      } else if (isRestocking) {
+        badgeHtml = `<div class="product-badge restocking">⏳ ${product.badgeText || `Restocking in ${product.restockDays || 3} days`}</div>`;
+      } else {
+        badgeHtml = `<div class="product-badge">${product.badgeText || (product.category === 'raw' ? 'Organic' : 'Deluxe')}</div>`;
+      }
+
+      let restockAlertHtml = '';
+      if (isRestocking) {
+        restockAlertHtml = `
+          <div class="product-restock-alert">
+            <span>🍯 ${product.restockNote || `Stock will be restocked within ${product.restockDays || 3} days`}</span>
+          </div>
+        `;
+      }
+
+      let actionsHtml = '';
+      if (isOutOfStock) {
+        actionsHtml = `
+          <button class="btn btn-add-cart btn-disabled" disabled style="opacity:0.55; cursor:not-allowed;">
+            Out of Stock
+          </button>
+          <div class="product-actions-row">
+            <button class="btn btn-gold btn-disabled" disabled style="opacity:0.55; cursor:not-allowed;">
+              Sold Out
+            </button>
+            <button class="btn btn-charcoal wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
+              </svg>
+              Bulk Inquiry
+            </button>
+          </div>
+        `;
+      } else if (isRestocking && !product.canPreorder) {
+        actionsHtml = `
+          <button class="btn btn-add-cart btn-disabled" disabled style="opacity:0.6; cursor:not-allowed;">
+            ⏳ Restocking Soon
+          </button>
+          <div class="product-actions-row">
+            <button class="btn btn-gold btn-disabled" disabled style="opacity:0.6; cursor:not-allowed;">
+              Restocking in ${product.restockDays || 3}d
+            </button>
+            <button class="btn btn-charcoal wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
+              </svg>
+              Bulk Inquiry
+            </button>
+          </div>
+        `;
+      } else {
+        actionsHtml = `
+          <button class="btn btn-add-cart add-to-cart-trigger">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+            </svg>
+            ${isRestocking ? 'Pre-Order Now' : 'Add to Cart'}
+          </button>
+          <div class="product-actions-row">
+            <button class="btn btn-gold buy-now-trigger" title="Buy Now & Proceed to Checkout">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+              ${isRestocking ? 'Pre-Order' : 'Buy Now'}
+            </button>
+            <button class="btn btn-charcoal wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
+              </svg>
+              Bulk Inquiry
+            </button>
+          </div>
+        `;
+      }
+
       productCard.innerHTML = `
-        <div class="product-badge">${product.category === 'raw' ? 'Organic' : 'Deluxe'}</div>
+        ${badgeHtml}
         <button class="wishlist-btn" data-product-id="${product.id}">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
@@ -1097,6 +1267,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="product-info">
           <h3>${product.name}</h3>
           <p class="product-desc">${product.baseDesc}</p>
+          ${restockAlertHtml}
           
           <div class="weight-selector">
             ${Object.keys(product.prices).map(size => `
@@ -1112,26 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
           <div class="product-actions">
-            <button class="btn btn-add-cart add-to-cart-trigger">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-              </svg>
-              Add to Cart
-            </button>
-            <div class="product-actions-row">
-              <button class="btn btn-gold buy-now-trigger" title="Buy Now & Proceed to Checkout">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                </svg>
-                Buy Now
-              </button>
-              <button class="btn btn-charcoal wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
-                </svg>
-                Bulk Inquiry
-              </button>
-            </div>
+            ${actionsHtml}
           </div>
         </div>
       `;
@@ -2694,6 +2846,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeTestimonials();
     initializeUpcomingGallery();
     checkCustomerSession();
+    syncRealtimeStock();
+
+    // Live inventory polling every 30 seconds
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        syncRealtimeStock();
+      }
+    }, 30000);
+
+    // Sync immediately when customer refocuses the browser
+    window.addEventListener('focus', () => {
+      syncRealtimeStock();
+    });
 
     // Disable heavy 3D tilt and continuous particle loops on mobile for 60fps smooth scrolling
     if (window.innerWidth > 768) {

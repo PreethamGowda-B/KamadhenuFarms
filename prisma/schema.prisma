@@ -710,4 +710,18 @@ model ReferralReward {
   @@index([status])
 }
 
+model ProductInventory {
+  id                    String            @id // 'p1', 'p2', 'p3', 'p4'
+  name                  String
+  stockStatus           String            @default("IN_STOCK") // "IN_STOCK", "OUT_OF_STOCK", "RESTOCKING_SOON"
+  restockDays           Int               @default(3)
+  restockNote           String?           @default("Stock will be restocked within 3 days")
+  badgeText             String?           @default("In Stock")
+  canPreorder           Boolean           @default(false)
+  updatedAt             DateTime          @updatedAt
+  createdAt             DateTime          @default(now())
+
+  @@index([stockStatus])
+}
+
 
