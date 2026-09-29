@@ -84,11 +84,11 @@ export async function GET(req: NextRequest) {
         })),
         payment: latestPayment
           ? {
-              provider: latestPayment.provider,
-              paymentId: latestPayment.razorpayPaymentId || order.razorpayPaymentId || 'N/A',
+              provider: latestPayment.provider || 'CASHFREE',
+              paymentId: latestPayment.cashfreePaymentId || latestPayment.razorpayPaymentId || order.cashfreePaymentId || order.razorpayPaymentId || 'N/A',
               status: latestPayment.status,
               amount: latestPayment.amount,
-              paidAt: latestPayment.createdAt.toISOString(),
+              paidAt: (latestPayment.paidAt || latestPayment.createdAt).toISOString(),
             }
           : null,
         shipment: latestShipment

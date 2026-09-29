@@ -20,8 +20,8 @@ export default function RootHomePage() {
     <>
       <link rel="stylesheet" href="/styles.css?v=20260928_v3" />
       <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
-      <script src="/script.js?v=20260928_v3" defer />
+      <script src="https://sdk.cashfree.com/js/v3/cashfree.js" async />
+      <script src="/script.js?v=20260928_v4" defer />
     </>
   );
 }

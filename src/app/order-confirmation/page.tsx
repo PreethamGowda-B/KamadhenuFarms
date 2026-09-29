@@ -81,7 +81,11 @@ interface OrderData {
 
 function ConfirmationContent() {
   const searchParams = useSearchParams();
-  const orderNumber = searchParams.get('orderNumber') || searchParams.get('order') || '';
+  const orderNumber =
+    searchParams.get('orderNumber') ||
+    searchParams.get('order') ||
+    searchParams.get('order_id') ||
+    '';
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -94,20 +98,35 @@ function ConfirmationContent() {
     }
 
     let isMounted = true;
-    fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`)
-      .then((res) => res.json())
-      .then((data) => {
+
+    // Call verify to guarantee order confirmation on redirect from Cashfree
+    const verifyAndLoadInvoice = async () => {
+      try {
+        await fetch('/api/checkout/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderNumber }),
+        });
+      } catch (e) {
+        console.warn('Verify call on confirmation page:', e);
+      }
+
+      try {
+        const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
+        const data = await res.json();
         if (isMounted) {
           if (data.success && data.order) {
             setOrder(data.order);
           }
           setLoading(false);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('Failed to load order invoice details', err);
         if (isMounted) setLoading(false);
-      });
+      }
+    };
+
+    verifyAndLoadInvoice();
 
     return () => {
       isMounted = false;
@@ -342,7 +361,7 @@ function ConfirmationContent() {
                   {isCodOrder ? '50% Advance Paid' : 'Payment Verified'}
                 </span>
                 <span className="text-[11px] text-emerald-700">
-                  {isCodOrder ? `₹${advancePaid} Razorpay captured` : 'Bank captured'}
+                  {isCodOrder ? `₹${advancePaid} advance captured` : 'Bank captured'}
                 </span>
               </div>
 
@@ -520,7 +539,12 @@ function ConfirmationContent() {
               <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-lg border border-emerald-200 text-xs font-bold">
                 <CreditCard className="w-4 h-4 text-emerald-600" />
                 <span>
-                  Payment Mode: {isCodOrder ? 'Bangalore Cash on Delivery (50% Advance Online)' : 'Razorpay Secure Checkout (UPI/Card)'}
+                  Payment Mode:{' '}
+                  {isCodOrder
+                    ? 'Bangalore Cash on Delivery (50% Advance Online)'
+                    : order?.payment?.provider === 'RAZORPAY'
+                    ? 'Razorpay Secure Checkout (Historical)'
+                    : 'Cashfree Secure Checkout (UPI/Cards/Netbanking)'}
                 </span>
               </div>
               {order?.payment?.paymentId && (

@@ -43,6 +43,9 @@ export async function GET(req: NextRequest) {
     if (search) {
       where.OR = [
         { orderNumber: { contains: search, mode: 'insensitive' } },
+        { cashfreeOrderId: { contains: search, mode: 'insensitive' } },
+        { cashfreePaymentId: { contains: search, mode: 'insensitive' } },
+        { razorpayOrderId: { contains: search, mode: 'insensitive' } },
         { customer: { name: { contains: search, mode: 'insensitive' } } },
         { customer: { mobile: { contains: search } } },
         { customer: { email: { contains: search, mode: 'insensitive' } } },

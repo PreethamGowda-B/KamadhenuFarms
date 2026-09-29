@@ -554,6 +554,8 @@ model Order {
   
   razorpayOrderId        String?         @unique
   razorpayPaymentId      String?
+  cashfreeOrderId        String?         @unique
+  cashfreePaymentId      String?
   
   notes                  String?
   referralCode       String?
@@ -573,6 +575,7 @@ model Order {
   @@index([createdAt])
   @@index([paymentStatus, createdAt])
   @@index([orderStatus, createdAt])
+  @@index([cashfreeOrderId])
 }
 
 model OrderItem {
@@ -594,10 +597,13 @@ model Payment {
   id                 String         @id @default(cuid())
   orderId            String
   order              Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider           String         @default("RAZORPAY")
-  razorpayOrderId    String
+  provider           String         @default("CASHFREE")
+  razorpayOrderId    String?
   razorpayPaymentId  String?
   razorpaySignature  String?
+  cashfreeOrderId    String?
+  cashfreePaymentId  String?
+  paidAt             DateTime?
   amount             Float
   currency           String         @default("INR")
   paymentMethod      String?        // 'upi', 'card', 'netbanking'
@@ -608,6 +614,8 @@ model Payment {
   @@index([orderId])
   @@index([razorpayOrderId])
   @@index([razorpayPaymentId])
+  @@index([cashfreeOrderId])
+  @@index([cashfreePaymentId])
 }
 
 model Shipment {

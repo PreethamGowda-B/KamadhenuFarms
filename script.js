@@ -1520,7 +1520,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update submit button text and COD breakdown
     const activePaymentCard = document.querySelector('.payment-option-card.active');
-    const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'razorpay';
+    const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'cashfree';
     const codBreakdownEl = document.getElementById('checkoutCodBreakdown');
     const codAdvanceEl = document.getElementById('checkoutCodAdvance');
     const codRemainingEl = document.getElementById('checkoutCodRemaining');
@@ -1532,12 +1532,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (codAdvanceEl) codAdvanceEl.textContent = `₹${advanceAmount}`;
       if (codRemainingEl) codRemainingEl.textContent = `₹${remainingAmount}`;
       if (checkoutSubmitBtnText) {
-        checkoutSubmitBtnText.textContent = `Pay 50% Advance with Razorpay ₹${advanceAmount} (₹${remainingAmount} on Delivery)`;
+        checkoutSubmitBtnText.textContent = `Pay 50% Advance via Cashfree ₹${advanceAmount} (₹${remainingAmount} on Delivery)`;
       }
     } else {
       if (codBreakdownEl) codBreakdownEl.style.display = 'none';
       if (checkoutSubmitBtnText) {
-        checkoutSubmitBtnText.textContent = `Pay Securely with Razorpay ₹${finalTotal}`;
+        checkoutSubmitBtnText.textContent = `Pay Securely via Cashfree ₹${finalTotal}`;
       }
     }
   };
@@ -1552,7 +1552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Handle Checkout submission and Razorpay payment / COD (50% Advance Online)
+  // Handle Checkout submission and Cashfree payment / COD (50% Advance Online)
   if (checkoutForm) {
     checkoutForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1571,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const pincode = (document.getElementById('chkPincode')?.value || '').trim();
       const landmark = (document.getElementById('chkLandmark')?.value || '').trim();
       const activePaymentCard = document.querySelector('.payment-option-card.active');
-      const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'razorpay';
+      const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'cashfree';
 
       if (!name || !phone || !email || !address || !city || !state || !pincode) {
         isCheckoutSubmitting = false;
@@ -1620,16 +1620,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Both Razorpay Full Payment and Bangalore COD 50% Advance use Razorpay SDK
-      if (typeof window.Razorpay === 'undefined') {
+      // Verify Cashfree SDK is loaded
+      if (typeof window.Cashfree === 'undefined') {
         isCheckoutSubmitting = false;
-        showCheckoutError('Razorpay payment SDK could not be loaded. Please check your internet connection and refresh.');
+        showCheckoutError('Cashfree payment SDK could not be loaded. Please check your internet connection and refresh.');
         return;
       }
 
       checkoutSubmitBtn.disabled = true;
       if (checkoutSubmitBtnText) {
-        checkoutSubmitBtnText.textContent = paymentMethod === 'cod' ? 'Securing 50% advance...' : 'Securing order...';
+        checkoutSubmitBtnText.textContent = paymentMethod === 'cod' ? 'Securing 50% advance...' : 'Initializing payment...';
       }
 
       try {
@@ -1652,7 +1652,7 @@ document.addEventListener('DOMContentLoaded', () => {
               quantity: i.qty
             })),
             couponCode: currentCoupon || undefined,
-            paymentMethod: paymentMethod // 'razorpay' or 'cod'
+            paymentMethod: paymentMethod // 'cashfree' or 'cod'
           })
         }, 15000);
 
@@ -1661,97 +1661,76 @@ document.addEventListener('DOMContentLoaded', () => {
           throw new Error(createData.message || 'Failed to create payment session');
         }
 
-        const isCodOrder = paymentMethod === 'cod';
-        const descriptionText = isCodOrder
-          ? `50% Advance for Order ${createData.orderNumber || ''} (₹${createData.codRemainingAmount} on Delivery)`
-          : `Order ${createData.orderNumber || ''} - Pure Raw Honey`;
+        const mode = createData.environment === 'production' ? 'production' : 'sandbox';
+        const cashfree = window.Cashfree({ mode });
 
-        const rzpOptions = {
-          key: createData.keyId,
-          amount: createData.amount, // Server-calculated 50% advance for COD, or 100% full payment for Razorpay
-          currency: createData.currency || 'INR',
-          name: 'Kamadhenu Honey Farms',
-          description: descriptionText,
-          image: '/assets/raw_honey.jpg',
-          order_id: createData.razorpayOrderId,
-          prefill: {
-            name: name,
-            email: email,
-            contact: cleanMobile
-          },
-          theme: {
-            color: '#d8a64f'
-          },
-          modal: {
-            ondismiss: function() {
-              isCheckoutSubmitting = false;
-              checkoutSubmitBtn.disabled = false;
-              renderCheckoutSummary();
-            }
-          },
-          handler: async function(paymentResponse) {
-            checkoutSubmitBtn.disabled = true;
-            if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
-
-            try {
-              const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  razorpay_order_id: paymentResponse.razorpay_order_id,
-                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                  razorpay_signature: paymentResponse.razorpay_signature,
-                  paymentMethod: paymentMethod, // 'razorpay' or 'cod'
-                  customerDetails: {
-                    name,
-                    mobile: cleanMobile,
-                    email,
-                    addressLine1: address,
-                    area,
-                    city,
-                    state,
-                    pincode: cleanPin,
-                    landmark
-                  },
-                  items: cart.map(i => ({
-                    productId: i.id,
-                    weightVariant: i.size,
-                    quantity: i.qty
-                  })),
-                  couponCode: currentCoupon || undefined
-                })
-              }, 20000);
-
-              const verifyData = await verifyRes.json();
-              if (verifyData.success) {
-                cart = [];
-                saveCart();
-                currentCoupon = null;
-                closeCheckout();
-                window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(verifyData.orderNumber)}`;
-              } else {
-                throw new Error(verifyData.message || 'Payment verification failed');
-              }
-            } catch (vErr) {
-              console.error('Payment verification failed:', vErr);
-              showCheckoutError(vErr.message || `Payment completed (ID: ${paymentResponse.razorpay_payment_id}) but verification timed out. Please contact us on WhatsApp.`);
-              isCheckoutSubmitting = false;
-              checkoutSubmitBtn.disabled = false;
-              renderCheckoutSummary();
-            }
-          }
+        const checkoutOptions = {
+          paymentSessionId: createData.paymentSessionId,
+          redirectTarget: '_modal'
         };
 
-        const rzp = new window.Razorpay(rzpOptions);
-        rzp.on('payment.failed', function(failureResponse) {
-          showCheckoutError(`Payment failed: ${failureResponse.error?.description || 'Declined by bank'}`);
+        cashfree.checkout(checkoutOptions).then(async (result) => {
+          if (result.error) {
+            console.error('Cashfree checkout modal error:', result.error);
+            showCheckoutError(result.error.message || 'Payment was cancelled or encountered an error.');
+            isCheckoutSubmitting = false;
+            checkoutSubmitBtn.disabled = false;
+            renderCheckoutSummary();
+            return;
+          }
+
+          if (result.redirect) {
+            console.log('Cashfree payment redirecting...');
+            return;
+          }
+
+          // Payment completed in modal: Verify with backend
+          checkoutSubmitBtn.disabled = true;
+          if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
+
+          try {
+            const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderNumber: createData.orderNumber,
+                orderId: createData.orderId,
+                cashfreeOrderId: createData.cashfreeOrderId
+              })
+            }, 20000);
+
+            const verifyData = await verifyRes.json();
+            if (verifyData.success) {
+              cart = [];
+              saveCart();
+              currentCoupon = null;
+              closeCheckout();
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(verifyData.orderNumber)}`;
+            } else if (verifyData.pending) {
+              cart = [];
+              saveCart();
+              closeCheckout();
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
+            } else {
+              throw new Error(verifyData.message || 'Payment verification failed');
+            }
+          } catch (vErr) {
+            console.error('Payment verification error:', vErr);
+            showCheckoutError(vErr.message || `Payment completed on Cashfree but verification timed out. If money was deducted, your order will be confirmed shortly.`);
+            isCheckoutSubmitting = false;
+            checkoutSubmitBtn.disabled = false;
+            renderCheckoutSummary();
+          }
+        }).catch((cfErr) => {
+          console.error('Cashfree checkout exception:', cfErr);
+          showCheckoutError(cfErr.message || 'Payment window closed or encountered an error.');
           isCheckoutSubmitting = false;
           checkoutSubmitBtn.disabled = false;
           renderCheckoutSummary();
         });
-        rzp.open();
+
       } catch (err) {
-        console.error('Razorpay initialization error:', err);
+        console.error('Cashfree initialization error:', err);
         showCheckoutError(err.message || 'Error communicating with payment gateway');
         isCheckoutSubmitting = false;
         checkoutSubmitBtn.disabled = false;

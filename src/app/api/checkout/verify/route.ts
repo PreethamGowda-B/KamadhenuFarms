@@ -1,276 +1,234 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyPaymentSignature } from '@/lib/razorpay';
-import { generateNextOrderNumber } from '@/lib/orderNumber';
-import { calculateShippingCharge } from '@/lib/shipping';
-import { validateDiscountOrReferralCode } from '@/lib/referral';
-import { isBangaloreDelivery } from '@/lib/location';
+import { getCashfreeOrder, getCashfreeOrderPayments, CashfreePaymentEntity } from '@/lib/cashfree';
 import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
-
-import { AUTHORITATIVE_PRICES } from '@/lib/products';
-
-const VALID_COUPONS: Record<string, { type: 'percent' | 'fixed'; value: number }> = {
-  KAMADHENU10: { type: 'percent', value: 10 },
-  HONEY50: { type: 'fixed', value: 50 },
-  FREEPURE: { type: 'percent', value: 15 },
-  PREETHUGOWDA01: { type: 'percent', value: 10 },
-};
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      customerDetails,
-      items,
-      couponCode,
-      paymentMethod = 'razorpay',
+      orderId,
+      orderNumber,
+      cashfreeOrderId,
     } = body;
 
-    const isCod = String(paymentMethod).toLowerCase() === 'cod';
+    const lookupKey = (orderNumber || cashfreeOrderId || orderId || '').trim();
 
-    // 1. Verify Razorpay Payment Signature Server-Side
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!lookupKey) {
       return NextResponse.json(
-        { success: false, message: 'Missing required Razorpay payment signature parameters' },
+        { success: false, message: 'Missing order reference for payment verification' },
         { status: 400 }
       );
     }
 
-    const isValidSignature = verifyPaymentSignature({
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-    });
-
-    if (!isValidSignature) {
-      console.error(`❌ [Razorpay] Invalid payment signature for order ${razorpay_order_id}`);
-      return NextResponse.json(
-        { success: false, message: 'Invalid payment signature. Payment verification failed.' },
-        { status: 400 }
-      );
-    }
-
-    // 2. Strict Server-Side Bangalore Restriction for Cash on Delivery
-    if (isCod && !isBangaloreDelivery(customerDetails.pincode, customerDetails.city)) {
-      return NextResponse.json(
-        { success: false, message: 'Cash on Delivery is currently available only within Bangalore.' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Check if this Razorpay Order has already been confirmed (Idempotency)
-    const existingOrder = await prisma.order.findUnique({
-      where: { razorpayOrderId: razorpay_order_id },
+    // 1. Find Order in Database
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [
+          { orderNumber: lookupKey },
+          { cashfreeOrderId: lookupKey },
+          { id: lookupKey },
+        ],
+      },
       include: {
         customer: true,
         shippingAddress: true,
         items: true,
+        payments: true,
       },
     });
 
-    if (existingOrder) {
-      return NextResponse.json({
+    if (!order) {
+      return NextResponse.json(
+        { success: false, message: `Order not found for reference: ${lookupKey}` },
+        { status: 404 }
+      );
+    }
+
+    // 2. Idempotency Check: If already confirmed as PAID or COD_ADVANCE_PAID
+    if (order.paymentStatus === 'PAID' || order.paymentStatus === 'COD_ADVANCE_PAID' || order.paymentStatus === 'FULLY_PAID') {
+      const response = NextResponse.json({
         success: true,
-        orderNumber: existingOrder.orderNumber,
-        message: 'Order already recorded successfully',
+        orderNumber: order.orderNumber,
+        orderId: order.id,
+        amount: order.total,
+        message: 'Order already verified and confirmed',
       });
+
+      try {
+        const sessionToken = await createCustomerSession(order.customerId, req);
+        if (sessionToken) attachCustomerSessionCookie(response, sessionToken);
+      } catch (err) {
+        console.error('Session error on already verified order:', err);
+      }
+
+      return response;
     }
 
-    // 4. Re-verify financial amounts and referral/coupon discounts server-side
-    let subtotal = 0;
-    const validatedItems: any[] = [];
+    // 3. Verify Payment Status directly with Cashfree Official APIs
+    const targetOrderId = order.cashfreeOrderId || order.orderNumber;
+    const cfOrder = await getCashfreeOrder(targetOrderId);
+    const cfPayments = await getCashfreeOrderPayments(targetOrderId);
 
-    for (const item of items) {
-      const product = AUTHORITATIVE_PRICES[item.productId];
-      if (!product) continue;
-      const unitPrice = product.prices[item.weightVariant] || 0;
-      const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
-      const itemTotal = unitPrice * qty;
-      subtotal += itemTotal;
-
-      let weightKg = 0.5;
-      if (item.weightVariant === '250g') weightKg = 0.35;
-      else if (item.weightVariant === '500g') weightKg = 0.65;
-      else if (item.weightVariant === '1kg') weightKg = 1.30;
-
-      validatedItems.push({
-        productId: item.productId,
-        productNameSnapshot: product.name,
-        weightVariant: item.weightVariant,
-        quantity: qty,
-        unitPrice,
-        totalPrice: itemTotal,
-        weightKg,
-      });
-    }
-
-    const shippingResult = await calculateShippingCharge(customerDetails.pincode, items);
-    const shippingFee = shippingResult.shippingFee;
-
-    // Server-Side Authoritative Referral & Coupon Validation
-    const validation = await validateDiscountOrReferralCode(
-      couponCode,
-      subtotal,
-      items,
-      customerDetails.mobile,
-      customerDetails.email
+    // Find any successful payment attempt
+    const successfulPayment: CashfreePaymentEntity | undefined = cfPayments.find(
+      (p) => p.payment_status === 'SUCCESS'
     );
-    const discount = validation.valid ? validation.calculatedDiscount : 0;
-    const finalTotal = Math.max(1, subtotal - discount + shippingFee);
 
-    // 50% Advance calculation for COD orders
-    const advanceAmount = isCod ? Math.ceil(finalTotal * 0.50) : finalTotal;
-    const codRemainingAmount = isCod ? (finalTotal - advanceAmount) : 0;
+    // 4. Amount Security Verification: Verify amount matches server-calculated expected amount
+    const isCod = order.paymentMethod === 'COD';
+    const expectedChargedAmount = isCod ? order.advanceAmount : order.total;
 
-    // 5. Generate Unique Sequential Order Number (e.g. KHF-ORD-000001)
-    const orderNumber = await generateNextOrderNumber();
+    if (!successfulPayment) {
+      // Check if there is a failed payment attempt
+      const failedPayment = cfPayments.find(
+        (p) => p.payment_status === 'FAILED' || p.payment_status === 'CANCELLED' || p.payment_status === 'USER_DROPPED'
+      );
 
-    // 6. Database Persistence inside a Transaction
-    const createdOrder = await prisma.$transaction(async (tx) => {
-      // Find or Create Customer
-      const cleanMobile = customerDetails.mobile.replace(/\D/g, '');
-      let customer = await tx.customer.findFirst({
-        where: {
-          OR: [
-            { mobile: cleanMobile },
-            { email: customerDetails.email.trim().toLowerCase() },
-          ],
+      if (failedPayment) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { paymentStatus: 'FAILED' },
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            failed: true,
+            message: failedPayment.payment_message || 'Payment was declined or cancelled. Please try again.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check if pending
+      return NextResponse.json(
+        {
+          success: false,
+          pending: true,
+          message: 'Payment is currently pending confirmation from bank. Please wait or check your bank app.',
+        },
+        { status: 202 }
+      );
+    }
+
+    // Validate that the paid amount is not less than the authoritative order total
+    if (successfulPayment.payment_amount < expectedChargedAmount) {
+      console.error(
+        `🚨 [Payment Tampering Detected] Order ${order.orderNumber}: Expected ₹${expectedChargedAmount}, Received ₹${successfulPayment.payment_amount}`
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Security error: Paid amount does not match authoritative order total.',
+        },
+        { status: 400 }
+      );
+    }
+
+    // 5. Successful Payment Confirmed: Update Database in a Transaction
+    const updatedOrder = await prisma.$transaction(async (tx) => {
+      const paymentIdStr = String(successfulPayment.cf_payment_id);
+
+      // Determine method description
+      let methodDescription = 'ONLINE';
+      if (typeof successfulPayment.payment_method === 'object' && successfulPayment.payment_method !== null) {
+        const methodKeys = Object.keys(successfulPayment.payment_method);
+        if (methodKeys.length > 0) methodDescription = methodKeys[0].toUpperCase();
+      }
+
+      const completedAt = successfulPayment.payment_completion_time
+        ? new Date(successfulPayment.payment_completion_time)
+        : new Date();
+
+      // Update Order Status
+      const ord = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          paymentStatus: isCod ? 'COD_ADVANCE_PAID' : 'PAID',
+          orderStatus: 'CONFIRMED',
+          cashfreeOrderId: targetOrderId,
+          cashfreePaymentId: paymentIdStr,
+          advancePaidAmount: successfulPayment.payment_amount,
         },
       });
 
-      if (!customer) {
-        customer = await tx.customer.create({
+      // Check if payment entry already exists
+      const existingPayment = await tx.payment.findFirst({
+        where: {
+          orderId: order.id,
+          cashfreePaymentId: paymentIdStr,
+        },
+      });
+
+      if (!existingPayment) {
+        await tx.payment.create({
           data: {
-            name: customerDetails.name.trim(),
-            mobile: cleanMobile,
-            email: customerDetails.email.trim().toLowerCase(),
+            orderId: order.id,
+            provider: 'CASHFREE',
+            cashfreeOrderId: targetOrderId,
+            cashfreePaymentId: paymentIdStr,
+            amount: successfulPayment.payment_amount,
+            currency: successfulPayment.payment_currency || 'INR',
+            paymentMethod: isCod ? 'COD_ADVANCE' : methodDescription,
+            status: 'PAID',
+            paidAt: completedAt,
+            rawResponse: JSON.stringify(successfulPayment),
           },
-        });
-      } else {
-        // Update name if changed
-        customer = await tx.customer.update({
-          where: { id: customer.id },
-          data: { name: customerDetails.name.trim() },
         });
       }
 
-      // Check if this customer has prior paid orders to determine if they are genuinely new
+      // Check if customer is genuinely new
       const priorPaidOrdersCount = await tx.order.count({
         where: {
-          customerId: customer.id,
+          customerId: order.customerId,
+          id: { not: order.id },
           paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] },
         },
       });
       const isGenuinelyNewCustomer = priorPaidOrdersCount === 0;
 
-      // Create Address record
-      const address = await tx.address.create({
-        data: {
-          customerId: customer.id,
-          recipientName: customerDetails.name.trim(),
-          mobileNumber: cleanMobile,
-          addressLine1: customerDetails.addressLine1.trim(),
-          addressLine2: customerDetails.addressLine2?.trim() || null,
-          area: customerDetails.area?.trim() || '',
-          city: customerDetails.city.trim(),
-          state: customerDetails.state.trim(),
-          pincode: customerDetails.pincode.trim(),
-          landmark: customerDetails.landmark?.trim() || null,
-        },
-      });
-
-      // Create Order record with orderStatus 'NEW' for owner order management
-      const order = await tx.order.create({
-        data: {
-          orderNumber,
-          customerId: customer.id,
-          shippingAddressId: address.id,
-          subtotal,
-          shippingFee,
-          discount,
-          total: finalTotal,
-          currency: 'INR',
-          paymentMethod: isCod ? 'COD' : 'RAZORPAY',
-          paymentStatus: isCod ? 'COD_ADVANCE_PAID' : 'PAID',
-          orderStatus: 'NEW',
-          advanceAmount: isCod ? advanceAmount : 0,
-          advancePaidAmount: isCod ? advanceAmount : 0,
-          codRemainingAmount: isCod ? codRemainingAmount : 0,
-          referralCode: validation.valid ? validation.code : null,
-          razorpayOrderId: razorpay_order_id,
-          razorpayPaymentId: razorpay_payment_id,
-          notes: customerDetails.landmark ? `Landmark: ${customerDetails.landmark}` : null,
-          items: {
-            create: validatedItems.map((it) => ({
-              productId: it.productId,
-              productNameSnapshot: it.productNameSnapshot,
-              weightVariant: it.weightVariant,
-              quantity: it.quantity,
-              unitPrice: it.unitPrice,
-              totalPrice: it.totalPrice,
-              weightKg: it.weightKg,
-            })),
-          },
-          payments: {
-            create: {
-              provider: 'RAZORPAY',
-              razorpayOrderId: razorpay_order_id,
-              razorpayPaymentId: razorpay_payment_id,
-              razorpaySignature: razorpay_signature,
-              amount: advanceAmount, // Recorded advance paid online
-              currency: 'INR',
-              paymentMethod: isCod ? 'COD_ADVANCE' : 'ONLINE',
-              status: 'PAID',
-            },
-          },
-          shipments: {
-            create: {
-              courierProvider: shippingResult.courierName || 'Standard Courier',
-              shippingFee,
-              status: 'PENDING',
-            },
-          },
-        },
-      });
-
       // Handle Referral Tracking, Qualification & 5% Reward Issuance
-      if (validation.valid) {
-        if (validation.source === 'REFERRAL_OFFER' && validation.offerId) {
+      if (order.referralCode) {
+        const offer = await tx.referralOffer.findFirst({
+          where: { code: order.referralCode, isActive: true },
+        });
+
+        if (offer) {
           // Increment usage count
           await tx.referralOffer.update({
-            where: { id: validation.offerId },
+            where: { id: offer.id },
             data: { timesUsed: { increment: 1 } },
           });
 
-          const offer = await tx.referralOffer.findUnique({
-            where: { id: validation.offerId },
-          });
-
-          // Qualify reward if genuinely new customer and not referring themselves
-          const hasReferrer = Boolean(offer?.referrerCustomerId && offer.referrerCustomerId !== customer.id);
+          const hasReferrer = Boolean(offer.referrerCustomerId && offer.referrerCustomerId !== order.customerId);
           const qualifiesReward = isGenuinelyNewCustomer && hasReferrer;
 
-          await tx.referralUsage.create({
-            data: {
-              offerId: validation.offerId,
-              orderId: order.id,
-              referrerCustomerId: offer?.referrerCustomerId || null,
-              referredCustomerId: customer.id,
-              discountApplied: discount,
-              status: qualifiesReward ? 'QUALIFIED' : isGenuinelyNewCustomer ? 'QUALIFIED_GLOBAL' : 'DISCOUNT_ONLY',
-              qualifiesReward,
-            },
+          // Check if referral usage already recorded
+          const existingUsage = await tx.referralUsage.findFirst({
+            where: { orderId: order.id },
           });
 
-          // Award 5% reward on next purchase >= 1kg to the referring existing customer
-          if (qualifiesReward && offer?.referrerCustomerId) {
+          if (!existingUsage) {
+            await tx.referralUsage.create({
+              data: {
+                offerId: offer.id,
+                orderId: order.id,
+                referrerCustomerId: offer.referrerCustomerId || null,
+                referredCustomerId: order.customerId,
+                discountApplied: order.discount,
+                status: qualifiesReward ? 'QUALIFIED' : isGenuinelyNewCustomer ? 'QUALIFIED_GLOBAL' : 'DISCOUNT_ONLY',
+                qualifiesReward,
+              },
+            });
+          }
+
+          // Award 5% reward on next purchase >= 1kg to referring customer
+          if (qualifiesReward && offer.referrerCustomerId) {
             const rewardCode = `REWARD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
             await tx.referralReward.create({
               data: {
-                offerId: validation.offerId,
+                offerId: offer.id,
                 customerId: offer.referrerCustomerId,
                 rewardCode,
                 discountPercent: 5.0,
@@ -283,65 +241,70 @@ export async function POST(req: NextRequest) {
             await tx.adminNotification.create({
               data: {
                 title: `Referral Reward Earned (5%)`,
-                message: `Referrer earned reward code ${rewardCode} from new customer order ${orderNumber}.`,
+                message: `Referrer earned reward code ${rewardCode} from new customer order ${order.orderNumber}.`,
                 type: 'REFERRAL_REWARD',
                 link: `/admin/referrals`,
               },
             });
           }
-        } else if (validation.source === 'REFERRAL_REWARD' && validation.rewardId) {
-          // Mark reward code as redeemed
-          await tx.referralReward.update({
-            where: { id: validation.rewardId },
-            data: {
-              isUsed: true,
-              usedAt: new Date(),
-              usedOrderId: order.id,
-              status: 'USED',
-            },
+        } else {
+          // Check if it's a personal reward code
+          const reward = await tx.referralReward.findFirst({
+            where: { rewardCode: order.referralCode, status: 'ACTIVE' },
           });
+          if (reward) {
+            await tx.referralReward.update({
+              where: { id: reward.id },
+              data: {
+                isUsed: true,
+                usedAt: new Date(),
+                usedOrderId: order.id,
+                status: 'USED',
+              },
+            });
+          }
         }
       }
 
-      // Create Admin Notification for new order
+      // Create Admin Notification for verified order
       await tx.adminNotification.create({
         data: {
-          title: `New Online Order: ${orderNumber}`,
-          message: `${customer.name} placed order of ₹${finalTotal} (${orderNumber}) via Razorpay.`,
+          title: `New Online Order: ${order.orderNumber}`,
+          message: `${order.customer.name} placed order of ₹${order.total} (${order.orderNumber}) via Cashfree.`,
           type: 'HIGH_VALUE_ORDER',
           link: `/admin/orders/${order.id}`,
         },
       });
 
-      return order;
+      return ord;
     });
 
-    console.log(`✅ [Order Created] Order ${createdOrder.orderNumber} successfully confirmed.`);
+    console.log(`✅ [Cashfree Order Verified] Order ${updatedOrder.orderNumber} successfully marked PAID.`);
 
-    // Generate secure customer session token and attach HttpOnly cookie
-    let sessionToken: string | null = null;
+    // 6. Generate secure customer session token and attach cookie
+    const response = NextResponse.json({
+      success: true,
+      orderNumber: updatedOrder.orderNumber,
+      orderId: updatedOrder.id,
+      amount: updatedOrder.total,
+      paymentId: String(successfulPayment.cf_payment_id),
+      message: 'Payment verified and order confirmed successfully',
+    });
+
     try {
-      sessionToken = await createCustomerSession(createdOrder.customerId, req);
+      const sessionToken = await createCustomerSession(updatedOrder.customerId, req);
+      if (sessionToken) {
+        attachCustomerSessionCookie(response, sessionToken);
+      }
     } catch (sessionErr) {
       console.error('Failed to create customer session:', sessionErr);
     }
 
-    const response = NextResponse.json({
-      success: true,
-      orderNumber: createdOrder.orderNumber,
-      orderId: createdOrder.id,
-      amount: createdOrder.total,
-    });
-
-    if (sessionToken) {
-      attachCustomerSessionCookie(response, sessionToken);
-    }
-
     return response;
   } catch (error: any) {
-    console.error('Payment verification error:', error);
+    console.error('Cashfree payment verification error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to verify payment and record order' },
+      { success: false, message: error.message || 'Failed to verify Cashfree payment' },
       { status: 500 }
     );
   }

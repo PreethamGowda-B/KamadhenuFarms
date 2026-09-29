@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         <ul style={{ paddingLeft: 20, marginTop: 8 }}>
           <li><b>Customer Details:</b> Name, mobile phone number, and email address.</li>
           <li><b>Delivery Address:</b> Street address, city, state, postal pincode, and landmark.</li>
-          <li><b>Payment Information:</b> Payment transactions are processed directly and securely through PCI-DSS compliant payment gateways (Razorpay). We do not store your complete card details or UPI PIN on our servers.</li>
+          <li><b>Payment Information:</b> Payment transactions are processed directly and securely through PCI-DSS compliant payment gateways (Cashfree Payments). We do not store your complete card details or UPI PIN on our servers.</li>
         </ul>
       </section>
 

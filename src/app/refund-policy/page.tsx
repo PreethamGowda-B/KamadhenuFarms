@@ -36,7 +36,7 @@ export default function RefundPolicyPage() {
         <h2 style={{ fontSize: '1.25rem', color: '#2d3748', marginBottom: 12 }}>3. Refund Timeline & Mode of Payment</h2>
         <p>Approved refunds are processed back to the original method of payment:</p>
         <ul style={{ paddingLeft: 20, marginTop: 8 }}>
-          <li><b>Online Payments (UPI / Cards / Netbanking):</b> The refund will be credited back to the source bank account/card through Razorpay within <b>5 to 7 business days</b>.</li>
+          <li><b>Online Payments (UPI / Cards / Netbanking):</b> The refund will be credited back to the source bank account/card through Cashfree Payment Gateway within <b>5 to 7 business days</b>.</li>
           <li><b>Cash on Delivery (COD):</b> Refunds will be credited directly to your bank account or UPI ID upon providing bank details to our customer support.</li>
         </ul>
       </section>

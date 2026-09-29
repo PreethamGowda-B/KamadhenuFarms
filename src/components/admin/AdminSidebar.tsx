@@ -40,8 +40,8 @@ export default function AdminSidebar() {
 
   const navItems = [
     {
-      label: 'Online Orders (Razorpay)',
-      sub: 'Consumer Orders & COD',
+      label: 'Online Orders',
+      sub: 'Consumer Orders & Payments',
       href: '/admin/orders',
       icon: ShoppingBag,
       active: pathname.startsWith('/admin/orders') || pathname.startsWith('/orders'),

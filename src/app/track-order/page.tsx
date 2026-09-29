@@ -65,7 +65,7 @@ function TrackOrderContent() {
 
   const steps = [
     { key: 'CONFIRMED', label: 'Order Confirmed', desc: 'Order verified & recorded' },
-    { key: 'PAID', label: 'Payment Received', desc: 'Securely processed via Razorpay' },
+    { key: 'PAID', label: 'Payment Received', desc: 'Securely verified & received' },
     { key: 'PROCESSING', label: 'Processing', desc: 'Harvest & batch allocation' },
     { key: 'PACKED', label: 'Packed', desc: 'Cushion-boxed for transit' },
     { key: 'SHIPPED', label: 'Shipped', desc: 'Handed to courier partner' },

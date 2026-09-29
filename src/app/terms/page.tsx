@@ -33,7 +33,7 @@ export default function TermsPage() {
 
       <section style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: '1.25rem', color: '#2d3748', marginBottom: 12 }}>3. Orders & Payments</h2>
-        <p>Orders can be placed directly through our secure online checkout or official WhatsApp channels. Payments are securely processed via Razorpay supporting UPI, Debit/Credit Cards, and Net Banking. Cash on Delivery (COD) may be available for select serviceable pincodes.</p>
+        <p>Orders can be placed directly through our secure online checkout or official WhatsApp channels. Payments are securely processed via Cashfree Payment Gateway supporting UPI, Debit/Credit Cards, and Net Banking. Cash on Delivery (COD) may be available for select serviceable pincodes.</p>
       </section>
 
       <section style={{ marginBottom: 28 }}>
