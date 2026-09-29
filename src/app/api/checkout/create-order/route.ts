@@ -163,8 +163,8 @@ export async function POST(req: NextRequest) {
     const advanceAmount = isCod ? Math.ceil(finalTotal * 0.50) : finalTotal;
     const codRemainingAmount = isCod ? (finalTotal - advanceAmount) : 0;
 
-    // 5. Generate Next Unique Order Number (e.g. KHF-ORD-000001)
-    const orderNumber = await generateNextOrderNumber();
+    // 5. Generate Next Unique Order Number (instantaneous in memory)
+    const orderNumber = generateNextOrderNumber();
 
     // 6. Create or Find Customer & Address in Database
     const cleanEmail = email.trim().toLowerCase();
@@ -204,6 +204,7 @@ export async function POST(req: NextRequest) {
               { email: cleanEmail },
             ],
           },
+          select: { id: true },
         });
 
         if (!customer) {
@@ -213,11 +214,7 @@ export async function POST(req: NextRequest) {
               mobile: cleanMobile,
               email: cleanEmail,
             },
-          });
-        } else {
-          customer = await prisma.customer.update({
-            where: { id: customer.id },
-            data: { name: cleanCustomerName },
+            select: { id: true },
           });
         }
 
@@ -234,6 +231,7 @@ export async function POST(req: NextRequest) {
             pincode: cleanPincode,
             landmark: landmark?.trim() || null,
           },
+          select: { id: true },
         });
 
         return prisma.order.create({
