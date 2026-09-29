@@ -103,7 +103,7 @@ export async function createCashfreeOrder(params: CashfreeOrderParams): Promise<
   const headers = getCashfreeHeaders();
 
   const sanitizedOrderId = params.orderId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 45);
-  const sanitizedCustomerId = (params.customer.customer_id || `cust_${Date.now()}`)
+  const sanitizedCustomerId = (params.customer.customer_id || `customer_${Date.now()}`)
     .replace(/[^a-zA-Z0-9_-]/g, '')
     .slice(0, 45);
 
