@@ -994,35 +994,41 @@ header nav {
   fill: currentColor;
 }
 
-/* Share Product Button */
+/* Share Product Button — stacked neatly below Wishlist button on top-right of card */
 .share-product-btn {
   position: absolute;
-  top: 68px;    /* sits below the badge/product-badge row */
-  left: 20px;
-  width: 36px;
-  height: 36px;
+  top: 72px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(216, 166, 79, 0.25);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(216, 166, 79, 0.2);
   color: var(--dark-gold);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 4;
+  z-index: 3;
   transition: var(--transition-fast);
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .share-product-btn:hover {
-  background: var(--primary-gold);
-  color: #fff;
-  transform: scale(1.12);
+  transform: scale(1.1);
+  background: #ffffff;
+  color: var(--primary-gold);
   border-color: var(--primary-gold);
+  box-shadow: 0 6px 16px rgba(216, 166, 79, 0.25);
 }
 
 .share-product-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
 }
 
 /* Product Media Layout (Gradients & fallbacks) */
