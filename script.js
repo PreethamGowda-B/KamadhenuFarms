@@ -1110,9 +1110,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/products/inventory', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.inventory) {
+        let changed = false;
         Object.keys(data.inventory).forEach(id => {
           if (productDatabase[id]) {
             const remote = data.inventory[id];
+            // Only mark changed if values actually differ
+            if (
+              productDatabase[id].stockStatus !== remote.stockStatus ||
+              productDatabase[id].restockDays !== remote.restockDays ||
+              productDatabase[id].canPreorder !== remote.canPreorder
+            ) {
+              changed = true;
+            }
             productDatabase[id].stockStatus = remote.stockStatus;
             productDatabase[id].restockDays = remote.restockDays;
             productDatabase[id].restockNote = remote.restockNote;
@@ -1120,8 +1129,13 @@ document.addEventListener('DOMContentLoaded', () => {
             productDatabase[id].canPreorder = remote.canPreorder;
           }
         });
-        renderProductCards();
-        updateHoneycombStockDisplay();
+        // Only re-render DOM if stock actually changed — avoids 30s thrash
+        if (changed) {
+          renderProductCards();
+          updateHoneycombStockDisplay();
+        } else {
+          updateHoneycombStockDisplay();
+        }
       }
     } catch (err) {
       console.warn('Realtime stock sync error:', err);
@@ -1499,6 +1513,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (checkoutShippingEl) {
       checkoutShippingEl.innerHTML = '<span style="font-size:0.8rem; color:#888;">Calculating...</span>';
+    }
+
+    // Don't call API if cart is empty - nothing to calculate
+    if (!cart || cart.length === 0) {
+      isShippingCalculated = false;
+      currentShippingCharge = 0;
+      if (checkoutShippingEl) {
+        checkoutShippingEl.textContent = 'Add items to cart first';
+        checkoutShippingEl.style.color = '#888';
+      }
+      renderCheckoutSummary();
+      return;
     }
 
     try {

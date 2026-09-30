@@ -55,8 +55,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -65,6 +68,23 @@ body {
   color: var(--luxury-charcoal);
   overflow-x: hidden;
   line-height: 1.6;
+}
+
+/* Disable heavy animations for users who prefer reduced motion or on low-end devices */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Disable backdrop-filter on mobile to prevent GPU lag */
+@media (max-width: 768px) {
+  * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
 }
 
 /* Typography & Headings */
