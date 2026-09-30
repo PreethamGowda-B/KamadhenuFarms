@@ -143,12 +143,11 @@ function calculateZonalRate(
   const extraWeightKg = Math.max(0, weightKg - 0.5);
   const extraHalfKgs = Math.ceil(extraWeightKg / 0.5);
 
-  // Zone 1: Bangalore City & Rural (560xxx, 562xxx)
+  // Zone 1: Bangalore City & Rural (560xxx, 562xxx) — Flat ₹99 delivery
   if (prefix3 === '560' || prefix3 === '562') {
-    const fee = 50 + extraHalfKgs * 20;
     return {
       serviceable: true,
-      shippingFee: Math.round(fee),
+      shippingFee: 99,
       courierName: 'Bangalore Express Courier',
       estimatedDays: '1-2 Days (Express Delivery)',
     };
@@ -191,8 +190,8 @@ function calculateZonalRate(
   };
 }
 
-// Testing Mode enabled - standard shipping rates set to 0 INR for live payment testing
-export const IS_TEST_MODE = true;
+// Production Mode: Real shipping rates apply
+export const IS_TEST_MODE = false;
 
 /**
  * Main Shipping Calculation Function
@@ -209,15 +208,6 @@ export async function calculateShippingCharge(
       courierName: 'Standard Courier',
       estimatedDays: '',
       error: 'Please enter a valid 6-digit delivery pincode',
-    };
-  }
-
-  if (IS_TEST_MODE) {
-    return {
-      serviceable: true,
-      shippingFee: 0,
-      courierName: 'Express Delivery (Free for Testing)',
-      estimatedDays: '1-2 Business Days',
     };
   }
 

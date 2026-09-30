@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let cart = JSON.parse(localStorage.getItem('kamadhenu_cart')) || [];
   let wishlist = JSON.parse(localStorage.getItem('kamadhenu_wishlist')) || [];
   let currentCoupon = null;
-  const deliveryCharges = 0; // Free delivery for luxury brand
   let isCheckoutSubmitting = false;
 
   // Request timeout wrapper to protect against network drops and freezing
@@ -46,12 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const PRIMARY_WHATSAPP = '919980114675';
   
   // Product Config Database (Price by size)
-  // TEMPORARY TEST PRICING: Set all variants to 1 INR for Cashfree live test
-  // Original prices:
-  // p1: { '250g': 250, '500g': 399, '1kg': 749 }
-  // p2: { '250g': 399, '500g': 599, '1kg': 999 }
-  // p3: { '500g': 599 }
-  // p4: { '500g': 899 }
   const productDatabase = {
     'p1': {
       id: 'p1',
@@ -523,8 +516,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    const finalTotal = Math.max(0, subtotal - discount + deliveryCharges);
-    cartTotalEl.textContent = `₹${finalTotal}`;
+    // Cart shows subtotal only — delivery calculated at checkout after pincode entry
+    const subtotalAfterDiscount = Math.max(0, subtotal - discount);
+    cartTotalEl.textContent = `₹${subtotalAfterDiscount}`;
+    // Add a small note under total if not already present
+    let shippingNote = cartTotalEl.parentElement?.querySelector('.cart-shipping-note');
+    if (!shippingNote) {
+      shippingNote = document.createElement('small');
+      shippingNote.className = 'cart-shipping-note';
+      shippingNote.style.cssText = 'display:block; color:#888; font-size:0.72rem; margin-top:2px;';
+      cartTotalEl.parentElement?.appendChild(shippingNote);
+    }
+    shippingNote.textContent = '+ Delivery charges calculated at checkout';
 
     // Wire up events safely with closest() selector
     cartItemsContainer.querySelectorAll('.dec-qty-cart').forEach(btn => {
