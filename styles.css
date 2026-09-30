@@ -63,7 +63,8 @@ html {
 }
 
 section[id],
-.product-card {
+.product-card,
+.upcoming-card {
   scroll-margin-top: calc(var(--header-height, 80px) + 24px);
 }
 
@@ -1030,6 +1031,48 @@ header nav {
 }
 
 .share-product-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+}
+
+/* Honeycomb Section Share Button */
+.upcoming-share-btn {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(18, 16, 12, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(216, 166, 79, 0.4);
+  color: var(--primary-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 7;
+  transition: var(--transition-fast);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.upcoming-card.flagship-card .upcoming-share-btn {
+  top: 68px;
+  right: 22px;
+}
+
+.upcoming-share-btn:hover {
+  transform: scale(1.1);
+  background: var(--primary-gold);
+  color: #000;
+  border-color: var(--primary-gold);
+  box-shadow: 0 6px 20px rgba(216, 166, 79, 0.4);
+}
+
+.upcoming-share-btn svg {
   width: 18px;
   height: 18px;
   fill: none;

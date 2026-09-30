@@ -1459,53 +1459,54 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       }
 
-      // Share button — Web Share API on mobile, clipboard fallback on desktop
-      const shareBtn = productCard.querySelector('.share-product-btn');
-      if (shareBtn) {
-        shareBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const shareUrl = `https://kamadhenuhoneyfarms.in/#product-${product.id}`;
-          const shareText = `🍯 Check out *${product.name}* from Kamadhenu Honey Farms!\nPure natural honey direct from our apiary in Bangalore.`;
-
-          if (navigator.share) {
-            // Native mobile share sheet (WhatsApp, Instagram, etc.)
-            // Pass shareText without URL so WhatsApp appends url once cleanly without duplicating
-            try {
-              await navigator.share({
-                title: `${product.name} — Kamadhenu Honey Farms`,
-                text: shareText,
-                url: shareUrl,
-              });
-            } catch (err) {
-              if (err.name !== 'AbortError') console.warn('Share failed:', err);
-            }
-          } else {
-            // Desktop fallback: copy full message with link to clipboard + show toast
-            const fullMessage = `${shareText}\nOrder here: ${shareUrl}`;
-            try {
-              await navigator.clipboard.writeText(fullMessage);
-              shareBtn.title = 'Link copied!';
-              const origInner = shareBtn.innerHTML;
-              shareBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
-              if (typeof showToast === 'function') {
-                showToast(`📋 Link to ${product.name} copied to clipboard!`);
-              }
-              setTimeout(() => {
-                shareBtn.innerHTML = origInner;
-                shareBtn.title = 'Share this product';
-              }, 1800);
-            } catch {
-              // Last resort: open WhatsApp web
-              window.open(`https://wa.me/?text=${encodeURIComponent(fullMessage)}`, '_blank');
-            }
-          }
-        });
-      }
     });
 
     // Fire reveal checks
     triggerScrollReveal();
   };
+
+  // Universal Share Product click listener (handles regular products and upcoming honeycomb cards)
+  document.addEventListener('click', async (e) => {
+    const shareBtn = e.target.closest('.share-product-btn');
+    if (!shareBtn) return;
+
+    e.stopPropagation();
+    e.preventDefault();
+
+    const productId = shareBtn.dataset.productId;
+    const productName = shareBtn.dataset.productName || (productDatabase[productId] ? productDatabase[productId].name : 'Pure Honey');
+    const shareUrl = `https://kamadhenuhoneyfarms.in/#product-${productId}`;
+    const shareText = `🍯 Check out *${productName}* from Kamadhenu Honey Farms!\nPure natural honey direct from our apiary in Bangalore.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${productName} — Kamadhenu Honey Farms`,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') console.warn('Share failed:', err);
+      }
+    } else {
+      const fullMessage = `${shareText}\nOrder here: ${shareUrl}`;
+      try {
+        await navigator.clipboard.writeText(fullMessage);
+        shareBtn.title = 'Link copied!';
+        const origInner = shareBtn.innerHTML;
+        shareBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+        if (typeof showToast === 'function') {
+          showToast(`📋 Link to ${productName} copied to clipboard!`);
+        }
+        setTimeout(() => {
+          shareBtn.innerHTML = origInner;
+          shareBtn.title = 'Share this product';
+        }, 1800);
+      } catch {
+        window.open(`https://wa.me/?text=${encodeURIComponent(fullMessage)}`, '_blank');
+      }
+    }
+  });
 
   // Bind Search events
   if (productSearch) {
@@ -3000,7 +3001,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (targetEl) {
         setTimeout(() => {
           targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          if (targetEl.classList.contains('product-card')) {
+          if (targetEl.classList.contains('product-card') || targetEl.classList.contains('upcoming-card')) {
             targetEl.style.transition = 'box-shadow 0.6s ease, border-color 0.6s ease';
             targetEl.style.boxShadow = '0 0 0 3px var(--primary-gold), 0 20px 40px rgba(216,166,79,0.35)';
             targetEl.style.borderColor = 'var(--primary-gold)';

@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. CRITICAL: Verify this order belongs to the authenticated customer
-    // This prevents IDOR — User A cannot view User B's invoice even if they know the order number
+    // This prevents unauthorized cross-user access — User A cannot view User B's invoice even if they know the order number
     if (order.customerId !== session.id) {
       return NextResponse.json(
         { success: false, message: 'Access denied.' },
