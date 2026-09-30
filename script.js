@@ -1527,12 +1527,17 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // Universal Share Product click listener (handles regular products and upcoming honeycomb cards)
+  let isSharePending = false;
   document.addEventListener('click', async (e) => {
     const shareBtn = e.target.closest('.share-product-btn');
     if (!shareBtn) return;
 
     e.stopPropagation();
     e.preventDefault();
+
+    if (isSharePending) return;
+    isSharePending = true;
+    setTimeout(() => { isSharePending = false; }, 1200);
 
     const productId = shareBtn.dataset.productId;
     const product = productDatabase[productId];
@@ -1585,7 +1590,11 @@ ${shareUrl}
           text: professionalMessage
         });
       } catch (err) {
-        if (err.name !== 'AbortError') console.warn('Share failed:', err);
+        if (err.name !== 'AbortError' && err.name !== 'InvalidStateError') {
+          console.warn('Share notice:', err);
+        }
+      } finally {
+        isSharePending = false;
       }
     } else {
       try {

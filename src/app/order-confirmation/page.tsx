@@ -205,7 +205,7 @@ function ConfirmationContent() {
           margin: [8, 8, 8, 8],
           filename: `Kamadhenu-Invoice-${displayOrderNum}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, logging: false },
+          html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', scrollY: 0 },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
@@ -327,15 +327,22 @@ function ConfirmationContent() {
           pointer-events: none;
         }
         @media print {
-          body {
+          *, *::before, *::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          html, body {
             background: #ffffff !important;
-            color: #000000 !important;
+            color: #1a202c !important;
             padding: 0 !important;
             margin: 0 !important;
+            width: 100% !important;
           }
           .no-print,
           header,
           footer,
+          nav,
           .confetti-particle,
           .non-print-section {
             display: none !important;
@@ -343,12 +350,15 @@ function ConfirmationContent() {
           .print-only-invoice {
             display: block !important;
             box-shadow: none !important;
-            border: 1px solid #ddd !important;
+            border: 2px solid #d8a64f !important;
+            border-radius: 16px !important;
             width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
+            max-width: 800px !important;
+            margin: 0 auto !important;
             padding: 24px !important;
+            background: #ffffff !important;
             page-break-after: avoid !important;
+            page-break-inside: avoid !important;
           }
         }
       `}</style>
