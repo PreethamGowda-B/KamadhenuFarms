@@ -1167,6 +1167,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const productCard = document.createElement('div');
       productCard.className = 'product-card reveal reveal-fade-up';
+      productCard.id = `product-${product.id}`;
       productCard.dataset.productId = product.id;
 
       // Select ₹399 variant as default active size if available (Pure Honey 500g, Dry Fruits 250g)
@@ -1463,11 +1464,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (shareBtn) {
         shareBtn.addEventListener('click', async (e) => {
           e.stopPropagation();
-          const shareUrl = `https://kamadhenuhoneyfarms.in/#our-honey`;
-          const shareText = `🍯 Check out *${product.name}* from Kamadhenu Honey Farms!\nPure natural honey direct from our apiary in Bangalore.\nOrder here: ${shareUrl}`;
+          const shareUrl = `https://kamadhenuhoneyfarms.in/#product-${product.id}`;
+          const shareText = `🍯 Check out *${product.name}* from Kamadhenu Honey Farms!\nPure natural honey direct from our apiary in Bangalore.`;
 
           if (navigator.share) {
             // Native mobile share sheet (WhatsApp, Instagram, etc.)
+            // Pass shareText without URL so WhatsApp appends url once cleanly without duplicating
             try {
               await navigator.share({
                 title: `${product.name} — Kamadhenu Honey Farms`,
@@ -1478,19 +1480,23 @@ document.addEventListener('DOMContentLoaded', () => {
               if (err.name !== 'AbortError') console.warn('Share failed:', err);
             }
           } else {
-            // Desktop fallback: copy to clipboard + show toast
+            // Desktop fallback: copy full message with link to clipboard + show toast
+            const fullMessage = `${shareText}\nOrder here: ${shareUrl}`;
             try {
-              await navigator.clipboard.writeText(shareText);
+              await navigator.clipboard.writeText(fullMessage);
               shareBtn.title = 'Link copied!';
               const origInner = shareBtn.innerHTML;
               shareBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+              if (typeof showToast === 'function') {
+                showToast(`📋 Link to ${product.name} copied to clipboard!`);
+              }
               setTimeout(() => {
                 shareBtn.innerHTML = origInner;
                 shareBtn.title = 'Share this product';
               }, 1800);
             } catch {
               // Last resort: open WhatsApp web
-              window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+              window.open(`https://wa.me/?text=${encodeURIComponent(fullMessage)}`, '_blank');
             }
           }
         });
@@ -2974,6 +2980,41 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeUpcomingGallery();
     checkCustomerSession();
     syncRealtimeStock();
+
+    // Deep-link scroll handling for shared products (e.g. #product-p1, #products, #our-honey)
+    const handleDeepLinkHash = () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+
+      let targetEl = null;
+      if (hash === '#our-honey' || hash === '#products') {
+        targetEl = document.getElementById('products');
+      } else {
+        try {
+          targetEl = document.querySelector(hash);
+        } catch {
+          targetEl = null;
+        }
+      }
+
+      if (targetEl) {
+        setTimeout(() => {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (targetEl.classList.contains('product-card')) {
+            targetEl.style.transition = 'box-shadow 0.6s ease, border-color 0.6s ease';
+            targetEl.style.boxShadow = '0 0 0 3px var(--primary-gold), 0 20px 40px rgba(216,166,79,0.35)';
+            targetEl.style.borderColor = 'var(--primary-gold)';
+            setTimeout(() => {
+              targetEl.style.boxShadow = '';
+              targetEl.style.borderColor = '';
+            }, 3500);
+          }
+        }, 350);
+      }
+    };
+
+    handleDeepLinkHash();
+    window.addEventListener('hashchange', handleDeepLinkHash);
 
     // Live inventory polling every 30 seconds
     setInterval(() => {
