@@ -82,6 +82,9 @@
     "cashfree",
     "CASHFREE",
     "Paytm",
-    "cust"
+    "cust",
+    "Preorder",
+    "preorder",
+    "canPreorder"
   ]
 }
