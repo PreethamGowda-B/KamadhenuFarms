@@ -935,7 +935,6 @@ header nav {
   perspective: 1500px;
   transform-style: preserve-3d;
   will-change: transform;
-  contain: layout style;
 }
 
 .product-card:hover {
@@ -998,18 +997,18 @@ header nav {
 /* Share Product Button */
 .share-product-btn {
   position: absolute;
-  top: 20px;
-  right: 72px; /* sits left of wishlist btn */
-  width: 40px;
-  height: 40px;
+  top: 68px;    /* sits below the badge/product-badge row */
+  left: 20px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(216, 166, 79, 0.2);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(216, 166, 79, 0.25);
   color: var(--dark-gold);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 3;
+  z-index: 4;
   transition: var(--transition-fast);
   cursor: pointer;
 }
@@ -1017,13 +1016,13 @@ header nav {
 .share-product-btn:hover {
   background: var(--primary-gold);
   color: #fff;
-  transform: scale(1.1);
+  transform: scale(1.12);
   border-color: var(--primary-gold);
 }
 
 .share-product-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
 }
 
 /* Product Media Layout (Gradients & fallbacks) */
