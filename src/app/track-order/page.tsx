@@ -20,21 +20,40 @@ import {
 
 function TrackOrderContent() {
   const searchParams = useSearchParams();
-  const initialOrderNumber = searchParams.get('orderNumber') || '';
+  const urlOrderNumber = searchParams.get('orderNumber') || searchParams.get('order_id') || searchParams.get('order') || '';
+  const urlMobile = searchParams.get('mobile') || searchParams.get('phone') || '';
 
-  const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
-  const [mobile, setMobile] = useState('');
+  const [orderNumber, setOrderNumber] = useState(urlOrderNumber);
+  const [mobile, setMobile] = useState(urlMobile);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [orderData, setOrderData] = useState<any | null>(null);
 
-  const handleTrack = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!orderNumber.trim()) {
+  // Auto-fill from localStorage if missing in URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedOrder = localStorage.getItem('kamadhenu_last_order') || '';
+        const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
+        if (!orderNumber && savedOrder) setOrderNumber(savedOrder);
+        if (!mobile && savedMobile) setMobile(savedMobile);
+
+        const targetOrd = orderNumber || urlOrderNumber || savedOrder;
+        const targetMob = mobile || urlMobile || savedMobile;
+
+        if (targetOrd && targetMob) {
+          executeTrack(targetOrd, targetMob);
+        }
+      } catch (e) {}
+    }
+  }, []);
+
+  const executeTrack = async (targetOrder: string, targetMobile: string) => {
+    if (!targetOrder.trim()) {
       setError('Please enter your Order Number (e.g. KHF-ORD-000001)');
       return;
     }
-    if (!mobile.trim()) {
+    if (!targetMobile.trim()) {
       setError('Please enter your 10-digit mobile number for security verification');
       return;
     }
@@ -45,8 +64,8 @@ function TrackOrderContent() {
       setOrderData(null);
 
       const res = await fetch(
-        `/api/orders/track?orderNumber=${encodeURIComponent(orderNumber.trim())}&mobile=${encodeURIComponent(
-          mobile.trim()
+        `/api/orders/track?orderNumber=${encodeURIComponent(targetOrder.trim())}&mobile=${encodeURIComponent(
+          targetMobile.trim()
         )}`
       );
       const data = await res.json();
@@ -61,6 +80,11 @@ function TrackOrderContent() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTrack = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    executeTrack(orderNumber, mobile);
   };
 
   const steps = [

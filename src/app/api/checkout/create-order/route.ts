@@ -6,6 +6,7 @@ import { validateDiscountOrReferralCode } from '@/lib/referral';
 import { isBangaloreDelivery } from '@/lib/location';
 import { generateNextOrderNumber } from '@/lib/orderNumber';
 import { AUTHORITATIVE_PRICES } from '@/lib/products';
+import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -288,7 +289,7 @@ export async function POST(req: NextRequest) {
 
     const cashfreeConfig = getCashfreeConfig();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       paymentSessionId: cashfreeOrder.payment_session_id,
       orderNumber,
@@ -307,6 +308,15 @@ export async function POST(req: NextRequest) {
       courierName: shippingResult.courierName,
       estimatedDays: shippingResult.estimatedDays,
     });
+
+    try {
+      const sessionToken = await createCustomerSession(dbOrder.customerId, req);
+      if (sessionToken) attachCustomerSessionCookie(response, sessionToken);
+    } catch (sessErr) {
+      console.error('Session creation error in create-order:', sessErr);
+    }
+
+    return response;
   } catch (error: any) {
     console.error('Create Cashfree order error:', error);
     return NextResponse.json(

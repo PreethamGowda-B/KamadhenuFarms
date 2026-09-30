@@ -778,7 +778,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function checkCustomerSession() {
     try {
-      const res = await fetch('/api/customer/me', { credentials: 'same-origin' });
+      const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
+      const query = savedMobile ? `?mobile=${encodeURIComponent(savedMobile)}` : '';
+      const res = await fetch(`/api/customer/me${query}`, { credentials: 'same-origin' });
       const data = await res.json();
       if (data && data.authenticated && data.customer) {
         currentCustomer = data;
@@ -809,6 +811,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Render saved addresses if available
         if (data.savedAddresses && data.savedAddresses.length > 0) {
           renderSavedAddresses(data.savedAddresses);
+        }
+      } else {
+        // If customer has saved mobile from previous purchase, make My Orders link visible in mobile menu
+        if (savedMobile && mobileOrdersLink) {
+          mobileOrdersLink.style.display = 'flex';
         }
       }
     } catch (err) {
@@ -934,20 +941,40 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     try {
-      const res = await fetch('/api/customer/orders', { credentials: 'same-origin' });
+      const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
+      const savedOrder = localStorage.getItem('kamadhenu_last_order') || '';
+      const query = savedMobile ? `?mobile=${encodeURIComponent(savedMobile)}` : (savedOrder ? `?orderNumber=${encodeURIComponent(savedOrder)}` : '');
+      const res = await fetch(`/api/customer/orders${query}`, { credentials: 'same-origin' });
       const data = await res.json();
 
       if (!data.success || !data.orders || data.orders.length === 0) {
         customerOrdersContainer.innerHTML = `
-          <div style="text-align:center; padding: 50px 20px; color:#718096;">
-            <div style="font-size: 3rem; margin-bottom: 12px;">🍯</div>
-            <h4 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 6px;">No Previous Orders Found</h4>
-            <p style="font-size: 0.85rem; max-width: 280px; margin: 0 auto 20px;">
-              Your completed orders and tracking details will appear here automatically.
+          <div style="text-align:center; padding: 40px 20px; color:#718096;">
+            <div style="font-size: 2.8rem; margin-bottom: 12px;">🍯</div>
+            <h4 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 6px;">Find Your Order History</h4>
+            <p style="font-size: 0.85rem; max-width: 290px; margin: 0 auto 16px; color:#718096;">
+              Enter your mobile number to view your ordered products, invoices & tracking status.
             </p>
-            <button class="btn btn-gold" id="btnShopFromOrders" style="padding: 10px 24px;">Explore Honey Collection</button>
+            <div style="display:flex; gap:8px; max-width:280px; margin:0 auto 16px;">
+              <input type="tel" id="inputOrdersPhone" class="form-control" placeholder="10-digit mobile number" maxlength="10" style="padding:9px 12px; font-size:0.85rem;" value="${savedMobile}">
+              <button class="btn btn-gold" id="btnLookupOrders" style="padding:9px 16px; font-size:0.85rem; white-space:nowrap;">Search</button>
+            </div>
+            <button class="btn btn-charcoal" id="btnShopFromOrders" style="padding: 9px 22px; font-size:0.85rem;">Explore Honey Collection</button>
           </div>
         `;
+        const btnLookup = document.getElementById('btnLookupOrders');
+        const inputPhone = document.getElementById('inputOrdersPhone');
+        if (btnLookup && inputPhone) {
+          btnLookup.addEventListener('click', () => {
+            const p = inputPhone.value.trim().replace(/\D/g, '');
+            if (p.length === 10) {
+              try { localStorage.setItem('kamadhenu_customer_mobile', p); } catch (e) {}
+              loadCustomerOrders();
+            } else {
+              alert('Please enter your 10-digit WhatsApp mobile number');
+            }
+          });
+        }
         const btnShop = document.getElementById('btnShopFromOrders');
         if (btnShop) {
           btnShop.addEventListener('click', () => {
@@ -1984,6 +2011,12 @@ ${shareUrl}
           throw new Error(createData.message || 'Failed to create payment session');
         }
 
+        // Store customer mobile and order number in localStorage for seamless "My Orders" access
+        try {
+          localStorage.setItem('kamadhenu_customer_mobile', cleanMobile);
+          localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
+        } catch (e) {}
+
         const mode = createData.environment === 'production' ? 'production' : 'sandbox';
         const cashfree = getCashfreeSDK(mode) || window.Cashfree({ mode });
 
@@ -1992,6 +2025,14 @@ ${shareUrl}
           paymentSessionId: createData.paymentSessionId,
           redirectTarget: isMobile ? '_self' : '_modal'
         };
+
+        // Empty cart immediately on mobile redirect so cart is fresh upon return
+        if (isMobile) {
+          cart = [];
+          saveCart();
+          renderCart();
+          updateBadges();
+        }
 
         cashfree.checkout(checkoutOptions).then(async (result) => {
           if (result.error) {
@@ -2168,7 +2209,7 @@ ${shareUrl}
                 foundStatus = 'received';
                 foundSteps = ['received'];
               }
-              orderData = { steps: foundSteps, status: foundStatus, date: foundDate };
+              orderData = { steps: foundSteps, status: foundStatus, date: foundDate, items: o.items, total: o.total };
             }
           } catch (e) {
             console.warn('Live tracking API check error:', e);
@@ -2197,6 +2238,34 @@ ${shareUrl}
             stepEl.classList.add('active');
           }
         });
+
+        const itemsContainer = document.getElementById('trackerItemsContainer');
+        if (itemsContainer) {
+          if (orderData.items && orderData.items.length > 0) {
+            itemsContainer.innerHTML = `
+              <div style="margin-top:14px; padding-top:12px; border-top:1px dashed rgba(216,166,79,0.4);">
+                <h5 style="font-size:0.85rem; font-weight:700; color:#3A2A18; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Ordered Products</h5>
+                ${orderData.items.map(it => `
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f0eae1; font-size:0.82rem;">
+                    <div>
+                      <span style="font-weight:700; color:#2d3748;">${it.productNameSnapshot || 'Honey'}</span>
+                      <span style="color:#718096; margin-left:4px;">(${it.weightVariant})</span>
+                    </div>
+                    <span style="font-weight:700; color:#8C6219;">Qty: ${it.quantity}</span>
+                  </div>
+                `).join('')}
+                ${orderData.total ? `
+                  <div style="display:flex; justify-content:space-between; margin-top:8px; font-weight:700; font-size:0.88rem; color:#2d3748;">
+                    <span>Total Paid</span>
+                    <span style="color:#8C6219;">₹${orderData.total}</span>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          } else {
+            itemsContainer.innerHTML = '';
+          }
+        }
 
         trackerResults.classList.add('active');
       } finally {

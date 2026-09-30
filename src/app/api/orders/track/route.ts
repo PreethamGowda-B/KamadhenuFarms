@@ -16,7 +16,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const whereClause: any = { orderNumber };
+    const cleanNum = orderNumber.replace(/\s+/g, '');
+    const candidateNumbers = [
+      cleanNum,
+      cleanNum.startsWith('KHF-ORD-') ? cleanNum : `KHF-ORD-${cleanNum}`,
+    ];
+
+    const whereClause: any = {
+      OR: [
+        { orderNumber: { in: candidateNumbers } },
+        { cashfreeOrderId: { in: candidateNumbers } },
+        { id: cleanNum },
+      ],
+    };
     if (mobile && mobile.length >= 10) {
       whereClause.customer = {
         mobile: {

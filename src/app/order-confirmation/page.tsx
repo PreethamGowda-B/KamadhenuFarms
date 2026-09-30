@@ -89,6 +89,20 @@ function ConfirmationContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
+  // Clear cart from browser local storage immediately upon confirmed purchase
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('kamadhenu_cart');
+        localStorage.removeItem('cart');
+        localStorage.removeItem('currentCoupon');
+        if (orderNumber) {
+          localStorage.setItem('kamadhenu_last_order', orderNumber);
+        }
+      } catch (e) {}
+    }
+  }, [orderNumber]);
+
   // Fetch full live order and invoice data from server
   useEffect(() => {
     if (!orderNumber) {
@@ -112,6 +126,11 @@ function ConfirmationContent() {
           if (isMounted) {
             setOrder(verifyData.order);
             setLoading(false);
+            if (verifyData.order.customer?.mobile && typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('kamadhenu_customer_mobile', verifyData.order.customer.mobile);
+              } catch (e) {}
+            }
           }
           orderLoaded = true;
         }
@@ -749,7 +768,7 @@ function ConfirmationContent() {
             </a>
             <span className="text-stone-300">•</span>
             <a
-              href={`/track-order?orderNumber=${encodeURIComponent(displayOrderNum)}`}
+              href={`/track-order?orderNumber=${encodeURIComponent(displayOrderNum)}&mobile=${encodeURIComponent(order?.customer?.mobile || '')}`}
               className="text-amber-800 hover:text-amber-900 font-bold text-sm underline underline-offset-4"
             >
               Track Live Courier Status →
