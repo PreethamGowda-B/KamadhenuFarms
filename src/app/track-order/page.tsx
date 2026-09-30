@@ -41,7 +41,7 @@ function TrackOrderContent() {
         const targetOrd = orderNumber || urlOrderNumber || savedOrder;
         const targetMob = mobile || urlMobile || savedMobile;
 
-        if (targetOrd && targetMob) {
+        if (targetOrd) {
           executeTrack(targetOrd, targetMob);
         }
       } catch (e) {}
@@ -53,20 +53,15 @@ function TrackOrderContent() {
       setError('Please enter your Order Number (e.g. KHF-ORD-000001)');
       return;
     }
-    if (!targetMobile.trim()) {
-      setError('Please enter your 10-digit mobile number for security verification');
-      return;
-    }
 
     try {
       setLoading(true);
       setError('');
       setOrderData(null);
 
+      const mobileQuery = targetMobile.trim() ? `&mobile=${encodeURIComponent(targetMobile.trim())}` : '';
       const res = await fetch(
-        `/api/orders/track?orderNumber=${encodeURIComponent(targetOrder.trim())}&mobile=${encodeURIComponent(
-          targetMobile.trim()
-        )}`
+        `/api/orders/track?orderNumber=${encodeURIComponent(targetOrder.trim())}${mobileQuery}`
       );
       const data = await res.json();
 

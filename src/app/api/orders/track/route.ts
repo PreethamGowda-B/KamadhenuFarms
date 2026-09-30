@@ -48,9 +48,12 @@ export async function GET(req: NextRequest) {
         },
         items: {
           select: {
+            productId: true,
             productNameSnapshot: true,
             weightVariant: true,
             quantity: true,
+            unitPrice: true,
+            totalPrice: true,
           },
         },
         shipments: {

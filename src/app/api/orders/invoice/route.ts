@@ -65,6 +65,17 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Only confirmed/paid orders (or COD orders with advance paid) are eligible for official invoice
+    const isPaid = order.paymentStatus === 'PAID' ||
+                   order.paymentStatus === 'COD_ADVANCE_PAID' ||
+                   order.paymentStatus === 'FULLY_PAID';
+    if (!isPaid) {
+      return NextResponse.json(
+        { success: false, pending: true, message: 'Tax invoice is only generated once payment is confirmed by bank.' },
+        { status: 402 }
+      );
+    }
+
     const latestPayment = order.payments[0] || null;
     const latestShipment = order.shipments[0] || null;
 

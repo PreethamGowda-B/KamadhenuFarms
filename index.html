@@ -26,7 +26,7 @@
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260930_v24">
+  <link rel="stylesheet" href="styles.css?v=20260930_v25">
 
   <!-- Structured SEO Schema Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -122,7 +122,7 @@
           </svg>
         </button>
         <!-- Customer Memory My Orders trigger -->
-        <button class="nav-icon-btn open-orders-btn" id="openOrdersBtn" title="My Orders" style="display:none;">
+        <button class="nav-icon-btn open-orders-btn" id="openOrdersBtn" title="My Orders" style="display:inline-flex;">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
@@ -207,7 +207,7 @@
               <span class="nav-icon">📦</span>
               <span>Track Order</span>
             </a>
-            <a href="#" class="mobile-nav-item open-orders-btn" id="mobileOrdersLink" style="display:none;" onclick="window.handleMobileNavLink(event, 'orders')">
+            <a href="#" class="mobile-nav-item open-orders-btn" id="mobileOrdersLink" style="display:flex;" onclick="window.handleMobileNavLink(event, 'orders')">
               <span class="nav-icon">🛍️</span>
               <span id="mobileOrdersLabel">My Orders</span>
             </a>
@@ -2140,6 +2140,6 @@
     <div class="toast-progress-bar"></div>
   </div>
   <!-- Application Script -->
-  <script src="script.js?v=20260930_v24" defer></script>
+  <script src="script.js?v=20260930_v25" defer></script>
 </body>
 </html>

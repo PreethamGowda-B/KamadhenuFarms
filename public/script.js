@@ -590,6 +590,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  // Re-sync cart on pageshow to handle browser back button and mobile BFCache
+  window.addEventListener('pageshow', () => {
+    try {
+      const saved = localStorage.getItem('kamadhenu_cart');
+      cart = saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      cart = [];
+    }
+    renderCart();
+    updateBadges();
+  });
+
   // Coupon & Referral Engine
   if (applyCouponBtn) {
     applyCouponBtn.addEventListener('click', async () => {
@@ -2026,14 +2038,6 @@ ${shareUrl}
           redirectTarget: isMobile ? '_self' : '_modal'
         };
 
-        // Empty cart immediately on mobile redirect so cart is fresh upon return
-        if (isMobile) {
-          cart = [];
-          saveCart();
-          renderCart();
-          updateBadges();
-        }
-
         cashfree.checkout(checkoutOptions).then(async (result) => {
           if (result.error) {
             console.error('Cashfree checkout modal error:', result.error);
@@ -2045,8 +2049,8 @@ ${shareUrl}
           }
 
           if (result.redirect) {
-            console.log('Cashfree payment redirecting...');
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}`;
+            console.log('Cashfree SDK is handling redirection to payment gateway...');
+            // Cashfree handles navigation directly to the payment page. Do NOT manually navigate!
             return;
           }
 
@@ -2097,14 +2101,13 @@ ${shareUrl}
               }
             }
 
-            if (verifySuccess && verifyData) {
+            if (verifySuccess && verifyData && verifyData.success) {
               cart = [];
               saveCart();
               currentCoupon = null;
               closeCheckout();
               const targetOrder = verifyData.orderNumber || createData.orderNumber;
-              const statusQuery = verifyData.pending ? '&status=pending' : '';
-              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}${statusQuery}`;
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}`;
               return;
             }
 
@@ -2113,13 +2116,13 @@ ${shareUrl}
               throw new Error(verifyData.message || 'Payment was declined or cancelled. Please try again.');
             }
 
-            // Fallback: If payment modal completed without cancellation, proceed to confirmation page where server verification re-runs
-            cart = [];
-            saveCart();
-            currentCoupon = null;
-            closeCheckout();
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}`;
-            return;
+            if (verifyData && verifyData.pending) {
+              closeCheckout();
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
+              return;
+            }
+
+            throw new Error((verifyData && verifyData.message) || 'Payment verification could not be completed. Please check your bank.');
           } catch (vErr) {
             console.error('Payment verification error:', vErr);
             showCheckoutError(vErr.message || `Payment completed on Cashfree but verification timed out. If money was deducted, your order will be confirmed shortly.`);

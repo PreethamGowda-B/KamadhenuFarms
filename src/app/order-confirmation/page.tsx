@@ -89,89 +89,86 @@ function ConfirmationContent() {
   const [loading, setLoading] = useState<boolean>(true);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
-  // Clear cart from browser local storage immediately upon confirmed purchase
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('kamadhenu_cart');
-        localStorage.removeItem('cart');
-        localStorage.removeItem('currentCoupon');
-        if (orderNumber) {
-          localStorage.setItem('kamadhenu_last_order', orderNumber);
+  const verifyAndLoadInvoice = async () => {
+    setLoading(true);
+    let orderLoaded = false;
+    try {
+      const verifyRes = await fetch('/api/checkout/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber }),
+      });
+      const verifyData = await verifyRes.json();
+      if (verifyData.success && verifyData.order) {
+        setOrder(verifyData.order);
+        setLoading(false);
+        if (verifyData.order.customer?.mobile && typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('kamadhenu_customer_mobile', verifyData.order.customer.mobile);
+          } catch (e) {}
         }
-      } catch (e) {}
+        orderLoaded = true;
+      }
+    } catch (e) {
+      console.warn('Verify call on confirmation page:', e);
     }
-  }, [orderNumber]);
 
-  // Fetch full live order and invoice data from server
+    if (!orderLoaded) {
+      try {
+        let attempts = 0;
+        let invoiceData = null;
+        while (attempts < 2) {
+          attempts++;
+          const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
+          const data = await res.json();
+          if (data.success && data.order) {
+            invoiceData = data.order;
+            break;
+          }
+          if (attempts < 2) await new Promise((r) => setTimeout(r, 600));
+        }
+
+        if (invoiceData) {
+          setOrder(invoiceData);
+        }
+      } catch (err) {
+        console.error('Failed to load order invoice details', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!orderNumber) {
       setLoading(false);
       return;
     }
-
-    let isMounted = true;
-
-    // Call verify to guarantee order confirmation on redirect from Cashfree
-    const verifyAndLoadInvoice = async () => {
-      let orderLoaded = false;
-      try {
-        const verifyRes = await fetch('/api/checkout/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderNumber }),
-        });
-        const verifyData = await verifyRes.json();
-        if (verifyData.success && verifyData.order) {
-          if (isMounted) {
-            setOrder(verifyData.order);
-            setLoading(false);
-            if (verifyData.order.customer?.mobile && typeof window !== 'undefined') {
-              try {
-                localStorage.setItem('kamadhenu_customer_mobile', verifyData.order.customer.mobile);
-              } catch (e) {}
-            }
-          }
-          orderLoaded = true;
-        }
-      } catch (e) {
-        console.warn('Verify call on confirmation page:', e);
-      }
-
-      if (!orderLoaded) {
-        try {
-          let attempts = 0;
-          let invoiceData = null;
-          while (attempts < 3) {
-            attempts++;
-            const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
-            const data = await res.json();
-            if (data.success && data.order) {
-              invoiceData = data.order;
-              break;
-            }
-            if (attempts < 3) await new Promise((r) => setTimeout(r, 800));
-          }
-
-          if (isMounted) {
-            if (invoiceData) {
-              setOrder(invoiceData);
-            }
-            setLoading(false);
-          }
-        } catch (err) {
-          console.error('Failed to load order invoice details', err);
-          if (isMounted) setLoading(false);
-        }
-      }
-    };
-
     verifyAndLoadInvoice();
-
-    return () => {
-      isMounted = false;
-    };
   }, [orderNumber]);
+
+  const isConfirmedPaid = order && (
+    order.paymentStatus === 'PAID' ||
+    order.paymentStatus === 'COD_ADVANCE_PAID' ||
+    order.paymentStatus === 'FULLY_PAID'
+  );
+
+  // Clear cart ONLY when order is confirmed as PAID
+  useEffect(() => {
+    if (isConfirmedPaid && typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('kamadhenu_cart');
+        localStorage.removeItem('cart');
+        localStorage.removeItem('currentCoupon');
+        if (order?.customer?.mobile) {
+          localStorage.setItem('kamadhenu_customer_mobile', order.customer.mobile);
+        }
+        if (order?.orderNumber) {
+          localStorage.setItem('kamadhenu_last_order', order.orderNumber);
+        }
+      } catch (e) {}
+    }
+  }, [isConfirmedPaid, order]);
 
   // Smooth scroll down to invoice
   const scrollToInvoice = () => {
@@ -248,6 +245,61 @@ function ConfirmationContent() {
   const isCodOrder = (order?.paymentMethod || '').toUpperCase() === 'COD';
   const advancePaid = order?.advancePaidAmount ?? (isCodOrder ? (order?.advanceAmount ?? Math.ceil(displayTotal * 0.5)) : displayTotal);
   const codRemaining = order?.codRemainingAmount ?? (isCodOrder ? Math.max(0, displayTotal - advancePaid) : 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-14 h-14 border-4 border-amber-300 border-t-amber-600 rounded-full animate-spin mb-5"></div>
+        <h2 className="text-xl sm:text-2xl font-serif font-bold text-amber-950 mb-2">Verifying Payment Confirmation...</h2>
+        <p className="text-stone-600 text-sm max-w-md">
+          We are securely confirming your transaction with the bank and preparing your official receipt.
+        </p>
+      </div>
+    );
+  }
+
+  if (!isConfirmedPaid) {
+    return (
+      <div className="min-h-screen bg-[#FAF7F2] text-[#2C2416] py-12 px-4 sm:px-6 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-amber-200/80 shadow-xl shadow-amber-900/5 text-center space-y-6">
+          <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto text-2xl">
+            ⏳
+          </div>
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 inline-block mb-3">
+              Payment Incomplete or Awaiting Bank Confirmation
+            </span>
+            <h2 className="text-2xl font-serif font-bold text-stone-900 mb-2">
+              Payment Not Confirmed
+            </h2>
+            <p className="text-stone-600 text-xs sm:text-sm leading-relaxed">
+              We have not received a confirmed payment from your bank or UPI gateway for Order <strong className="font-mono text-amber-950">{orderNumber || 'reference'}</strong>.
+            </p>
+            <p className="text-stone-500 text-xs mt-2">
+              If your account was already debited, your order will be confirmed automatically via bank webhook within a few minutes.
+            </p>
+          </div>
+          <div className="space-y-3 pt-2">
+            <button
+              onClick={() => { setLoading(true); verifyAndLoadInvoice(); }}
+              className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition shadow-md shadow-amber-600/20 cursor-pointer"
+            >
+              Check Payment Status Again
+            </button>
+            <a
+              href="/"
+              className="block w-full py-3 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-sm rounded-xl transition"
+            >
+              Return to Store / Complete Order
+            </a>
+          </div>
+          <p className="text-[11px] text-stone-400">
+            Need instant help? WhatsApp support: <strong>+91 9980114675</strong>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#2C2416] py-8 sm:py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden print:p-0 print:bg-white">
