@@ -118,7 +118,7 @@ export async function createCashfreeOrder(params: CashfreeOrderParams): Promise<
     appBaseUrl = 'https://kamadhenuhoneyfarms.in';
   }
 
-  const returnUrl = params.returnUrl || `${appBaseUrl}/order-confirmation?order_id={order_id}`;
+  const returnUrl = params.returnUrl || `${appBaseUrl}/order-confirmation?order_id={order_id}&orderNumber={order_id}`;
   const notifyUrl = params.notifyUrl || `${appBaseUrl}/api/payment/cashfree/webhook`;
 
   const payload = {

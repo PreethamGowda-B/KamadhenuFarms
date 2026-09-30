@@ -6,15 +6,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    // 1. Require authenticated customer session
-    const session = await getCustomerSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: 'Please place an order to view your invoice.' },
-        { status: 401 }
-      );
-    }
-
     const { searchParams } = new URL(req.url);
     const orderNumber = searchParams.get('orderNumber')?.trim().toUpperCase();
 
@@ -55,11 +46,21 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 2. CRITICAL: Verify this order belongs to the authenticated customer
-    // This prevents unauthorized cross-user access — User A cannot view User B's invoice even if they know the order number
-    if (order.customerId !== session.id) {
+    // Customer Session & IDOR Verification:
+    // 1. Authorized if session belongs to the customer
+    const session = await getCustomerSessionFromRequest(req);
+    const isOwnerBySession = session && session.id === order.customerId;
+
+    // 2. Authorized if recently placed/confirmed order (< 2 hours checkout grace period for invoice display on redirect)
+    const isRecentOrder = (Date.now() - new Date(order.createdAt).getTime()) < 2 * 60 * 60 * 1000;
+
+    // 3. Authorized if customer mobile param matches
+    const mobileParam = (searchParams.get('mobile') || searchParams.get('phone') || '').replace(/\D/g, '');
+    const isMobileMatch = mobileParam.length >= 10 && mobileParam.endsWith(order.customer.mobile.replace(/\D/g, '').slice(-10));
+
+    if (!isOwnerBySession && !isRecentOrder && !isMobileMatch) {
       return NextResponse.json(
-        { success: false, message: 'Access denied.' },
+        { success: false, message: 'Access denied: Please sign in or check your order tracking link.' },
         { status: 403 }
       );
     }

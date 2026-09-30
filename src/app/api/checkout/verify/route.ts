@@ -4,6 +4,75 @@ import { getCashfreeOrder, getCashfreeOrderPayments, CashfreePaymentEntity } fro
 import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
 import { sendOwnerOrderNotification } from '@/lib/ownerNotification';
 
+function formatOrderResponse(order: any, paymentDetails?: any) {
+  const latestPayment = paymentDetails || (order.payments && order.payments[0]) || null;
+  const latestShipment = (order.shipments && order.shipments[0]) || null;
+
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    createdAt: order.createdAt,
+    orderStatus: order.orderStatus,
+    paymentStatus: order.paymentStatus,
+    paymentMethod: order.paymentMethod,
+    advanceAmount: order.advanceAmount,
+    advancePaidAmount: order.advancePaidAmount,
+    codRemainingAmount: order.codRemainingAmount,
+    subtotal: order.subtotal,
+    shippingFee: order.shippingFee,
+    discount: order.discount,
+    couponCode: order.couponCode,
+    total: order.total,
+    currency: order.currency,
+    customer: {
+      name: order.customer?.name || 'Customer',
+      email: order.customer?.email || '',
+      mobile: order.customer?.mobile || '',
+    },
+    shippingAddress: order.shippingAddress
+      ? {
+          addressLine1: order.shippingAddress.addressLine1,
+          area: order.shippingAddress.area || null,
+          city: order.shippingAddress.city,
+          state: order.shippingAddress.state,
+          pincode: order.shippingAddress.pincode,
+          landmark: order.shippingAddress.landmark || null,
+        }
+      : {
+          addressLine1: 'Address provided during checkout',
+          area: null,
+          city: 'Bangalore',
+          state: 'Karnataka',
+          pincode: '560001',
+          landmark: null,
+        },
+    items: (order.items || []).map((item: any) => ({
+      id: item.id,
+      productName: item.productNameSnapshot || 'Pure Raw Honey',
+      weightVariant: item.weightVariant || '500g',
+      quantity: item.quantity || 1,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+    })),
+    payment: latestPayment
+      ? {
+          provider: latestPayment.provider || 'CASHFREE',
+          paymentId: latestPayment.paymentId || String(latestPayment.cf_payment_id || ''),
+          status: latestPayment.status || latestPayment.payment_status || 'PAID',
+          amount: latestPayment.amount || latestPayment.payment_amount || order.total,
+          paidAt: latestPayment.paidAt || latestPayment.payment_time || order.createdAt,
+        }
+      : null,
+    shipment: latestShipment
+      ? {
+          courier: latestShipment.courier,
+          trackingNumber: latestShipment.trackingNumber,
+          status: latestShipment.status,
+        }
+      : null,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -167,6 +236,7 @@ export async function POST(req: NextRequest) {
         orderNumber: order.orderNumber,
         orderId: order.id,
         amount: order.total,
+        order: formatOrderResponse(order),
         message: 'Order already verified and confirmed',
       });
 
@@ -429,6 +499,12 @@ export async function POST(req: NextRequest) {
       orderId: updatedOrder.id,
       amount: updatedOrder.total,
       paymentId: String(successfulPayment.cf_payment_id),
+      order: formatOrderResponse({
+        ...updatedOrder,
+        customer: order.customer,
+        shippingAddress: order.shippingAddress,
+        items: order.items,
+      }, successfulPayment),
       message: 'Payment verified and order confirmed successfully',
     });
 

@@ -50,6 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'p1',
       name: 'Pure Raw Honey',
       category: 'raw',
+      stockStatus: 'IN_STOCK',
+      restockDays: 3,
+      canPreorder: false,
+      badgeText: 'Organic',
       baseDesc: 'Unprocessed, raw honey collected directly from pristine organic bee boxes.',
       prices: {
         '250g': 250,
@@ -74,6 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
       id: 'p2',
       name: 'Dry Fruits Honey',
       category: 'infused',
+      stockStatus: 'IN_STOCK',
+      restockDays: 3,
+      canPreorder: false,
+      badgeText: 'Deluxe',
       baseDesc: 'Premium raw honey rich in hand-sorted almonds, cashews, pistachios, and walnuts.',
       prices: {
         '250g': 399,
@@ -99,6 +107,11 @@ document.addEventListener('DOMContentLoaded', () => {
       name: 'Bee-Crafted Honey Comb Jar',
       subtitle: 'Built by Bees. Not by Machines.',
       category: 'honeycomb',
+      stockStatus: 'RESTOCKING_SOON',
+      restockDays: 7,
+      canPreorder: true,
+      badgeText: 'Restocking in 7 days',
+      restockNote: 'Stock will be restocked within 7 days',
       baseDesc: 'A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey. Harvested exactly as nature intended.',
       prices: {
         '500g': 599
@@ -124,6 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
       name: 'Raw Honey Comb Box',
       subtitle: 'Straight From The Hive.',
       category: 'honeycomb',
+      stockStatus: 'IN_STOCK',
+      restockDays: 0,
+      canPreorder: false,
       baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',
       prices: {
         '500g': 899
@@ -1105,37 +1121,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  const updateCardStockBadgeInPlace = (productId) => {
+    const p = productDatabase[productId];
+    if (!p) return;
+    const card = document.getElementById(`product-${productId}`);
+    if (!card) return;
+    const badge = card.querySelector('.product-badge');
+    if (badge) {
+      if (p.stockStatus === 'OUT_OF_STOCK') {
+        badge.className = 'product-badge out-of-stock';
+        badge.textContent = 'Sold Out';
+      } else if (p.stockStatus === 'RESTOCKING_SOON') {
+        badge.className = 'product-badge restocking';
+        badge.textContent = `⏳ ${p.badgeText || `Restocking in ${p.restockDays || 3} days`}`;
+      } else {
+        badge.className = 'product-badge';
+        badge.textContent = p.badgeText || (p.category === 'raw' ? 'Organic' : 'Deluxe');
+      }
+    }
+  };
+
   const syncRealtimeStock = async () => {
     try {
       const res = await fetch('/api/products/inventory', { cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.inventory) {
-        let changed = false;
         Object.keys(data.inventory).forEach(id => {
           if (productDatabase[id]) {
             const remote = data.inventory[id];
-            // Only mark changed if values actually differ
-            if (
-              productDatabase[id].stockStatus !== remote.stockStatus ||
-              productDatabase[id].restockDays !== remote.restockDays ||
-              productDatabase[id].canPreorder !== remote.canPreorder
-            ) {
-              changed = true;
-            }
             productDatabase[id].stockStatus = remote.stockStatus;
             productDatabase[id].restockDays = remote.restockDays;
             productDatabase[id].restockNote = remote.restockNote;
             productDatabase[id].badgeText = remote.badgeText;
             productDatabase[id].canPreorder = remote.canPreorder;
+            updateCardStockBadgeInPlace(id);
           }
         });
-        // Only re-render DOM if stock actually changed — avoids 30s thrash
-        if (changed) {
-          renderProductCards();
-          updateHoneycombStockDisplay();
-        } else {
-          updateHoneycombStockDisplay();
-        }
+        updateHoneycombStockDisplay();
       }
     } catch (err) {
       console.warn('Realtime stock sync error:', err);
@@ -1474,36 +1496,73 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
 
     const productId = shareBtn.dataset.productId;
-    const productName = shareBtn.dataset.productName || (productDatabase[productId] ? productDatabase[productId].name : 'Pure Honey');
+    const product = productDatabase[productId];
+    const productName = shareBtn.dataset.productName || (product ? product.name : 'Pure Honey');
     const shareUrl = `https://kamadhenuhoneyfarms.in/#product-${productId}`;
-    const shareText = `🍯 Check out *${productName}* from Kamadhenu Honey Farms!\nPure natural honey direct from our apiary in Bangalore.`;
+
+    // Luxury professional message tailored per product
+    let headerTitle = 'PURE RAW HONEY';
+    let productDesc = 'Harvested fresh, unheated and unfiltered — retaining natural pollen, active enzymes, and rich wildflower aroma directly from the comb.';
+    let points = '✓ 100% Pure, Raw & Unadulterated (Zero Added Sugar or Jaggery)\n✓ Rich in Natural Immunity Boosters, Live Enzymes & Antioxidants\n✓ Certified Food Safety & Lab Tested Purity\n✓ Sustainably Harvested by Local Beekeepers';
+
+    if (productId === 'p2') {
+      headerTitle = 'DRY FRUITS RAW HONEY';
+      productDesc = 'A rich nutritional blend of 100% pure raw apiary honey loaded with premium Californian almonds, cashews, crunchy pistachios & walnuts.';
+      points = '✓ 100% Pure Raw Honey Infused with Premium Dry Fruits\n✓ Rich in Plant Protein, Healthy Omega Fats, Iron & Daily Energy\n✓ Ideal Natural Health Tonic for Kids, Adults & Elders\n✓ Zero Preservatives, Syrups or Artificial Additives';
+    } else if (productId === 'p3') {
+      headerTitle = 'BEE-CRAFTED HONEY COMB JAR';
+      productDesc = 'A breakthrough in natural beekeeping! Bees naturally build delicate honeycomb cells directly inside the glass jar and fill it with pure raw honey.';
+      points = '✓ Built by Bees Inside the Jar — Zero Human Interference\n✓ 100% Raw Comb Honey + Liquid Honey Dual Delight\n✓ Unheated, Unprocessed & Straight from Nature\'s Hive\n✓ Edible Honeycomb Wax Rich in Natural Propolis';
+    } else if (productId === 'p4') {
+      headerTitle = 'RAW HONEY COMB BOX';
+      productDesc = 'Fresh raw honeycomb cut straight from active hives. Experience honey exactly as bees eat it — sealed inside virgin wax cells.';
+      points = '✓ 100% Pure Raw Honeycomb Straight from the Hive\n✓ 100% Edible Natural Beeswax Rich in Vitamin A & Propolis\n✓ Unfiltered, Unpasteurized & 100% Intact Hive Freshness\n✓ Bursting with Fragrant Wildflower Nectar';
+    }
+
+    const professionalMessage = 
+`🍯 *Kamadhenu Honey Farms* | 100% Pure & Raw Apiary Harvest
+Direct from our bee colonies in Taverekere, Magadi Road, Bangalore
+
+━━━━━━━━━━━━━━━━━━━━━━
+🐝 *${headerTitle}*
+━━━━━━━━━━━━━━━━━━━━━━
+${productDesc}
+
+✨ *Pure Apiary Highlights:*
+${points}
+
+🚚 Safe Doorstep Delivery Across India (Special Bangalore COD Available)
+🛡️ 100% Purity & Authenticity Guarantee
+
+👉 *Order Directly from Apiary:*
+${shareUrl}
+
+📞 WhatsApp / Call Support: +91 9980114675`;
 
     if (navigator.share) {
       try {
         await navigator.share({
           title: `${productName} — Kamadhenu Honey Farms`,
-          text: shareText,
-          url: shareUrl,
+          text: professionalMessage
         });
       } catch (err) {
         if (err.name !== 'AbortError') console.warn('Share failed:', err);
       }
     } else {
-      const fullMessage = `${shareText}\nOrder here: ${shareUrl}`;
       try {
-        await navigator.clipboard.writeText(fullMessage);
+        await navigator.clipboard.writeText(professionalMessage);
         shareBtn.title = 'Link copied!';
         const origInner = shareBtn.innerHTML;
         shareBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
         if (typeof showToast === 'function') {
-          showToast(`📋 Link to ${productName} copied to clipboard!`);
+          showToast(`📋 Professional product details & link copied to clipboard!`);
         }
         setTimeout(() => {
           shareBtn.innerHTML = origInner;
           shareBtn.title = 'Share this product';
         }, 1800);
       } catch {
-        window.open(`https://wa.me/?text=${encodeURIComponent(fullMessage)}`, '_blank');
+        window.open(`https://wa.me/?text=${encodeURIComponent(professionalMessage)}`, '_blank');
       }
     }
   });
@@ -1928,9 +1987,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const mode = createData.environment === 'production' ? 'production' : 'sandbox';
         const cashfree = getCashfreeSDK(mode) || window.Cashfree({ mode });
 
+        const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent);
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
-          redirectTarget: '_modal'
+          redirectTarget: isMobile ? '_self' : '_modal'
         };
 
         cashfree.checkout(checkoutOptions).then(async (result) => {
@@ -1945,6 +2005,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (result.redirect) {
             console.log('Cashfree payment redirecting...');
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}`;
             return;
           }
 

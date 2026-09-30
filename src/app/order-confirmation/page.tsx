@@ -100,39 +100,50 @@ function ConfirmationContent() {
 
     // Call verify to guarantee order confirmation on redirect from Cashfree
     const verifyAndLoadInvoice = async () => {
+      let orderLoaded = false;
       try {
-        await fetch('/api/checkout/verify', {
+        const verifyRes = await fetch('/api/checkout/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ orderNumber }),
         });
+        const verifyData = await verifyRes.json();
+        if (verifyData.success && verifyData.order) {
+          if (isMounted) {
+            setOrder(verifyData.order);
+            setLoading(false);
+          }
+          orderLoaded = true;
+        }
       } catch (e) {
         console.warn('Verify call on confirmation page:', e);
       }
 
-      try {
-        let attempts = 0;
-        let invoiceData = null;
-        while (attempts < 3) {
-          attempts++;
-          const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
-          const data = await res.json();
-          if (data.success && data.order) {
-            invoiceData = data.order;
-            break;
+      if (!orderLoaded) {
+        try {
+          let attempts = 0;
+          let invoiceData = null;
+          while (attempts < 3) {
+            attempts++;
+            const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
+            const data = await res.json();
+            if (data.success && data.order) {
+              invoiceData = data.order;
+              break;
+            }
+            if (attempts < 3) await new Promise((r) => setTimeout(r, 800));
           }
-          if (attempts < 3) await new Promise((r) => setTimeout(r, 800));
-        }
 
-        if (isMounted) {
-          if (invoiceData) {
-            setOrder(invoiceData);
+          if (isMounted) {
+            if (invoiceData) {
+              setOrder(invoiceData);
+            }
+            setLoading(false);
           }
-          setLoading(false);
+        } catch (err) {
+          console.error('Failed to load order invoice details', err);
+          if (isMounted) setLoading(false);
         }
-      } catch (err) {
-        console.error('Failed to load order invoice details', err);
-        if (isMounted) setLoading(false);
       }
     };
 
