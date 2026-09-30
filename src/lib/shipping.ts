@@ -201,6 +201,17 @@ export async function calculateShippingCharge(
   items: CartItemForShipping[]
 ): Promise<ShippingCalculationResult> {
   const cleaned = (deliveryPincode || '').trim();
+
+  // Special test pincode: 000000 → free delivery bypass (for internal testing)
+  if (cleaned === '000000') {
+    return {
+      serviceable: true,
+      shippingFee: 0,
+      courierName: '🧪 Test Mode (Free Delivery)',
+      estimatedDays: 'Immediate (Test)',
+    };
+  }
+
   if (!/^[1-9][0-9]{5}$/.test(cleaned)) {
     return {
       serviceable: false,

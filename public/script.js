@@ -1273,6 +1273,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
           </svg>
         </button>
+        <button class="share-product-btn" data-product-id="${product.id}" data-product-name="${product.name}" title="Share this product">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" width="16" height="16">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185z" />
+          </svg>
+        </button>
         <div class="product-media">
           <img src="${product.image}" alt="${product.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <div class="media-placeholder" style="display:none;">
@@ -1452,6 +1457,44 @@ document.addEventListener('DOMContentLoaded', () => {
           saveWishlist();
         });
       }
+
+      // Share button — Web Share API on mobile, clipboard fallback on desktop
+      const shareBtn = productCard.querySelector('.share-product-btn');
+      if (shareBtn) {
+        shareBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const shareUrl = `https://kamadhenuhoneyfarms.in/#our-honey`;
+          const shareText = `🍯 Check out *${product.name}* from Kamadhenu Honey Farms!\nPure natural honey direct from our apiary in Bangalore.\nOrder here: ${shareUrl}`;
+
+          if (navigator.share) {
+            // Native mobile share sheet (WhatsApp, Instagram, etc.)
+            try {
+              await navigator.share({
+                title: `${product.name} — Kamadhenu Honey Farms`,
+                text: shareText,
+                url: shareUrl,
+              });
+            } catch (err) {
+              if (err.name !== 'AbortError') console.warn('Share failed:', err);
+            }
+          } else {
+            // Desktop fallback: copy to clipboard + show toast
+            try {
+              await navigator.clipboard.writeText(shareText);
+              shareBtn.title = 'Link copied!';
+              const origInner = shareBtn.innerHTML;
+              shareBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+              setTimeout(() => {
+                shareBtn.innerHTML = origInner;
+                shareBtn.title = 'Share this product';
+              }, 1800);
+            } catch {
+              // Last resort: open WhatsApp web
+              window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+            }
+          }
+        });
+      }
     });
 
     // Fire reveal checks
@@ -1498,6 +1541,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const calculateShippingRate = async (pincodeVal) => {
     const cleanPin = (pincodeVal || '').replace(/\D/g, '');
+
+    // Special test pincode 000000 — bypass to free delivery
+    if (cleanPin === '000000') {
+      isShippingCalculated = true;
+      currentShippingCharge = 0;
+      currentShippingDetails = { courierName: '🧪 Test Mode', estimatedDays: 'Immediate (Test)' };
+      if (checkoutShippingEl) {
+        checkoutShippingEl.textContent = 'FREE (Test Mode)';
+        checkoutShippingEl.style.color = '#27ae60';
+      }
+      if (checkoutShippingNoticeEl) checkoutShippingNoticeEl.innerHTML = '🧪 <strong>Test Mode</strong> &bull; Free delivery bypassed';
+      renderCheckoutSummary();
+      return;
+    }
+
     if (cleanPin.length !== 6) {
       isShippingCalculated = false;
       currentShippingCharge = 0;

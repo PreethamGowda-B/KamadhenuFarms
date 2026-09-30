@@ -995,6 +995,37 @@ header nav {
   fill: currentColor;
 }
 
+/* Share Product Button */
+.share-product-btn {
+  position: absolute;
+  top: 20px;
+  right: 72px; /* sits left of wishlist btn */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(216, 166, 79, 0.2);
+  color: var(--dark-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: var(--transition-fast);
+  cursor: pointer;
+}
+
+.share-product-btn:hover {
+  background: var(--primary-gold);
+  color: #fff;
+  transform: scale(1.1);
+  border-color: var(--primary-gold);
+}
+
+.share-product-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* Product Media Layout (Gradients & fallbacks) */
 .product-media {
   height: 320px;
