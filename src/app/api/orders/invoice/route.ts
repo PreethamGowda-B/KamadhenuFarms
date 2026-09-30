@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCustomerSessionFromRequest } from '@/lib/customerAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    // 1. Require authenticated customer session
+    const session = await getCustomerSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: 'Please place an order to view your invoice.' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const orderNumber = searchParams.get('orderNumber')?.trim().toUpperCase();
 
@@ -42,6 +52,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Order not found' },
         { status: 404 }
+      );
+    }
+
+    // 2. CRITICAL: Verify this order belongs to the authenticated customer
+    // This prevents IDOR — User A cannot view User B's invoice even if they know the order number
+    if (order.customerId !== session.id) {
+      return NextResponse.json(
+        { success: false, message: 'Access denied.' },
+        { status: 403 }
       );
     }
 

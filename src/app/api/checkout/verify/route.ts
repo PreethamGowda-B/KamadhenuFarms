@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCashfreeOrder, getCashfreeOrderPayments, CashfreePaymentEntity } from '@/lib/cashfree';
 import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
+import { sendOwnerOrderNotification } from '@/lib/ownerNotification';
 
 export async function POST(req: NextRequest) {
   try {
@@ -393,6 +394,33 @@ export async function POST(req: NextRequest) {
     });
 
     console.log(`✅ [Cashfree Order Verified] Order ${updatedOrder.orderNumber} successfully marked PAID.`);
+
+    // 7. Send owner WhatsApp notification (fire-and-forget, never blocks customer response)
+    const orderWithDetails = await prisma.order.findUnique({
+      where: { id: updatedOrder.id },
+      include: {
+        customer: { select: { name: true, mobile: true } },
+        shippingAddress: { select: { city: true, pincode: true } },
+        items: { select: { productNameSnapshot: true, weightVariant: true, quantity: true } },
+      },
+    });
+
+    if (orderWithDetails) {
+      sendOwnerOrderNotification({
+        orderNumber: orderWithDetails.orderNumber,
+        customerName: orderWithDetails.customer.name,
+        customerMobile: orderWithDetails.customer.mobile,
+        total: orderWithDetails.total,
+        paymentMethod: orderWithDetails.paymentMethod,
+        items: orderWithDetails.items.map((i) => ({
+          productName: i.productNameSnapshot,
+          weightVariant: i.weightVariant,
+          quantity: i.quantity,
+        })),
+        city: orderWithDetails.shippingAddress.city,
+        pincode: orderWithDetails.shippingAddress.pincode,
+      }).catch(() => {}); // explicit fire-and-forget
+    }
 
     // 6. Generate secure customer session token and attach cookie
     const response = NextResponse.json({
