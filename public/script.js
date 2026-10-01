@@ -1381,7 +1381,14 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="price-display">
               <span>Price</span>
               <h4 class="card-price-text">₹${sizePrice}</h4>
-              <span class="delivery-notice">(Delivery charges calculated at checkout)</span>
+              <span class="delivery-notice">${(() => {
+                try {
+                  const sp = localStorage.getItem('kamadhenu_user_pincode');
+                  return sp ? `🚚 Deliverable to ${sp}` : '(Delivery charges calculated at checkout)';
+                } catch (_) {
+                  return '(Delivery charges calculated at checkout)';
+                }
+              })()}</span>
             </div>
           </div>
           <div class="product-actions">
@@ -1640,6 +1647,134 @@ ${points}
   });
 
   /* ==========================================================================
+     Instant Pincode Delivery Estimator
+     ========================================================================== */
+  const estimatorPincodeInput = document.getElementById('estimatorPincodeInput');
+  const btnCheckPincode = document.getElementById('btnCheckPincode');
+  const estimatorResultBox = document.getElementById('estimatorResultBox');
+
+  const updateCardDeliveryNotices = (noticeText) => {
+    document.querySelectorAll('.delivery-notice').forEach(el => {
+      el.textContent = noticeText;
+      el.style.color = '#27ae60';
+      el.style.fontWeight = '600';
+    });
+  };
+
+  const checkPincodeSpeed = async (pinRaw) => {
+    const pin = (pinRaw || '').toString().trim().replace(/\D/g, '').slice(0, 6);
+    if (!estimatorResultBox) return;
+
+    if (pin.length !== 6) {
+      estimatorResultBox.className = 'estimator-result-box error';
+      estimatorResultBox.innerHTML = '⚠️ Please enter a valid 6-digit Indian postal pincode.';
+      estimatorResultBox.style.display = 'block';
+      return;
+    }
+
+    estimatorResultBox.className = 'estimator-result-box';
+    estimatorResultBox.style.display = 'block';
+    estimatorResultBox.innerHTML = `<span>⏳ Checking apiary dispatch route for <strong>${pin}</strong>...</span>`;
+    if (btnCheckPincode) btnCheckPincode.disabled = true;
+
+    try {
+      const res = await fetchWithTimeout('/api/shipping/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pincode: pin,
+          items: (cart && cart.length > 0) ? cart : [{ productId: 'p1', weightVariant: '500g', quantity: 1 }]
+        })
+      }, 7000);
+
+      const data = await res.json();
+
+      if (data.success && data.serviceable) {
+        try {
+          localStorage.setItem('kamadhenu_user_pincode', pin);
+        } catch (_) {}
+
+        const isBangalore = pin.startsWith('560') || pin.startsWith('562');
+        const isKarnataka = ['56', '57', '58', '59'].includes(pin.substring(0, 2));
+
+        let highlightHtml = '';
+        let badgeNotice = '';
+
+        if (isBangalore) {
+          highlightHtml = `
+            <div>⚡ <strong>Express Bengaluru Delivery to ${pin}:</strong> Expected arrival within <strong>24–48 hours</strong> via ${data.courierName || 'Bangalore Express Courier'}.</div>
+            <div style="margin-top:4px; font-size:0.8rem; color:#2e7d32;">💵 <strong>Cash on Delivery (COD) &amp; Online Payment</strong> both supported at your doorstep.</div>
+          `;
+          badgeNotice = `🚚 Est. 24–48 hrs to ${pin} (Bangalore)`;
+        } else if (isKarnataka) {
+          highlightHtml = `
+            <div>🚚 <strong>Karnataka Regional Delivery to ${pin}:</strong> Expected arrival in <strong>2–3 business days</strong> via ${data.courierName || 'Regional Courier'}.</div>
+            <div style="margin-top:4px; font-size:0.8rem; color:#3A2A18;">📦 Safe double-layered bubble wrap &amp; sturdy cardboard protection for all glass jars.</div>
+          `;
+          badgeNotice = `🚚 Est. 2–3 Days to ${pin}`;
+        } else {
+          highlightHtml = `
+            <div>📦 <strong>Pan-India Safe Delivery to ${pin}:</strong> Expected within <strong>${data.estimatedDays || '3–5 business days'}</strong> via ${data.courierName || 'National Courier'}.</div>
+            <div style="margin-top:4px; font-size:0.8rem; color:#3A2A18;">🛡️ Transit break-free guarantee with certified glass packaging.</div>
+          `;
+          badgeNotice = `🚚 Est. ${data.estimatedDays || '3-5 Days'} to ${pin}`;
+        }
+
+        estimatorResultBox.className = 'estimator-result-box success';
+        estimatorResultBox.innerHTML = highlightHtml;
+        updateCardDeliveryNotices(badgeNotice);
+
+        if (chkPincodeInput && !chkPincodeInput.value) {
+          chkPincodeInput.value = pin;
+          updateCodBangaloreAvailability(pin);
+        }
+      } else {
+        estimatorResultBox.className = 'estimator-result-box error';
+        estimatorResultBox.innerHTML = `
+          <span>❌ Standard delivery is currently not serviceable for <strong>${pin}</strong>.</span>
+          <div style="margin-top:4px; font-size:0.8rem;">Need honey delivered here? <a href="https://wa.me/${PRIMARY_WHATSAPP}?text=Hello%20Kamadhenu%20Honey%20Farms%2C%20can%20you%20deliver%20honey%20to%20pincode%20${pin}%3F" target="_blank" style="color:var(--dark-gold); font-weight:700; text-decoration:underline;">Inquire on WhatsApp</a> for special farm dispatch.</div>
+        `;
+      }
+    } catch (err) {
+      estimatorResultBox.className = 'estimator-result-box error';
+      estimatorResultBox.innerHTML = '⚠️ Unable to check delivery speed at this moment. Please verify connection and try again.';
+    } finally {
+      if (btnCheckPincode) btnCheckPincode.disabled = false;
+    }
+  };
+
+  if (estimatorPincodeInput) {
+    estimatorPincodeInput.addEventListener('input', (e) => {
+      const clean = e.target.value.replace(/\D/g, '').slice(0, 6);
+      e.target.value = clean;
+      if (clean.length === 6) {
+        checkPincodeSpeed(clean);
+      }
+    });
+
+    estimatorPincodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        checkPincodeSpeed(estimatorPincodeInput.value);
+      }
+    });
+  }
+
+  if (btnCheckPincode) {
+    btnCheckPincode.addEventListener('click', () => {
+      checkPincodeSpeed(estimatorPincodeInput?.value);
+    });
+  }
+
+  try {
+    const savedPin = localStorage.getItem('kamadhenu_user_pincode');
+    if (savedPin && savedPin.length === 6 && estimatorPincodeInput) {
+      estimatorPincodeInput.value = savedPin;
+      checkPincodeSpeed(savedPin);
+    }
+  } catch (_) {}
+
+  /* ==========================================================================
      Checkout Modal UI & Razorpay / COD Integration
      ========================================================================== */
   let currentShippingCharge = 0;
@@ -1844,6 +1979,12 @@ ${points}
     getCashfreeSDK('production'); // Warm up Cashfree SDK in advance
     if (currentCustomer && currentCustomer.savedAddresses) {
       renderSavedAddresses(currentCustomer.savedAddresses);
+    }
+    if (chkPincodeInput && !chkPincodeInput.value) {
+      try {
+        const savedPin = localStorage.getItem('kamadhenu_user_pincode');
+        if (savedPin) chkPincodeInput.value = savedPin;
+      } catch (_) {}
     }
     if (chkPincodeInput) updateCodBangaloreAvailability(chkPincodeInput.value);
     renderCheckoutSummary();

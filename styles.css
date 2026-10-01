@@ -3265,6 +3265,149 @@ footer {
 }
 
 /* ==========================================================================
+   Instant Pincode Delivery Estimator
+   ========================================================================== */
+.pincode-estimator-card {
+  margin: 0 0 2rem;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 245, 239, 0.95));
+  border: 1px solid rgba(216, 166, 79, 0.35);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 25px rgba(46, 46, 46, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pincode-estimator-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary-gold);
+}
+
+.estimator-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.estimator-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(216, 166, 79, 0.15);
+  border: 1px solid rgba(216, 166, 79, 0.3);
+  color: var(--dark-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.estimator-text h4 {
+  font-family: var(--font-headings);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--luxury-charcoal);
+  margin-bottom: 2px;
+}
+
+.estimator-text p {
+  font-size: 0.8rem;
+  color: #777;
+  margin: 0;
+}
+
+.estimator-action-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.estimator-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.estimator-input-wrapper input {
+  padding: 10px 16px;
+  border-radius: 30px;
+  border: 1px solid rgba(216, 166, 79, 0.35);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  outline: none;
+  width: 190px;
+  transition: var(--transition-fast);
+  background: #fff;
+}
+
+.estimator-input-wrapper input:focus {
+  border-color: var(--primary-gold);
+  box-shadow: 0 0 0 3px rgba(216, 166, 79, 0.15);
+}
+
+.estimator-input-wrapper .btn {
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 30px;
+  cursor: pointer;
+}
+
+.estimator-result-box {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  transition: all 0.3s ease;
+}
+
+.estimator-result-box.success {
+  background: rgba(39, 174, 96, 0.08);
+  border: 1px solid rgba(39, 174, 96, 0.3);
+  color: #1e7e44;
+}
+
+.estimator-result-box.error {
+  background: rgba(192, 57, 43, 0.08);
+  border: 1px solid rgba(192, 57, 43, 0.25);
+  color: #c0392b;
+}
+
+@media (max-width: 768px) {
+  .pincode-estimator-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    margin-bottom: 1.5rem;
+  }
+  .estimator-action-group {
+    width: 100%;
+  }
+  .estimator-input-wrapper {
+    width: 100%;
+  }
+  .estimator-input-wrapper input {
+    flex: 1;
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
    Mobile-Only Persistent Bottom Order Bar & Animations
    ========================================================================== */
 .mobile-bottom-bar {
