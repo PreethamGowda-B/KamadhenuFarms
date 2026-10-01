@@ -2604,6 +2604,13 @@ footer {
   font-family: var(--font-body);
   font-size: 0.85rem;
   outline: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.coupon-row input::placeholder {
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .coupon-row input:focus {

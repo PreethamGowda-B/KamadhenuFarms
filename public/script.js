@@ -603,6 +603,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Coupon & Referral Engine
+  if (couponInput) {
+    couponInput.addEventListener('input', () => {
+      const start = couponInput.selectionStart;
+      const end = couponInput.selectionEnd;
+      couponInput.value = couponInput.value.toUpperCase();
+      if (start !== null && end !== null) {
+        couponInput.setSelectionRange(start, end);
+      }
+    });
+
+    couponInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCouponBtn?.click();
+      }
+    });
+  }
+
   if (applyCouponBtn) {
     applyCouponBtn.addEventListener('click', async () => {
       const code = (couponInput.value || '').trim().toUpperCase();
