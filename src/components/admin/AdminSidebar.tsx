@@ -25,6 +25,11 @@ export default function AdminSidebar() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Never render sidebar on admin login page
+  if (pathname === '/admin/login' || pathname?.startsWith('/admin/login')) {
+    return null;
+  }
+
   const handleLogout = async () => {
     if (loggingOut) return;
     try {

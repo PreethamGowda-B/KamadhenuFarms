@@ -7,8 +7,10 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  const isLoginPage = pathname === '/admin/login' || pathname?.startsWith('/admin/login');
+
   // On the standalone admin login page, do not show the sidebar
-  if (pathname === '/admin/login') {
+  if (isLoginPage) {
     return <>{children}</>;
   }
 
