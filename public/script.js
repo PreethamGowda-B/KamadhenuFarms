@@ -2298,6 +2298,81 @@ ${points}
   }
 
   /* ==========================================================================
+     First-Time Visitor Advertisement: Corporate & Bulk Orders Modal
+     ========================================================================== */
+  const bulkAdModal = document.getElementById('bulkAdModalOverlay');
+  const closeBulkAdBtn = document.getElementById('closeBulkAdBtn');
+  const dismissBulkAdBtn = document.getElementById('dismissBulkAdBtn');
+  const claimBulkOfferBtn = document.getElementById('claimBulkOfferBtn');
+  const bulkOrderEnquiryBtn = document.getElementById('bulkOrderEnquiryBtn');
+
+  const BULK_AD_STORAGE_KEY = 'kamadhenu_bulk_ad_seen';
+
+  const closeBulkAd = () => {
+    if (!bulkAdModal) return;
+    bulkAdModal.classList.remove('active');
+    try {
+      localStorage.setItem(BULK_AD_STORAGE_KEY, 'true');
+    } catch (_) {}
+  };
+
+  const openBulkAd = () => {
+    if (!bulkAdModal) return;
+    bulkAdModal.classList.add('active');
+  };
+
+  if (bulkAdModal) {
+    let hasSeenBulkAd = false;
+    try {
+      hasSeenBulkAd = localStorage.getItem(BULK_AD_STORAGE_KEY) === 'true';
+    } catch (_) {}
+
+    // Only auto-show for first-time visitors who haven't dismissed it
+    if (!hasSeenBulkAd) {
+      setTimeout(() => {
+        const isCheckoutActive = checkoutModalOverlay?.classList.contains('active');
+        const isCartOpen = cartDrawer?.classList.contains('open');
+        const isTrackerActive = trackerModalOverlay?.classList.contains('active');
+        if (!isCheckoutActive && !isCartOpen && !isTrackerActive) {
+          openBulkAd();
+        }
+      }, 2500);
+    }
+
+    closeBulkAdBtn?.addEventListener('click', closeBulkAd);
+    dismissBulkAdBtn?.addEventListener('click', closeBulkAd);
+
+    claimBulkOfferBtn?.addEventListener('click', () => {
+      try {
+        localStorage.setItem(BULK_AD_STORAGE_KEY, 'true');
+      } catch (_) {}
+      setTimeout(closeBulkAd, 400);
+    });
+
+    // Dismiss when clicking outside modal card
+    bulkAdModal.addEventListener('click', (e) => {
+      if (e.target === bulkAdModal) {
+        closeBulkAd();
+      }
+    });
+
+    // Dismiss on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && bulkAdModal.classList.contains('active')) {
+        closeBulkAd();
+      }
+    });
+
+    // Allow user to manually re-open offer via the bulk enquiry banner on home page
+    if (bulkOrderEnquiryBtn) {
+      bulkOrderEnquiryBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openBulkAd();
+      });
+    }
+  }
+
+  /* ==========================================================================
      FAQ Accordion Logic (Native HTML5 Details + Smooth Accordion Behavior)
      ========================================================================== */
   const faqDetailsList = document.querySelectorAll('details.faq-item');

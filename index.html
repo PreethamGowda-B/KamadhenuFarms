@@ -26,7 +26,7 @@
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20261001_v27">
+  <link rel="stylesheet" href="styles.css?v=20261001_v28">
 
   <!-- Structured SEO Schema Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -2078,6 +2078,60 @@
   </div>
 
   <!-- ==========================================================================
+       First-Time Visitor Advertisement: Corporate & Bulk Orders Modal
+       ========================================================================== -->
+  <div class="ad-modal-overlay" id="bulkAdModalOverlay" aria-hidden="true" role="dialog" aria-labelledby="bulkAdTitle">
+    <div class="ad-modal-card">
+      <!-- Wrong Mark / Close Button -->
+      <button type="button" class="ad-modal-close" id="closeBulkAdBtn" aria-label="Close Announcement">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <!-- Header Content -->
+      <div class="ad-modal-header">
+        <div class="ad-modal-badge">
+          <span>✨</span> EXCLUSIVE CORPORATE &amp; BULK PRIVILEGE
+        </div>
+        <h3 id="bulkAdTitle" class="ad-modal-title">Corporate &amp; Bulk Orders</h3>
+        <p class="ad-modal-subtitle">Fresh harvest straight from our farm apiary. Elevate corporate gifting &amp; celebrations with 100% pure raw honey.</p>
+      </div>
+
+      <!-- Offer Highlight Cards -->
+      <div class="ad-offer-highlights">
+        <div class="ad-offer-box discount-box">
+          <div class="ad-offer-badge">FLAT 5% OFF</div>
+          <div class="ad-offer-desc">Instant 5% discount on total order value for bulk quantities and corporate orders</div>
+        </div>
+        <div class="ad-offer-box gift-box">
+          <div class="ad-offer-badge">🎁 SPECIAL GIFT</div>
+          <div class="ad-offer-desc">Complimentary curated farm gift included with every corporate &amp; bulk order</div>
+        </div>
+      </div>
+
+      <!-- Trust Badges -->
+      <div class="ad-perks-row">
+        <span>✓ 100% Pure Raw Honey</span>
+        <span>✓ Custom Corporate Branding</span>
+        <span>✓ Direct Farm Apiary Supply</span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="ad-modal-actions">
+        <a href="https://wa.me/919980114675?text=Hello%20Kamadhenu%20Honey%20Farms%2C%20I%20am%20interested%20in%20placing%20a%20Corporate%20%2F%20Bulk%20Order%20with%20the%205%25%20discount%20and%20special%20gift." target="_blank" rel="noopener noreferrer" class="btn btn-gold ad-cta-btn" id="claimBulkOfferBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
+          </svg>
+          Claim 5% Bulk Offer on WhatsApp
+        </a>
+        <button type="button" class="ad-secondary-btn" id="dismissBulkAdBtn">Continue to Store</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        Floating Desktop WhatsApp Button
        ========================================================================== -->
   <a href="https://wa.me/919980114675?text=Hi%20Kamadhenu%20Honey%20Farms%2C%20I%20would%20like%20to%20order%20some%20fresh%20farm%20honey!" class="floating-wa-btn" target="_blank" title="Chat on WhatsApp">
@@ -2140,6 +2194,6 @@
     <div class="toast-progress-bar"></div>
   </div>
   <!-- Application Script -->
-  <script src="script.js?v=20261001_v27" defer></script>
+  <script src="script.js?v=20261001_v28" defer></script>
 </body>
 </html>
