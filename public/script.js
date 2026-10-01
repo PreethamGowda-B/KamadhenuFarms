@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
       prices: {
         '250g': 399,
         '500g': 599,
-        '1kg': 2 // TEST PRICE (real: 999)
+        '1kg': 999
       },
       image: 'assets/dry_fruits_honey_details.jpg',
       images: [
@@ -1544,44 +1544,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const productName = shareBtn.dataset.productName || (product ? product.name : 'Pure Honey');
     const shareUrl = `https://kamadhenuhoneyfarms.in/#product-${productId}`;
 
-    // Luxury professional message tailored per product
-    let headerTitle = 'PURE RAW HONEY';
-    let productDesc = 'Harvested fresh, unheated and unfiltered — retaining natural pollen, active enzymes, and rich wildflower aroma directly from the comb.';
-    let points = '✓ 100% Pure, Raw & Unadulterated (Zero Added Sugar or Jaggery)\n✓ Rich in Natural Immunity Boosters, Live Enzymes & Antioxidants\n✓ Certified Food Safety & Lab Tested Purity\n✓ Sustainably Harvested by Local Beekeepers';
+    // Luxury concise message tailored per product
+    let headerTitle = 'Pure Raw Honey';
+    let productDesc = 'Harvested fresh & unheated from pristine bee boxes, keeping natural enzymes, pollen & raw goodness intact.';
+    let points = '✓ 100% Pure & Raw • Zero Added Sugar\n✓ Natural Immunity & Live Enzyme Rich';
 
     if (productId === 'p2') {
-      headerTitle = 'DRY FRUITS RAW HONEY';
-      productDesc = 'A rich nutritional blend of 100% pure raw apiary honey loaded with premium Californian almonds, cashews, crunchy pistachios & walnuts.';
-      points = '✓ 100% Pure Raw Honey Infused with Premium Dry Fruits\n✓ Rich in Plant Protein, Healthy Omega Fats, Iron & Daily Energy\n✓ Ideal Natural Health Tonic for Kids, Adults & Elders\n✓ Zero Preservatives, Syrups or Artificial Additives';
+      headerTitle = 'Dry Fruits Raw Honey';
+      productDesc = 'Pure raw apiary honey loaded with premium California almonds, cashews, pistachios & walnuts.';
+      points = '✓ Infused with Crunchy Premium Dry Fruits\n✓ Rich in Natural Protein & Daily Vitality';
     } else if (productId === 'p3') {
-      headerTitle = 'BEE-CRAFTED HONEY COMB JAR';
-      productDesc = 'A breakthrough in natural beekeeping! Bees naturally build delicate honeycomb cells directly inside the glass jar and fill it with pure raw honey.';
-      points = '✓ Built by Bees Inside the Jar — Zero Human Interference\n✓ 100% Raw Comb Honey + Liquid Honey Dual Delight\n✓ Unheated, Unprocessed & Straight from Nature\'s Hive\n✓ Edible Honeycomb Wax Rich in Natural Propolis';
+      headerTitle = 'Bee-Crafted Honeycomb Jar';
+      productDesc = 'Built naturally by bees inside the glass jar and filled with pure raw honey — zero human processing.';
+      points = '✓ 100% Raw Comb & Liquid Honey Dual Delight\n✓ Edible Natural Beeswax Rich in Propolis';
     } else if (productId === 'p4') {
-      headerTitle = 'RAW HONEY COMB BOX';
-      productDesc = 'Fresh raw honeycomb cut straight from active hives. Experience honey exactly as bees eat it — sealed inside virgin wax cells.';
-      points = '✓ 100% Pure Raw Honeycomb Straight from the Hive\n✓ 100% Edible Natural Beeswax Rich in Vitamin A & Propolis\n✓ Unfiltered, Unpasteurized & 100% Intact Hive Freshness\n✓ Bursting with Fragrant Wildflower Nectar';
+      headerTitle = 'Raw Honeycomb Box';
+      productDesc = 'Fresh raw honeycomb cut straight from the hive — experience honey sealed in its virgin wax cells.';
+      points = '✓ 100% Pure Raw Honeycomb from the Hive\n✓ Edible Virgin Wax with Wildflower Nectar';
     }
 
     const professionalMessage = 
-`🍯 *Kamadhenu Honey Farms* | 100% Pure & Raw Apiary Harvest
-Direct from our bee colonies in Taverekere, Magadi Road, Bangalore
+`🍯 *${headerTitle}* — Kamadhenu Honey Farms
+100% Pure & Raw Apiary Harvest (Bangalore)
 
-━━━━━━━━━━━━━━━━━━━━━━
-🐝 *${headerTitle}*
-━━━━━━━━━━━━━━━━━━━━━━
 ${productDesc}
 
-✨ *Pure Apiary Highlights:*
+✨ *Highlights:*
 ${points}
 
-🚚 Safe Doorstep Delivery Across India (Special Bangalore COD Available)
-🛡️ 100% Purity & Authenticity Guarantee
-
-👉 *Order Directly from Apiary:*
-${shareUrl}
-
-📞 WhatsApp / Call Support: +91 9980114675`;
+🚚 Doorstep Delivery Across India • COD Available
+👉 *Order here:* ${shareUrl}`;
 
     if (navigator.share) {
       try {

@@ -47,7 +47,7 @@ export const PRODUCTS: Record<string, ProductConfig> = {
     prices: {
       '250g': 399,
       '500g': 599,
-      '1kg': 2, // TEST PRICE (real: 999)
+      '1kg': 999,
     },
     image: 'assets/dry_fruits_honey_details.jpg',
     images: [
