@@ -815,6 +815,29 @@ function ConfirmationContent() {
         </div>
 
         {/* ==============================================================
+             GOOGLE REVIEWS CALL TO ACTION
+             ============================================================== */}
+        <div className="non-print-section my-6 p-5 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left shadow-sm">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-full bg-white shadow-sm border border-stone-200 flex items-center justify-center text-lg flex-shrink-0">
+              ⭐
+            </div>
+            <div>
+              <h4 className="font-bold text-stone-900 text-sm">Loving your pure honey experience?</h4>
+              <p className="text-xs text-stone-600">Share a 5-star review on Google Maps to support our local bee farm!</p>
+            </div>
+          </div>
+          <a
+            href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-full shadow transition whitespace-nowrap"
+          >
+            Review on Google Maps ↗
+          </a>
+        </div>
+
+        {/* ==============================================================
              BOTTOM RETURN TO STORE & ASSISTANCE BAR
              ============================================================== */}
         <div className="non-print-section text-center space-y-4 pt-4">

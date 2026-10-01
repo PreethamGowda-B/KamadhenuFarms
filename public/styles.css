@@ -3408,6 +3408,162 @@ footer {
 }
 
 /* ==========================================================================
+   Google Reviews Customer Invitation Card
+   ========================================================================== */
+.google-review-invite-card {
+  margin-top: 2.2rem;
+  padding: 24px 30px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 245, 239, 0.95));
+  border: 1px solid rgba(216, 166, 79, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(46, 46, 46, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.google-invite-content {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 290px;
+}
+
+.google-logo-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.google-rating-stars .stars {
+  color: #fbbc04;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+}
+
+.google-rating-stars .rating-text {
+  font-size: 0.68rem;
+  color: #777;
+  font-weight: 600;
+  display: block;
+  text-align: center;
+}
+
+.google-invite-text h3 {
+  font-family: var(--font-headings);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--luxury-charcoal);
+  margin-bottom: 4px;
+}
+
+.google-invite-text p {
+  font-size: 0.82rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.btn-google-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: 30px;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 4px 15px rgba(216, 166, 79, 0.25);
+  transition: all 0.3s ease;
+}
+
+.btn-google-review:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(216, 166, 79, 0.35);
+}
+
+@media (max-width: 768px) {
+  .google-review-invite-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px;
+  }
+  .google-invite-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .btn-google-review {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
+   Shopping Cart: Free Delivery Progress Bar
+   ========================================================================== */
+.cart-free-shipping-bar {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(216, 166, 79, 0.12), rgba(248, 245, 239, 0.8));
+  border-bottom: 1px solid rgba(216, 166, 79, 0.2);
+}
+
+.shipping-bar-text {
+  font-size: 0.8rem;
+  color: var(--luxury-charcoal);
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+.shipping-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.shipping-progress-fill {
+  height: 100%;
+  background: var(--primary-gold);
+  border-radius: 10px;
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+/* Reorder Buttons */
+.btn-reorder-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 20px;
+  background: rgba(39, 174, 96, 0.12);
+  border: 1px solid rgba(39, 174, 96, 0.4);
+  color: #1e7e44;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reorder-all:hover {
+  background: #27ae60;
+  color: #fff;
+  border-color: #27ae60;
+}
+
+/* ==========================================================================
    Mobile-Only Persistent Bottom Order Bar & Animations
    ========================================================================== */
 .mobile-bottom-bar {

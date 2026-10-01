@@ -514,6 +514,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     cartSubtotalEl.textContent = `₹${subtotal}`;
 
+    // Free Delivery threshold progress bar
+    const freeShippingBar = document.getElementById('cartFreeShippingBar');
+    const shippingBarText = document.getElementById('shippingBarText');
+    const shippingProgressFill = document.getElementById('shippingProgressFill');
+    const FREE_SHIPPING_GOAL = 999;
+
+    if (freeShippingBar && shippingBarText && shippingProgressFill) {
+      if (subtotal === 0) {
+        shippingBarText.innerHTML = `🚚 Orders over <strong>₹${FREE_SHIPPING_GOAL}</strong> qualify for <strong>FREE Delivery</strong>!`;
+        shippingProgressFill.style.width = '0%';
+        shippingProgressFill.style.backgroundColor = 'var(--primary-gold)';
+      } else if (subtotal >= FREE_SHIPPING_GOAL) {
+        shippingBarText.innerHTML = `🎉 <strong>Congratulations!</strong> You unlocked <strong>FREE Delivery</strong>!`;
+        shippingProgressFill.style.width = '100%';
+        shippingProgressFill.style.backgroundColor = '#27ae60';
+      } else {
+        const remaining = FREE_SHIPPING_GOAL - subtotal;
+        const pct = Math.min(100, Math.round((subtotal / FREE_SHIPPING_GOAL) * 100));
+        shippingBarText.innerHTML = `Add <strong>₹${remaining}</strong> more to unlock <strong>FREE Delivery</strong>!`;
+        shippingProgressFill.style.width = `${pct}%`;
+        shippingProgressFill.style.backgroundColor = 'var(--primary-gold)';
+      }
+    }
+
     // Coupon Calculations
     let discount = 0;
     if (currentCoupon && validCoupons[currentCoupon]) {
@@ -1094,11 +1118,31 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
             <div style="display:flex; align-items:center; gap:10px;">
               <span class="order-total-amount">₹${order.total}</span>
+              <button class="btn-reorder-all btn-order-reorder-all" title="Reorder all products from this order">
+                🔁 Reorder All
+              </button>
             </div>
           </div>
         `;
 
-        // Wire Reorder buttons
+        // Wire Reorder All button
+        const reorderAllBtn = card.querySelector('.btn-order-reorder-all');
+        if (reorderAllBtn) {
+          reorderAllBtn.addEventListener('click', () => {
+            if (order.items && order.items.length > 0) {
+              order.items.forEach(it => {
+                addItemToCart(it.productId, it.weightVariant, it.quantity, false);
+              });
+              renderCart();
+              updateBadges();
+              closeOrders();
+              openCart();
+              showToast(`Added ${order.items.length} product(s) to cart for instant reorder!`);
+            }
+          });
+        }
+
+        // Wire Individual Item Reorder buttons
         card.querySelectorAll('.btn-item-reorder').forEach(b => {
           b.addEventListener('click', () => {
             const pId = b.getAttribute('data-product-id');
@@ -1114,6 +1158,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         customerOrdersContainer.appendChild(card);
       });
+
+      // Google Reviews Banner in My Orders
+      const googleReviewOrderBanner = document.createElement('div');
+      googleReviewOrderBanner.style.cssText = 'margin-top:16px; padding:16px; background:#fffdf8; border:1px dashed rgba(216,166,79,0.5); border-radius:12px; text-align:center;';
+      googleReviewOrderBanner.innerHTML = `
+        <div style="font-size:0.88rem; font-weight:700; color:#3A2A18; margin-bottom:4px;">⭐ Loving Your Kamadhenu Honey?</div>
+        <p style="font-size:0.8rem; color:#666; margin:0 0 10px;">Share your experience on Google Maps to help more families discover pure raw honey!</p>
+        <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" class="btn btn-gold" style="display:inline-flex; align-items:center; gap:6px; padding:8px 20px; font-size:0.82rem; font-weight:700; border-radius:20px; text-decoration:none;">
+          Leave a Review on Google Maps ↗
+        </a>
+      `;
+      customerOrdersContainer.appendChild(googleReviewOrderBanner);
     } catch (err) {
       customerOrdersContainer.innerHTML = `
         <div style="text-align:center; padding: 40px 20px; color:#e53e3e;">
@@ -2423,8 +2479,30 @@ ${points}
                     <span style="color:#8C6219;">₹${orderData.total}</span>
                   </div>
                 ` : ''}
+                <div style="margin-top:12px; padding-top:10px; border-top:1px solid #f0eae1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer;">
+                    🔁 Reorder These Items
+                  </button>
+                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem; color:#8C6219; font-weight:700; text-decoration:underline;">
+                    Review on Google Maps ↗
+                  </a>
+                </div>
               </div>
             `;
+
+            const btnTrackerReorder = document.getElementById('btnTrackerReorder');
+            if (btnTrackerReorder) {
+              btnTrackerReorder.addEventListener('click', () => {
+                orderData.items.forEach(it => {
+                  addItemToCart(it.productId, it.weightVariant, it.quantity, false);
+                });
+                renderCart();
+                updateBadges();
+                closeTracker();
+                openCart();
+                showToast(`Added ${orderData.items.length} product(s) to cart for instant reorder!`);
+              });
+            }
           } else {
             itemsContainer.innerHTML = '';
           }
