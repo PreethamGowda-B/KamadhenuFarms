@@ -468,6 +468,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (cartDiscountRow) cartDiscountRow.style.display = 'none';
       cartTotalEl.textContent = '₹0';
       checkoutBtn.setAttribute('disabled', 'true');
+      const cartUpsellContainer = document.getElementById('cartUpsellContainer');
+      if (cartUpsellContainer) {
+        cartUpsellContainer.style.display = 'none';
+        cartUpsellContainer.innerHTML = '';
+      }
       return;
     }
 
@@ -535,6 +540,69 @@ document.addEventListener('DOMContentLoaded', () => {
         shippingBarText.innerHTML = `Add <strong>₹${remaining}</strong> more to unlock <strong>FREE Delivery</strong>!`;
         shippingProgressFill.style.width = `${pct}%`;
         shippingProgressFill.style.backgroundColor = 'var(--primary-gold)';
+      }
+    }
+
+    // Smart 1-Click Upsell to hit Free Shipping Goal
+    const cartUpsellContainer = document.getElementById('cartUpsellContainer');
+    if (cartUpsellContainer) {
+      if (subtotal > 0 && subtotal < FREE_SHIPPING_GOAL) {
+        const remaining = FREE_SHIPPING_GOAL - subtotal;
+        const hasP1 = cart.some(i => i.id === 'p1');
+        const hasP2 = cart.some(i => i.id === 'p2');
+
+        let recId = 'p1';
+        let recSize = '250g';
+        let recPrice = 250;
+        let recName = 'Pure Raw Honey';
+        let recImg = 'assets/raw_honey.jpg';
+
+        if (hasP1 && !hasP2) {
+          recId = 'p2';
+          recSize = '250g';
+          recPrice = 399;
+          recName = 'Dry Fruits Honey';
+          recImg = 'assets/dry_fruits_honey_details.jpg';
+        } else if (remaining <= 250) {
+          recId = 'p1';
+          recSize = '250g';
+          recPrice = 250;
+          recName = 'Pure Raw Honey';
+          recImg = 'assets/raw_honey.jpg';
+        } else {
+          recId = 'p1';
+          recSize = '500g';
+          recPrice = 399;
+          recName = 'Pure Raw Honey';
+          recImg = 'assets/raw_honey.jpg';
+        }
+
+        cartUpsellContainer.style.display = 'block';
+        cartUpsellContainer.innerHTML = `
+          <div class="cart-upsell-card">
+            <img src="${recImg}" alt="${recName}" class="cart-upsell-thumb" />
+            <div class="cart-upsell-info">
+              <div class="cart-upsell-badge">🎯 Unlock Free Delivery</div>
+              <div class="cart-upsell-title">${recName} <span class="cart-upsell-size">(${recSize})</span></div>
+              <div class="cart-upsell-price">₹${recPrice}</div>
+            </div>
+            <button type="button" class="btn-cart-upsell-add" data-id="${recId}" data-size="${recSize}">
+              + Add
+            </button>
+          </div>
+        `;
+
+        const addUpsellBtn = cartUpsellContainer.querySelector('.btn-cart-upsell-add');
+        if (addUpsellBtn) {
+          addUpsellBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            addItemToCart(recId, recSize, 1, false);
+          };
+        }
+      } else {
+        cartUpsellContainer.style.display = 'none';
+        cartUpsellContainer.innerHTML = '';
       }
     }
 
@@ -3417,6 +3485,122 @@ ${points}
   };
 
   /* ==========================================================================
+     Live Social Proof Recent Order Toasts (Bangalore)
+     ========================================================================== */
+  const initSocialProofToasts = () => {
+    const toastEl = document.getElementById('socialProofToast');
+    if (!toastEl) return;
+
+    const recentOrders = [
+      { buyer: 'Rajesh K.', area: 'Rajajinagar, Bangalore', item: '1kg Pure Raw Honey', time: '9m ago', img: 'assets/raw_honey.jpg' },
+      { buyer: 'Priya M.', area: 'Indiranagar, Bangalore', item: '500g Pure Raw Honey', time: '18m ago', img: 'assets/raw_honey.jpg' },
+      { buyer: 'Ananya S.', area: 'Koramangala, Bangalore', item: 'Dry Fruits Honey (500g)', time: '27m ago', img: 'assets/dry_fruits_honey_details.jpg' },
+      { buyer: 'Deepak V.', area: 'Whitefield, Bangalore', item: '1kg Pure Raw Honey', time: '38m ago', img: 'assets/raw_honey.jpg' },
+      { buyer: 'Suresh B.', area: 'Vijayanagar, Bangalore', item: '2x Pure Raw Honey (500g)', time: '49m ago', img: 'assets/raw_honey.jpg' },
+      { buyer: 'Lakshmi Rao', area: 'Malleshwaram, Bangalore', item: '1kg Pure Raw Honey', time: '1h ago', img: 'assets/raw_honey.jpg' },
+      { buyer: 'Venkatesh P.', area: 'Jayanagar, Bangalore', item: 'Pure Raw Honey (500g)', time: '1h ago', img: 'assets/raw_honey.jpg' },
+      { buyer: 'Dr. Ramesh', area: 'HSR Layout, Bangalore', item: 'Dry Fruits Honey (250g)', time: '2h ago', img: 'assets/dry_fruits_honey_details.jpg' }
+    ];
+
+    let currentIndex = 0;
+    let toastTimeout = null;
+    let cycleInterval = null;
+    let isDismissed = false;
+    let isPaused = false;
+
+    if (sessionStorage.getItem('kamadhenu_social_proof_dismissed') === 'true') {
+      return;
+    }
+
+    const showToast = () => {
+      if (isDismissed || isPaused) return;
+
+      const cartDrawer = document.getElementById('cartDrawer');
+      const ordersDrawer = document.getElementById('ordersDrawer');
+      const checkoutModal = document.getElementById('checkoutModal');
+      const adModal = document.getElementById('bulkPromoModal');
+
+      const isCartOpen = cartDrawer && cartDrawer.classList.contains('active');
+      const isOrdersOpen = ordersDrawer && ordersDrawer.classList.contains('active');
+      const isCheckoutOpen = checkoutModal && checkoutModal.classList.contains('active');
+      const isAdOpen = adModal && adModal.classList.contains('active');
+
+      if (isCartOpen || isOrdersOpen || isCheckoutOpen || isAdOpen) {
+        return;
+      }
+
+      const order = recentOrders[currentIndex];
+      currentIndex = (currentIndex + 1) % recentOrders.length;
+
+      toastEl.style.display = 'flex';
+      toastEl.innerHTML = `
+        <img src="${order.img}" alt="${order.item}" class="social-proof-img" />
+        <div class="social-proof-content">
+          <div class="social-proof-buyer">${order.buyer} <span style="font-weight:400; color:#666; font-size:0.75rem;">• ${order.area}</span></div>
+          <div class="social-proof-action">Ordered <strong>${order.item}</strong></div>
+          <div class="social-proof-meta">
+            <span>${order.time}</span>
+            <span>•</span>
+            <span class="social-proof-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Verified Buyer
+            </span>
+          </div>
+        </div>
+        <button type="button" class="social-proof-close" aria-label="Dismiss notification">×</button>
+      `;
+
+      requestAnimationFrame(() => {
+        toastEl.classList.add('visible');
+      });
+
+      const closeBtn = toastEl.querySelector('.social-proof-close');
+      if (closeBtn) {
+        closeBtn.onclick = (e) => {
+          e.stopPropagation();
+          hideToast();
+          isDismissed = true;
+          sessionStorage.setItem('kamadhenu_social_proof_dismissed', 'true');
+          if (cycleInterval) clearInterval(cycleInterval);
+        };
+      }
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        if (!isPaused) {
+          hideToast();
+        }
+      }, 5500);
+    };
+
+    const hideToast = () => {
+      toastEl.classList.remove('visible');
+      setTimeout(() => {
+        if (!toastEl.classList.contains('visible')) {
+          toastEl.style.display = 'none';
+        }
+      }, 400);
+    };
+
+    toastEl.addEventListener('mouseenter', () => {
+      isPaused = true;
+    });
+
+    toastEl.addEventListener('mouseleave', () => {
+      isPaused = false;
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(hideToast, 2500);
+    });
+
+    setTimeout(() => {
+      showToast();
+      cycleInterval = setInterval(showToast, 32000);
+    }, 6000);
+  };
+
+  /* ==========================================================================
      App Initialization
      ========================================================================== */
   const initApp = () => {
@@ -3427,6 +3611,7 @@ ${points}
     initializeUpcomingGallery();
     checkCustomerSession();
     syncRealtimeStock();
+    initSocialProofToasts();
 
     // Deep-link scroll handling for shared products (e.g. #product-p1, #products, #our-honey)
     const handleDeepLinkHash = () => {

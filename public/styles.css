@@ -6618,3 +6618,200 @@ body.overflow-hidden {
   box-shadow: none !important;
   transform: none !important;
 }
+
+/* ==========================================================================
+   Shopping Cart: 1-Click Upsell to Free Delivery
+   ========================================================================== */
+.cart-upsell-container {
+  padding: 10px 18px;
+  background: linear-gradient(135deg, rgba(216, 166, 79, 0.1), rgba(248, 245, 239, 0.9));
+  border-bottom: 1px solid rgba(216, 166, 79, 0.25);
+  animation: fadeIn 0.3s ease;
+}
+
+.cart-upsell-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(216, 166, 79, 0.6);
+  box-shadow: 0 2px 10px rgba(216, 166, 79, 0.08);
+}
+
+.cart-upsell-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(216, 166, 79, 0.3);
+  flex-shrink: 0;
+}
+
+.cart-upsell-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-upsell-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #b8860b;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.cart-upsell-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--luxury-charcoal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-upsell-size {
+  color: #777;
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+
+.cart-upsell-price {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--dark-gold);
+}
+
+.btn-cart-upsell-add {
+  background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(216, 166, 79, 0.3);
+}
+
+.btn-cart-upsell-add:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(216, 166, 79, 0.45);
+}
+
+/* ==========================================================================
+   Live Social Proof Recent Order Toast (Bangalore)
+   ========================================================================== */
+.social-proof-toast {
+  position: fixed;
+  bottom: 26px;
+  left: 26px;
+  z-index: 950;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  max-width: 330px;
+  width: calc(100% - 48px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(216, 166, 79, 0.15);
+  border: 1px solid rgba(216, 166, 79, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translateY(20px);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, visibility 0.4s ease;
+  pointer-events: auto;
+}
+
+.social-proof-toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.social-proof-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(216, 166, 79, 0.25);
+  flex-shrink: 0;
+}
+
+.social-proof-content {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.social-proof-buyer {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--luxury-charcoal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.social-proof-action {
+  font-size: 0.75rem;
+  color: #444;
+  margin: 1px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.social-proof-action strong {
+  color: var(--dark-gold);
+}
+
+.social-proof-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  color: #777;
+}
+
+.social-proof-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #27ae60;
+  font-weight: 600;
+}
+
+.social-proof-close {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: color 0.2s ease;
+  align-self: flex-start;
+  margin-top: -4px;
+  margin-right: -4px;
+}
+
+.social-proof-close:hover {
+  color: var(--luxury-charcoal);
+}
+
+@media (max-width: 768px) {
+  .social-proof-toast {
+    bottom: 74px; /* Sits cleanly above the fixed mobile bottom bar */
+    left: 12px;
+    right: 12px;
+    max-width: calc(100% - 24px);
+    width: auto;
+    padding: 10px 12px;
+  }
+}
