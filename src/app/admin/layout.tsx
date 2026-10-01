@@ -7,9 +7,9 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const isLoginPage = pathname === '/admin/login' || pathname?.startsWith('/admin/login');
+  // On any admin login page (/admin/login, /login on admin subdomain, etc.), do NOT show sidebar
+  const isLoginPage = !pathname || pathname === '/login' || pathname.startsWith('/login') || pathname.startsWith('/admin/login') || pathname.includes('login');
 
-  // On the standalone admin login page, do not show the sidebar
   if (isLoginPage) {
     return <>{children}</>;
   }

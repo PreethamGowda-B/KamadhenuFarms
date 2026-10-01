@@ -25,8 +25,8 @@ export default function AdminSidebar() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Never render sidebar on admin login page
-  if (pathname === '/admin/login' || pathname?.startsWith('/admin/login')) {
+  // Never render sidebar on any login page (/admin/login, /login on admin subdomain, etc.)
+  if (!pathname || pathname === '/login' || pathname.startsWith('/login') || pathname.startsWith('/admin/login') || pathname.includes('login')) {
     return null;
   }
 
