@@ -2660,6 +2660,14 @@ footer {
   color: var(--dark-gold);
 }
 
+.cart-total-subtext {
+  font-size: 0.75rem;
+  color: #777;
+  text-align: right;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
 .cart-checkout-btn {
   width: 100%;
   margin-top: 1.5rem;

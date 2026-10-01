@@ -194,6 +194,7 @@ function calculateZonalRate(
 export const IS_TEST_MODE = false;
 
 export const FREE_SHIPPING_THRESHOLD = 999;
+export const OUTSIDE_STATE_SUBSIDIZED_FEE = 99;
 
 /**
  * Main Shipping Calculation Function
@@ -226,29 +227,47 @@ export async function calculateShippingCharge(
   }
 
   const weightKg = calculateGrossWeightKg(items);
-  const isFreeDelivery = typeof subtotal === 'number' && subtotal >= FREE_SHIPPING_THRESHOLD;
+  const prefix2 = cleaned.substring(0, 2);
+  const isKarnataka = ['56', '57', '58', '59'].includes(prefix2);
+  const reachedThreshold = typeof subtotal === 'number' && subtotal >= FREE_SHIPPING_THRESHOLD;
 
   // Try live Shiprocket rate first if credentials exist
   const shiprocketResult = await calculateShiprocketRate(cleaned, weightKg);
   if (shiprocketResult) {
-    if (isFreeDelivery) {
-      return {
-        ...shiprocketResult,
-        shippingFee: 0,
-        courierName: `${shiprocketResult.courierName} (Free Delivery)`,
-      };
+    if (reachedThreshold) {
+      if (isKarnataka) {
+        return {
+          ...shiprocketResult,
+          shippingFee: 0,
+          courierName: `${shiprocketResult.courierName} (Free Delivery)`,
+        };
+      } else {
+        return {
+          ...shiprocketResult,
+          shippingFee: OUTSIDE_STATE_SUBSIDIZED_FEE,
+          courierName: `${shiprocketResult.courierName} (Subsidized Interstate Delivery • ₹99)`,
+        };
+      }
     }
     return shiprocketResult;
   }
 
   // Fallback to verified zonal pricing engine
   const zonalResult = calculateZonalRate(cleaned, weightKg);
-  if (isFreeDelivery && zonalResult.serviceable) {
-    return {
-      ...zonalResult,
-      shippingFee: 0,
-      courierName: `${zonalResult.courierName} (Free Delivery)`,
-    };
+  if (reachedThreshold && zonalResult.serviceable) {
+    if (isKarnataka) {
+      return {
+        ...zonalResult,
+        shippingFee: 0,
+        courierName: `${zonalResult.courierName} (Free Delivery)`,
+      };
+    } else {
+      return {
+        ...zonalResult,
+        shippingFee: OUTSIDE_STATE_SUBSIDIZED_FEE,
+        courierName: `${zonalResult.courierName} (Subsidized Interstate Delivery • ₹99)`,
+      };
+    }
   }
   return zonalResult;
 }

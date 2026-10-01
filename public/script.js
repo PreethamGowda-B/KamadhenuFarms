@@ -467,6 +467,18 @@ document.addEventListener('DOMContentLoaded', () => {
       cartSubtotalEl.textContent = '₹0';
       if (cartDiscountRow) cartDiscountRow.style.display = 'none';
       cartTotalEl.textContent = '₹0';
+      const cartDeliveryNotice = document.getElementById('cartDeliveryNotice');
+      if (cartDeliveryNotice) {
+        cartDeliveryNotice.textContent = 'Calculated at checkout';
+        cartDeliveryNotice.style.color = 'var(--dark-gold)';
+      }
+      const cartShippingNote = document.getElementById('cartShippingNote');
+      if (cartShippingNote) {
+        cartShippingNote.style.display = 'none';
+        cartShippingNote.textContent = '';
+      }
+      const rogueNote = cartTotalEl.parentElement?.querySelector('.cart-shipping-note');
+      if (rogueNote) rogueNote.remove();
       checkoutBtn.setAttribute('disabled', 'true');
       const cartUpsellContainer = document.getElementById('cartUpsellContainer');
       if (cartUpsellContainer) {
@@ -527,17 +539,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (freeShippingBar && shippingBarText && shippingProgressFill) {
       if (subtotal === 0) {
-        shippingBarText.innerHTML = `🚚 Orders over <strong>₹${FREE_SHIPPING_GOAL}</strong> qualify for <strong>FREE Delivery</strong>!`;
+        shippingBarText.innerHTML = `🚚 Orders over <strong>₹${FREE_SHIPPING_GOAL}</strong> get <strong>FREE Delivery in Karnataka</strong> (₹99 for other states)!`;
         shippingProgressFill.style.width = '0%';
         shippingProgressFill.style.backgroundColor = 'var(--primary-gold)';
       } else if (subtotal >= FREE_SHIPPING_GOAL) {
-        shippingBarText.innerHTML = `🎉 <strong>Congratulations!</strong> You unlocked <strong>FREE Delivery</strong>!`;
+        shippingBarText.innerHTML = `🎉 <strong>Congratulations!</strong> You unlocked <strong>FREE Delivery in Karnataka</strong> (₹99 for other states)!`;
         shippingProgressFill.style.width = '100%';
         shippingProgressFill.style.backgroundColor = '#27ae60';
       } else {
         const remaining = FREE_SHIPPING_GOAL - subtotal;
         const pct = Math.min(100, Math.round((subtotal / FREE_SHIPPING_GOAL) * 100));
-        shippingBarText.innerHTML = `Add <strong>₹${remaining}</strong> more to unlock <strong>FREE Delivery</strong>!`;
+        shippingBarText.innerHTML = `Add <strong>₹${remaining}</strong> more for <strong>FREE Delivery in Karnataka</strong> (₹99 for other states)!`;
         shippingProgressFill.style.width = `${pct}%`;
         shippingProgressFill.style.backgroundColor = 'var(--primary-gold)';
       }
@@ -627,15 +639,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cart shows subtotal only — delivery calculated at checkout after pincode entry
     const subtotalAfterDiscount = Math.max(0, subtotal - discount);
     cartTotalEl.textContent = `₹${subtotalAfterDiscount}`;
-    // Add a small note under total if not already present
-    let shippingNote = cartTotalEl.parentElement?.querySelector('.cart-shipping-note');
-    if (!shippingNote) {
-      shippingNote = document.createElement('small');
-      shippingNote.className = 'cart-shipping-note';
-      shippingNote.style.cssText = 'display:block; color:#888; font-size:0.72rem; margin-top:2px;';
-      cartTotalEl.parentElement?.appendChild(shippingNote);
+
+    // Clean up any rogue element mistakenly injected into the total-row flex container
+    const rogueNote = cartTotalEl.parentElement?.querySelector('.cart-shipping-note');
+    if (rogueNote) rogueNote.remove();
+
+    // Delivery row & dedicated subtitle note below Total Payable
+    const cartDeliveryNotice = document.getElementById('cartDeliveryNotice');
+    const cartShippingNote = document.getElementById('cartShippingNote');
+
+    if (subtotal >= FREE_SHIPPING_GOAL) {
+      if (cartDeliveryNotice) {
+        cartDeliveryNotice.innerHTML = '<span style="color:#27ae60; font-weight:700;">FREE (KA) / ₹99 (Other)</span>';
+      }
+      if (cartShippingNote) {
+        cartShippingNote.style.display = 'block';
+        cartShippingNote.innerHTML = '🎉 <strong>Free Delivery in Karnataka</strong> &bull; Flat ₹99 courier outside Karnataka';
+      }
+    } else {
+      if (cartDeliveryNotice) {
+        cartDeliveryNotice.textContent = 'Calculated at checkout';
+        cartDeliveryNotice.style.color = 'var(--dark-gold)';
+      }
+      if (cartShippingNote) {
+        cartShippingNote.style.display = 'block';
+        cartShippingNote.textContent = '*Standard delivery calculated at checkout based on pincode';
+      }
     }
-    shippingNote.textContent = '+ Delivery charges calculated at checkout';
 
     // Wire up events safely with closest() selector
     cartItemsContainer.querySelectorAll('.dec-qty-cart').forEach(btn => {
@@ -1970,7 +2000,9 @@ ${points}
 
     try {
       const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const isFreeShippingUnlocked = subtotal >= 999;
+      const prefix2 = cleanPin.substring(0, 2);
+      const isKarnataka = ['56', '57', '58', '59'].includes(prefix2);
+      const reachedThreshold = subtotal >= 999;
 
       const response = await fetchWithTimeout('/api/shipping/calculate', {
         method: 'POST',
@@ -1989,18 +2021,24 @@ ${points}
 
       const data = await response.json();
       if (data.success) {
-        const isFree = isFreeShippingUnlocked || data.isFreeDelivery || Number(data.shippingFee) === 0;
-        currentShippingCharge = isFree ? 0 : (Number(data.shippingFee) || 0);
+        currentShippingCharge = Number(data.shippingFee) || 0;
         isShippingCalculated = true;
         currentShippingDetails = data;
         showCheckoutError(null);
         if (checkoutShippingEl) {
-          checkoutShippingEl.textContent = isFree ? 'FREE' : `₹${currentShippingCharge}`;
-          checkoutShippingEl.style.color = isFree ? '#27ae60' : 'var(--dark-gold)';
+          if (currentShippingCharge === 0) {
+            checkoutShippingEl.textContent = 'FREE';
+            checkoutShippingEl.style.color = '#27ae60';
+          } else {
+            checkoutShippingEl.textContent = `₹${currentShippingCharge}`;
+            checkoutShippingEl.style.color = 'var(--dark-gold)';
+          }
         }
         if (checkoutShippingNoticeEl) {
-          if (isFree) {
-            checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery Unlocked!</strong> &bull; ${data.courierName || 'Bangalore Express Courier'} (Est. arrival: ${data.estimatedDays || '1-2 Days'})`;
+          if (currentShippingCharge === 0) {
+            checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery (Karnataka)</strong> &bull; ${data.courierName || 'Bangalore Express Courier'} (Est. arrival: ${data.estimatedDays || '1-2 Days'})`;
+          } else if (reachedThreshold && !isKarnataka) {
+            checkoutShippingNoticeEl.innerHTML = `🚚 <strong>Subsidized Inter-State Courier (₹99)</strong> &bull; ${data.courierName || 'National Express'} (Est. arrival: ${data.estimatedDays || '3-5 business days'})`;
           } else {
             checkoutShippingNoticeEl.innerHTML = `🚚 <strong>${data.courierName || 'Courier Delivery'}</strong> &bull; Est. arrival: ${data.estimatedDays || '2-4 business days'}`;
           }
@@ -2018,8 +2056,31 @@ ${points}
         }
       }
     } catch (err) {
-      console.error('Shipping calculation error:', err);
-      if (checkoutShippingEl) checkoutShippingEl.textContent = 'Error calculating';
+      console.error('Shipping calculation error, using fallback:', err);
+      isShippingCalculated = true;
+      if (reachedThreshold) {
+        currentShippingCharge = isKarnataka ? 0 : 99;
+      } else {
+        currentShippingCharge = isKarnataka ? (cleanPin.startsWith('560') || cleanPin.startsWith('562') ? 99 : 75) : 125;
+      }
+      currentShippingDetails = {
+        courierName: isKarnataka ? 'Karnataka Regional Courier' : 'Inter-State Courier',
+        estimatedDays: isKarnataka ? '1-2 Days' : '3-5 business days',
+        isKarnataka
+      };
+      if (checkoutShippingEl) {
+        checkoutShippingEl.textContent = currentShippingCharge === 0 ? 'FREE' : `₹${currentShippingCharge}`;
+        checkoutShippingEl.style.color = currentShippingCharge === 0 ? '#27ae60' : 'var(--dark-gold)';
+      }
+      if (checkoutShippingNoticeEl) {
+        if (currentShippingCharge === 0) {
+          checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery (Karnataka)</strong> &bull; Est. arrival: 1-2 Days`;
+        } else if (reachedThreshold && !isKarnataka) {
+          checkoutShippingNoticeEl.innerHTML = `🚚 <strong>Subsidized Inter-State Courier (₹99)</strong> &bull; Est. arrival: 3-5 business days`;
+        } else {
+          checkoutShippingNoticeEl.innerHTML = `🚚 <strong>Courier Delivery (₹${currentShippingCharge})</strong> &bull; Est. arrival: 2-4 business days`;
+        }
+      }
     } finally {
       renderCheckoutSummary();
     }
@@ -2182,26 +2243,34 @@ ${points}
       if (checkoutDiscountRow) checkoutDiscountRow.style.display = 'none';
     }
 
-    const isFreeShippingUnlocked = subtotal >= 999;
-    const shippingCharge = isFreeShippingUnlocked ? 0 : (isShippingCalculated ? currentShippingCharge : 0);
+    const pincodeVal = (document.getElementById('chkPincode')?.value || '').trim();
+    const isKarnatakaPin = ['56', '57', '58', '59'].includes(pincodeVal.substring(0, 2));
+    const reachedThreshold = subtotal >= 999;
+    const shippingCharge = isShippingCalculated ? currentShippingCharge : 0;
 
     if (checkoutShippingEl) {
-      if (isFreeShippingUnlocked) {
+      if (!isShippingCalculated) {
+        checkoutShippingEl.textContent = pincodeVal.length === 6 ? 'Calculating...' : 'Enter 6-digit pincode';
+        checkoutShippingEl.style.color = 'var(--dark-gold)';
+      } else if (shippingCharge === 0) {
         checkoutShippingEl.textContent = 'FREE';
         checkoutShippingEl.style.color = '#27ae60';
-      } else if (!isShippingCalculated) {
-        checkoutShippingEl.textContent = 'Enter 6-digit pincode';
-        checkoutShippingEl.style.color = 'var(--dark-gold)';
       } else {
-        checkoutShippingEl.textContent = currentShippingCharge === 0 ? 'FREE' : `₹${currentShippingCharge}`;
-        checkoutShippingEl.style.color = currentShippingCharge === 0 ? '#27ae60' : 'var(--dark-gold)';
+        checkoutShippingEl.textContent = `₹${shippingCharge}`;
+        checkoutShippingEl.style.color = 'var(--dark-gold)';
       }
     }
 
-    if (isFreeShippingUnlocked && checkoutShippingNoticeEl && currentShippingDetails) {
-      const courier = currentShippingDetails.courierName || 'Bangalore Express Courier';
-      const days = currentShippingDetails.estimatedDays || '1-2 Days';
-      checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery Unlocked!</strong> &bull; ${courier} (Est. arrival: ${days})`;
+    if (checkoutShippingNoticeEl && currentShippingDetails) {
+      if (shippingCharge === 0) {
+        const courier = currentShippingDetails.courierName || 'Bangalore Express Courier';
+        const days = currentShippingDetails.estimatedDays || '1-2 Days';
+        checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery (Karnataka)</strong> &bull; ${courier} (Est. arrival: ${days})`;
+      } else if (reachedThreshold && !isKarnatakaPin) {
+        const courier = currentShippingDetails.courierName || 'National Express Courier';
+        const days = currentShippingDetails.estimatedDays || '3-5 business days';
+        checkoutShippingNoticeEl.innerHTML = `🚚 <strong>Subsidized Inter-State Courier (₹99)</strong> &bull; ${courier} (Est. arrival: ${days})`;
+      }
     }
 
     const finalTotal = Math.max(0, subtotal - discount + shippingCharge);

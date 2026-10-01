@@ -127,8 +127,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Calculate Server-side Verified Shipping Rate (Free Delivery for orders >= ₹999)
-    const FREE_DELIVERY_GOAL = 999;
+    // 2. Calculate Server-side Verified Shipping Rate (Free Delivery for Karnataka >= ₹999, Subsidized ₹99 for Outside States)
     const shippingResult = await calculateShippingCharge(cleanPincode, items, subtotal);
     if (!shippingResult.serviceable) {
       return NextResponse.json(
@@ -141,7 +140,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const shippingFee = (subtotal >= FREE_DELIVERY_GOAL) ? 0 : shippingResult.shippingFee;
+    const shippingFee = shippingResult.shippingFee;
 
     // 3. Calculate Authoritative Discount (Static Coupons + Admin Referral Offers & Rewards)
     let discount = 0;

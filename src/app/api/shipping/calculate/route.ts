@@ -28,13 +28,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const isFree = (numericSubtotal !== undefined && numericSubtotal >= 999) || result.shippingFee === 0;
+    const prefix2 = pincode.trim().substring(0, 2);
+    const isKarnataka = ['56', '57', '58', '59'].includes(prefix2);
+    const isFree = result.shippingFee === 0;
 
     return NextResponse.json({
       success: true,
       serviceable: true,
-      shippingFee: isFree ? 0 : result.shippingFee,
+      shippingFee: result.shippingFee,
       isFreeDelivery: isFree,
+      isKarnataka: isKarnataka,
       courierName: result.courierName,
       estimatedDays: result.estimatedDays,
     });
