@@ -127,8 +127,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 2. Calculate Server-side Verified Shipping Rate
-    const shippingResult = await calculateShippingCharge(cleanPincode, items);
+    // 2. Calculate Server-side Verified Shipping Rate (Free Delivery for orders >= ₹999)
+    const FREE_DELIVERY_GOAL = 999;
+    const shippingResult = await calculateShippingCharge(cleanPincode, items, subtotal);
     if (!shippingResult.serviceable) {
       return NextResponse.json(
         {
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const shippingFee = shippingResult.shippingFee;
+    const shippingFee = (subtotal >= FREE_DELIVERY_GOAL) ? 0 : shippingResult.shippingFee;
 
     // 3. Calculate Authoritative Discount (Static Coupons + Admin Referral Offers & Rewards)
     let discount = 0;

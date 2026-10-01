@@ -1969,11 +1969,15 @@ ${points}
     }
 
     try {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const isFreeShippingUnlocked = subtotal >= 999;
+
       const response = await fetchWithTimeout('/api/shipping/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pincode: cleanPin,
+          subtotal: subtotal,
           items: cart.map(i => ({
             productId: i.id,
             variant: i.size,
@@ -1985,16 +1989,21 @@ ${points}
 
       const data = await response.json();
       if (data.success) {
-        currentShippingCharge = Number(data.shippingFee) || 0;
+        const isFree = isFreeShippingUnlocked || data.isFreeDelivery || Number(data.shippingFee) === 0;
+        currentShippingCharge = isFree ? 0 : (Number(data.shippingFee) || 0);
         isShippingCalculated = true;
         currentShippingDetails = data;
         showCheckoutError(null);
         if (checkoutShippingEl) {
-          checkoutShippingEl.textContent = currentShippingCharge === 0 ? 'FREE' : `₹${currentShippingCharge}`;
-          checkoutShippingEl.style.color = currentShippingCharge === 0 ? '#27ae60' : 'var(--dark-gold)';
+          checkoutShippingEl.textContent = isFree ? 'FREE' : `₹${currentShippingCharge}`;
+          checkoutShippingEl.style.color = isFree ? '#27ae60' : 'var(--dark-gold)';
         }
         if (checkoutShippingNoticeEl) {
-          checkoutShippingNoticeEl.innerHTML = `🚚 <strong>${data.courierName || 'Courier Delivery'}</strong> &bull; Est. arrival: ${data.estimatedDays || '2-4 business days'}`;
+          if (isFree) {
+            checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery Unlocked!</strong> &bull; ${data.courierName || 'Bangalore Express Courier'} (Est. arrival: ${data.estimatedDays || '1-2 Days'})`;
+          } else {
+            checkoutShippingNoticeEl.innerHTML = `🚚 <strong>${data.courierName || 'Courier Delivery'}</strong> &bull; Est. arrival: ${data.estimatedDays || '2-4 business days'}`;
+          }
         }
       } else {
         isShippingCalculated = false;
@@ -2173,7 +2182,28 @@ ${points}
       if (checkoutDiscountRow) checkoutDiscountRow.style.display = 'none';
     }
 
-    const shippingCharge = isShippingCalculated ? currentShippingCharge : 0;
+    const isFreeShippingUnlocked = subtotal >= 999;
+    const shippingCharge = isFreeShippingUnlocked ? 0 : (isShippingCalculated ? currentShippingCharge : 0);
+
+    if (checkoutShippingEl) {
+      if (isFreeShippingUnlocked) {
+        checkoutShippingEl.textContent = 'FREE';
+        checkoutShippingEl.style.color = '#27ae60';
+      } else if (!isShippingCalculated) {
+        checkoutShippingEl.textContent = 'Enter 6-digit pincode';
+        checkoutShippingEl.style.color = 'var(--dark-gold)';
+      } else {
+        checkoutShippingEl.textContent = currentShippingCharge === 0 ? 'FREE' : `₹${currentShippingCharge}`;
+        checkoutShippingEl.style.color = currentShippingCharge === 0 ? '#27ae60' : 'var(--dark-gold)';
+      }
+    }
+
+    if (isFreeShippingUnlocked && checkoutShippingNoticeEl && currentShippingDetails) {
+      const courier = currentShippingDetails.courierName || 'Bangalore Express Courier';
+      const days = currentShippingDetails.estimatedDays || '1-2 Days';
+      checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery Unlocked!</strong> &bull; ${courier} (Est. arrival: ${days})`;
+    }
+
     const finalTotal = Math.max(0, subtotal - discount + shippingCharge);
     checkoutTotalEl.textContent = `₹${finalTotal}`;
 

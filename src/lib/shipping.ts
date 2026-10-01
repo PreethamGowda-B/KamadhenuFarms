@@ -193,12 +193,15 @@ function calculateZonalRate(
 // Production Mode: Real shipping rates apply
 export const IS_TEST_MODE = false;
 
+export const FREE_SHIPPING_THRESHOLD = 999;
+
 /**
  * Main Shipping Calculation Function
  */
 export async function calculateShippingCharge(
   deliveryPincode: string,
-  items: CartItemForShipping[]
+  items: CartItemForShipping[],
+  subtotal?: number
 ): Promise<ShippingCalculationResult> {
   const cleaned = (deliveryPincode || '').trim();
 
@@ -223,13 +226,29 @@ export async function calculateShippingCharge(
   }
 
   const weightKg = calculateGrossWeightKg(items);
+  const isFreeDelivery = typeof subtotal === 'number' && subtotal >= FREE_SHIPPING_THRESHOLD;
 
   // Try live Shiprocket rate first if credentials exist
   const shiprocketResult = await calculateShiprocketRate(cleaned, weightKg);
   if (shiprocketResult) {
+    if (isFreeDelivery) {
+      return {
+        ...shiprocketResult,
+        shippingFee: 0,
+        courierName: `${shiprocketResult.courierName} (Free Delivery)`,
+      };
+    }
     return shiprocketResult;
   }
 
   // Fallback to verified zonal pricing engine
-  return calculateZonalRate(cleaned, weightKg);
+  const zonalResult = calculateZonalRate(cleaned, weightKg);
+  if (isFreeDelivery && zonalResult.serviceable) {
+    return {
+      ...zonalResult,
+      shippingFee: 0,
+      courierName: `${zonalResult.courierName} (Free Delivery)`,
+    };
+  }
+  return zonalResult;
 }

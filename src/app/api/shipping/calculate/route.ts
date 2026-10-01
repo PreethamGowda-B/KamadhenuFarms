@@ -4,7 +4,7 @@ import { calculateShippingCharge } from '@/lib/shipping';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { pincode, items } = body;
+    const { pincode, items, subtotal } = body;
 
     if (!pincode || typeof pincode !== 'string') {
       return NextResponse.json(
@@ -17,7 +17,8 @@ export async function POST(req: NextRequest) {
       ? items
       : [{ productId: 'p1', weightVariant: '500g', quantity: 1 }];
 
-    const result = await calculateShippingCharge(pincode, itemsList);
+    const numericSubtotal = typeof subtotal === 'number' ? subtotal : undefined;
+    const result = await calculateShippingCharge(pincode, itemsList, numericSubtotal);
 
     if (!result.serviceable) {
       return NextResponse.json({
@@ -27,10 +28,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const isFree = (numericSubtotal !== undefined && numericSubtotal >= 999) || result.shippingFee === 0;
+
     return NextResponse.json({
       success: true,
       serviceable: true,
-      shippingFee: result.shippingFee,
+      shippingFee: isFree ? 0 : result.shippingFee,
+      isFreeDelivery: isFree,
       courierName: result.courierName,
       estimatedDays: result.estimatedDays,
     });
