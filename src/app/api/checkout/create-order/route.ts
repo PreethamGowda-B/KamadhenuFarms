@@ -313,8 +313,8 @@ export async function POST(req: NextRequest) {
     try {
       const sessionToken = await createCustomerSession(dbOrder.customerId, req);
       if (sessionToken) attachCustomerSessionCookie(response, sessionToken);
-    } catch (sessErr) {
-      console.error('Session creation error in create-order:', sessErr);
+    } catch (sessionError) {
+      console.error('Session creation error in create-order:', sessionError);
     }
 
     return response;
