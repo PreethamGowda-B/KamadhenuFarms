@@ -53,6 +53,12 @@ export default function AdminCustomersPage() {
       const res = await fetch(
         `/api/admin/customers?search=${encodeURIComponent(query)}&page=${targetPage}&limit=25`
       );
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/admin/login?from=/admin/customers';
+          return;
+        }
+      }
       const data = await res.json();
       if (data.success) {
         setCustomers(data.customers || []);

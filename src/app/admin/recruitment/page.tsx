@@ -72,6 +72,12 @@ export default function AdminRecruitmentPage() {
   const fetchApplications = async () => {
     try {
       const res = await fetch('/api/admin/applications');
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/admin/login?from=/admin/recruitment';
+          return;
+        }
+      }
       const json = await res.json();
       if (json.success) {
         setApplications(json.data);

@@ -565,7 +565,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                 <strong className="text-stone-900">
                   {order.paymentMethod === 'COD' || order.paymentMethod === 'cod'
                     ? 'Bangalore Cash on Delivery (50% Advance)'
-                    : latestPayment?.paymentMethod || (order.razorpayPaymentId ? 'Razorpay Online (UPI/Cards)' : 'Online Payment')}
+                    : latestPayment?.paymentMethod || (order.cashfreePaymentId ? 'Cashfree Online (UPI/Cards)' : 'Online Payment (Cashfree)')}
                 </strong>
               </div>
 
@@ -605,8 +605,8 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
 
               <div>
                 <span className="text-stone-500 block">Gateway Provider</span>
-                <span className="font-semibold text-stone-800 block">
-                  {latestPayment?.provider || (order.cashfreeOrderId ? 'CASHFREE' : order.razorpayOrderId ? 'RAZORPAY' : 'CASHFREE')}
+                <span className="font-semibold text-emerald-800 block font-mono">
+                  {latestPayment?.provider || 'CASHFREE'}
                 </span>
               </div>
 
@@ -624,24 +624,6 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
                   <span className="text-stone-500 block">Cashfree Payment ID</span>
                   <span className="font-mono text-stone-800 select-all block bg-stone-50 p-1.5 rounded border border-stone-200">
                     {order.cashfreePaymentId}
-                  </span>
-                </div>
-              )}
-
-              {order.razorpayOrderId && (
-                <div>
-                  <span className="text-stone-500 block">Razorpay Order ID (Historical)</span>
-                  <span className="font-mono text-stone-800 select-all block bg-stone-50 p-1.5 rounded border border-stone-200">
-                    {order.razorpayOrderId}
-                  </span>
-                </div>
-              )}
-
-              {order.razorpayPaymentId && (
-                <div>
-                  <span className="text-stone-500 block">Razorpay Payment ID (Historical)</span>
-                  <span className="font-mono text-stone-800 select-all block bg-stone-50 p-1.5 rounded border border-stone-200">
-                    {order.razorpayPaymentId}
                   </span>
                 </div>
               )}

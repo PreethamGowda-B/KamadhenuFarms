@@ -644,8 +644,6 @@ function ConfirmationContent() {
                   Payment Mode:{' '}
                   {isCodOrder
                     ? 'Bangalore Cash on Delivery (50% Advance Online)'
-                    : order?.payment?.provider === 'RAZORPAY'
-                    ? 'Razorpay Secure Checkout (Historical)'
                     : 'Cashfree Secure Checkout (UPI/Cards/Netbanking)'}
                 </span>
               </div>

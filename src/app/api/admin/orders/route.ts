@@ -4,6 +4,11 @@ import { getAdminSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+// In-memory 20-second cache for dashboard KPI statistics to prevent connection pool exhaustion
+let cachedMetrics: any = null;
+let cachedMetricsTimestamp = 0;
+const METRICS_CACHE_TTL_MS = 20000;
+
 export async function GET(req: NextRequest) {
   try {
     const admin = getAdminSessionFromRequest(req);
@@ -74,71 +79,106 @@ export async function GET(req: NextRequest) {
       prisma.order.count({ where }),
     ]);
 
-    // Calculate Ecommerce KPI Statistics
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Fast Aggregated KPI Statistics with 20s in-memory caching
+    const now = Date.now();
+    let metrics = cachedMetrics;
 
-    const [
-      todayOrdersCount,
-      pendingOrdersCount,
-      paidOrdersCount,
-      processingCount,
-      packedCount,
-      shippedCount,
-      deliveredCount,
-      failedPaymentsCount,
-      refundsCount,
-      pendingShipmentsCount,
-      codOrdersCount,
-      codBalancePendingCount,
-      todayRevenueAgg,
-      monthlyRevenueAgg,
-    ] = await Promise.all([
-      prisma.order.count({ where: { createdAt: { gte: startOfToday } } }),
-      prisma.order.count({ where: { orderStatus: 'NEW' } }),
-      prisma.order.count({ where: { paymentStatus: { in: ['PAID', 'FULLY_PAID'] } } }),
-      prisma.order.count({ where: { orderStatus: 'PROCESSING' } }),
-      prisma.order.count({ where: { orderStatus: 'PACKED' } }),
-      prisma.order.count({ where: { orderStatus: 'SHIPPED' } }),
-      prisma.order.count({ where: { orderStatus: 'DELIVERED' } }),
-      prisma.order.count({ where: { paymentStatus: 'FAILED' } }),
-      prisma.order.count({ where: { paymentStatus: 'REFUNDED' } }),
-      prisma.order.count({
-        where: {
-          paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] },
-          orderStatus: { in: ['NEW', 'CONFIRMED', 'PROCESSING', 'PACKED'] },
-        },
-      }),
-      prisma.order.count({ where: { paymentMethod: 'COD' } }),
-      prisma.order.count({ where: { paymentStatus: { in: ['COD_ADVANCE_PAID', 'COD_BALANCE_PENDING'] } } }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] }, createdAt: { gte: startOfToday } },
-      }),
-      prisma.order.aggregate({
-        _sum: { total: true },
-        where: { paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] }, createdAt: { gte: startOfMonth } },
-      }),
-    ]);
+    if (!metrics || now - cachedMetricsTimestamp > METRICS_CACHE_TTL_MS) {
+      try {
+        const nowDate = new Date();
+        const startOfToday = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+        const startOfMonth = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1);
 
-    const metrics = {
-      todayOrders: todayOrdersCount,
-      pendingOrders: pendingOrdersCount,
-      paidOrders: paidOrdersCount,
-      processing: processingCount,
-      packed: packedCount,
-      shipped: shippedCount,
-      delivered: deliveredCount,
-      pendingShipments: pendingShipmentsCount,
-      codOrders: codOrdersCount,
-      codBalancePending: codBalancePendingCount,
-      failedPayments: failedPaymentsCount,
-      refunds: refundsCount,
-      todayRevenue: todayRevenueAgg._sum.total || 0,
-      monthlyRevenue: monthlyRevenueAgg._sum.total || 0,
-      totalOrders: totalCount,
-    };
+        const [
+          orderStatusGroups,
+          paymentStatusGroups,
+          todayAgg,
+          monthAgg,
+          codCount,
+          pendingShipmentsCount,
+        ] = await Promise.all([
+          prisma.order.groupBy({
+            by: ['orderStatus'],
+            _count: { id: true },
+          }),
+          prisma.order.groupBy({
+            by: ['paymentStatus'],
+            _count: { id: true },
+          }),
+          prisma.order.aggregate({
+            _count: { id: true },
+            _sum: { total: true },
+            where: { createdAt: { gte: startOfToday } },
+          }),
+          prisma.order.aggregate({
+            _sum: { total: true },
+            where: {
+              paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] },
+              createdAt: { gte: startOfMonth },
+            },
+          }),
+          prisma.order.count({ where: { paymentMethod: 'COD' } }),
+          prisma.order.count({
+            where: {
+              paymentStatus: { in: ['PAID', 'FULLY_PAID', 'COD_ADVANCE_PAID'] },
+              orderStatus: { in: ['NEW', 'CONFIRMED', 'PROCESSING', 'PACKED'] },
+            },
+          }),
+        ]);
+
+        const statusMap: Record<string, number> = {};
+        for (const g of orderStatusGroups) {
+          statusMap[g.orderStatus] = g._count.id;
+        }
+
+        const paymentMap: Record<string, number> = {};
+        for (const g of paymentStatusGroups) {
+          paymentMap[g.paymentStatus] = g._count.id;
+        }
+
+        metrics = {
+          todayOrders: todayAgg._count.id || 0,
+          pendingOrders: statusMap['NEW'] || 0,
+          paidOrders: (paymentMap['PAID'] || 0) + (paymentMap['FULLY_PAID'] || 0),
+          processing: statusMap['PROCESSING'] || 0,
+          packed: statusMap['PACKED'] || 0,
+          shipped: statusMap['SHIPPED'] || 0,
+          delivered: statusMap['DELIVERED'] || 0,
+          pendingShipments: pendingShipmentsCount || 0,
+          codOrdersCount: codCount || 0,
+          codBalancePendingCount: (paymentMap['COD_ADVANCE_PAID'] || 0) + (paymentMap['COD_BALANCE_PENDING'] || 0),
+          failedPayments: paymentMap['FAILED'] || 0,
+          refunds: paymentMap['REFUNDED'] || 0,
+          todayRevenue: todayAgg._sum.total || 0,
+          monthlyRevenue: monthAgg._sum.total || 0,
+          totalOrders: totalCount,
+        };
+
+        cachedMetrics = metrics;
+        cachedMetricsTimestamp = now;
+      } catch (metricsErr) {
+        console.warn('Metrics aggregation fallback:', metricsErr);
+        metrics = cachedMetrics || {
+          todayOrders: 0,
+          pendingOrders: 0,
+          paidOrders: 0,
+          processing: 0,
+          packed: 0,
+          shipped: 0,
+          delivered: 0,
+          pendingShipments: 0,
+          codOrdersCount: 0,
+          codBalancePendingCount: 0,
+          failedPayments: 0,
+          refunds: 0,
+          todayRevenue: 0,
+          monthlyRevenue: 0,
+          totalOrders: totalCount,
+        };
+      }
+    } else {
+      metrics = { ...metrics, totalOrders: totalCount };
+    }
 
     return NextResponse.json({
       success: true,

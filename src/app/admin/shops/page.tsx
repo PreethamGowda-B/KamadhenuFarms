@@ -112,17 +112,21 @@ export default function AdminShopsPage() {
 
   const [reminderActionLoading, setReminderActionLoading] = useState<string | null>(null);
 
-  // Load data
+  // Initial one-time metadata load
   useEffect(() => {
-    fetchShops();
     fetchReordersDue();
     fetchSalesExecutives();
     fetchReports();
+  }, []);
+
+  // Filtered shops list load
+  useEffect(() => {
+    fetchShops();
   }, [search, statusFilter, cityFilter, execFilter, shopTypeFilter, paymentStatusFilter, reorderStatusFilter, page]);
 
-  async function fetchShops() {
+  async function fetchShops(silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const params = new URLSearchParams({
         search,
         status: statusFilter,
@@ -136,6 +140,12 @@ export default function AdminShopsPage() {
       });
 
       const res = await fetch(`/api/shops?${params.toString()}`);
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/admin/login?from=/admin/shops';
+          return;
+        }
+      }
       const data = await res.json();
       if (data.success) {
         setShops(data.shops || []);

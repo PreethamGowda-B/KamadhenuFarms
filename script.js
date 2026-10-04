@@ -2110,8 +2110,8 @@ ${points}
       } else {
         if (codCard.classList.contains('active')) {
           paymentCards.forEach(c => c.classList.remove('active'));
-          const rzpCard = document.querySelector('.payment-option-card[data-method="razorpay"]');
-          if (rzpCard) rzpCard.classList.add('active');
+          const cfCard = document.querySelector('.payment-option-card[data-method="cashfree"]');
+          if (cfCard) cfCard.classList.add('active');
         }
         codCard.style.opacity = '0.55';
         codCard.style.pointerEvents = 'none';

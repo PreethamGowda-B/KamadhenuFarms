@@ -30,6 +30,9 @@ function getSanitizedDatabaseUrl(): string | undefined {
     if (!url.includes('pgbouncer=true')) {
       url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true';
     }
+    if (!url.includes('connection_limit=')) {
+      url += '&connection_limit=10&pool_timeout=20';
+    }
   }
 
   return url;
@@ -41,8 +44,8 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     datasources: dbUrl ? { db: { url: dbUrl } } : undefined,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+globalForPrisma.prisma = prisma;
 

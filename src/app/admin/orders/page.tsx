@@ -48,14 +48,21 @@ export default function AdminOrdersPage() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ page: 1, limit: 25, totalCount: 0, totalPages: 1 });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      } else {
+        setIsRefreshing(true);
+      }
+      setErrorMessage(null);
       const params = new URLSearchParams({
         search,
         status: statusFilter,
@@ -63,35 +70,49 @@ export default function AdminOrdersPage() {
         limit: '25',
       });
       const res = await fetch(`/api/admin/orders?${params.toString()}`);
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          window.location.href = '/admin/login?from=/admin/orders';
+          return;
+        }
+        throw new Error(`Server returned status ${res.status}`);
+      }
       const data = await res.json();
       if (data.success) {
         setOrders(data.orders || []);
         if (data.metrics) setMetrics(data.metrics);
         if (data.pagination) setPagination(data.pagination);
+      } else {
+        throw new Error(data.message || 'Failed to load orders');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load orders', err);
+      // Keep existing orders in memory so the list NEVER vanishes!
+      setErrorMessage('Could not refresh orders in background. Showing last saved records.');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(false);
   }, [statusFilter, page]);
 
-  // Auto-refresh orders every 30 seconds so new orders appear automatically
+  // Background auto-refresh every 45s without wiping the screen
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchOrders();
-    }, 30000);
+      if (typeof document !== 'undefined' && !document.hidden) {
+        fetchOrders(true);
+      }
+    }, 45000);
     return () => clearInterval(interval);
   }, [statusFilter, page, search]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchOrders();
+    fetchOrders(false);
   };
 
   const getOrderStatusBadge = (status: string) => {
@@ -172,8 +193,8 @@ export default function AdminOrdersPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-serif font-bold text-stone-900">Kamadhenu Orders Ledger</h1>
-                <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
-                  Razorpay Live
+                <span className="text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded font-mono font-bold uppercase tracking-wider">
+                  Cashfree Live
                 </span>
               </div>
               <p className="text-xs text-stone-500">Consumer eCommerce Orders, Online Payments & Doorstep Deliveries</p>
@@ -204,11 +225,13 @@ export default function AdminOrdersPage() {
               <span>Careers</span>
             </Link>
             <button
-              onClick={fetchOrders}
-              className="bg-amber-500 hover:bg-amber-400 text-amber-950 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition shadow-sm"
+              onClick={() => fetchOrders(false)}
+              disabled={isRefreshing}
+              className="bg-amber-500 hover:bg-amber-400 text-amber-950 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition shadow-sm disabled:opacity-75"
+              title="Refresh Orders"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Refresh</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{isRefreshing ? 'Updating...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
@@ -216,6 +239,19 @@ export default function AdminOrdersPage() {
 
       {/* Main Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Background Network Notice */}
+        {errorMessage && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-xs text-amber-900 flex items-center justify-between shadow-sm">
+            <span>⚠️ {errorMessage}</span>
+            <button
+              onClick={() => fetchOrders(false)}
+              className="text-amber-800 font-bold underline hover:text-amber-950 ml-4"
+            >
+              Retry Now
+            </button>
+          </div>
+        )}
+
         {/* NEW Order Arrival Alert Banner */}
         {metrics.pendingOrders > 0 && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between text-amber-950 shadow-sm">
@@ -257,7 +293,7 @@ export default function AdminOrdersPage() {
           </div>
 
           <div className="bg-white rounded-2xl p-4 border border-stone-200 shadow-sm">
-            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Paid (Razorpay)</span>
+            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">Paid (Cashfree)</span>
             <span className="text-2xl font-serif font-bold text-emerald-600">{metrics.paidOrders}</span>
           </div>
 

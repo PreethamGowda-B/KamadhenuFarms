@@ -93,8 +93,8 @@ export async function PATCH(
           data: {
             orderId: id,
             provider: 'CASH_ON_DELIVERY',
-            razorpayOrderId: `COD-BAL-${currentOrder.orderNumber}`,
-            razorpayPaymentId: `COD-CASH-${Date.now()}`,
+            cashfreeOrderId: `COD-BAL-${currentOrder.orderNumber}`,
+            cashfreePaymentId: `COD-CASH-${Date.now()}`,
             amount: currentOrder.codRemainingAmount,
             currency: 'INR',
             status: 'PAID',
