@@ -49,12 +49,22 @@ document.addEventListener('DOMContentLoaded', () => {
     'p1': {
       id: 'p1',
       name: 'Pure Raw Honey',
+      subtitle: 'Direct From Our Bee Boxes',
       category: 'raw',
       stockStatus: 'IN_STOCK',
       restockDays: 3,
       canPreorder: false,
-      badgeText: 'Organic',
-      baseDesc: 'Unprocessed, raw honey collected directly from pristine organic bee boxes.',
+      badgeText: 'Organic Harvest',
+      rating: '4.9',
+      reviewsCount: 342,
+      baseDesc: 'Unprocessed, unheated raw honey harvested directly from pesticide-free bee boxes in Taverekere, Bangalore South.',
+      features: [
+        '100% Raw, Unheated & Cold-Filtered',
+        'Zero Added Sugar, Syrups or Adulterants',
+        'Rich in Live Enzymes, Pollen & Antioxidants',
+        'Harvested & Bottled at Farm Origin'
+      ],
+      highlights: ['Raw & Pure', 'Zero Sugar', 'Live Enzymes'],
       prices: {
         '250g': 250,
         '500g': 399,
@@ -77,12 +87,22 @@ document.addEventListener('DOMContentLoaded', () => {
     'p2': {
       id: 'p2',
       name: 'Dry Fruits Honey',
+      subtitle: 'Premium Dry Fruit Infusion',
       category: 'infused',
       stockStatus: 'IN_STOCK',
       restockDays: 3,
       canPreorder: false,
-      badgeText: 'Deluxe',
-      baseDesc: 'Premium raw honey rich in hand-sorted almonds, cashews, pistachios, and walnuts.',
+      badgeText: 'Deluxe Fusion',
+      rating: '5.0',
+      reviewsCount: 218,
+      baseDesc: 'Artisanal fusion of pure raw honey packed with premium hand-sorted almonds, cashews, pistachios, and walnuts.',
+      features: [
+        'Crisp California Almonds & Crunchy Cashews',
+        'Packed with Brain-Healthy Walnuts & Pistachios',
+        'Soaked in 100% Pure Raw Forest Honey',
+        'Daily Energy, Stamina & Immunity Booster'
+      ],
+      highlights: ['Premium Nuts', 'High Protein', 'Immunity Boost'],
       prices: {
         '250g': 399,
         '500g': 599,
@@ -111,7 +131,16 @@ document.addEventListener('DOMContentLoaded', () => {
       restockDays: 0,
       canPreorder: false,
       badgeText: 'Most Innovative',
-      baseDesc: 'A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey. Harvested exactly as nature intended.',
+      rating: '5.0',
+      reviewsCount: 164,
+      baseDesc: 'A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey.',
+      features: [
+        'Bees Build Comb Directly Inside Glass Jar',
+        'Zero Extraction & Zero Processing Touch',
+        '100% Edible Raw Comb & Pure Honey Nectar',
+        'Truly Unique Single-Hive Collector Experience'
+      ],
+      highlights: ['Jar-Built Comb', 'Untouched', '100% Edible'],
       prices: {
         '500g': 599
       },
@@ -139,8 +168,17 @@ document.addEventListener('DOMContentLoaded', () => {
       stockStatus: 'IN_STOCK',
       restockDays: 0,
       canPreorder: false,
-      badgeText: 'Pure Comb',
-      baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',
+      badgeText: 'Pure Apiary Comb',
+      rating: '4.9',
+      reviewsCount: 129,
+      baseDesc: 'Fresh honeycomb harvested directly from active bee colonies, packed carefully to preserve living enzymes and rich aroma.',
+      features: [
+        'Cut Straight From Active Colony Frames',
+        'Loaded with Propolis, Royal Jelly & Pollen',
+        'Chewy, Nutrient-Rich Edible Honeycomb',
+        'Raw, Unfiltered Nature in Its Purest Form'
+      ],
+      highlights: ['Hive Fresh', 'Propolis Rich', 'Pure Wax Comb'],
       prices: {
         '500g': 899
       },
@@ -1569,6 +1607,35 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
 
+      // Feature highlights bullets
+      const featuresHtml = (product.features && product.features.length > 0) ? `
+        <div class="product-features-panel">
+          <div class="features-panel-heading">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            <span>Artisanal Highlights</span>
+          </div>
+          <ul class="product-features-list">
+            ${product.features.map(f => `
+              <li>
+                <svg class="feature-check-svg" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                </svg>
+                <span>${f}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      ` : '';
+
+      // Quick chips row
+      const chipsHtml = (product.highlights && product.highlights.length > 0) ? `
+        <div class="product-chips-row">
+          ${product.highlights.map(h => `<span class="product-chip"><span class="chip-dot"></span>${h}</span>`).join('')}
+        </div>
+      ` : '';
+
       productCard.innerHTML = `
         ${badgeHtml}
         <button class="wishlist-btn" data-product-id="${product.id}" title="Add to Wishlist">
@@ -1590,8 +1657,20 @@ document.addEventListener('DOMContentLoaded', () => {
           ${galleryHtml}
         </div>
         <div class="product-info">
-          <h3>${product.name}</h3>
+          <div class="product-card-top-row">
+            <span class="product-subtitle-tag">${product.subtitle || 'Pure Farm Honey'}</span>
+            <div class="product-rating-badge" title="Rated ${product.rating || '4.9'}/5 by verified customers">
+              <span class="star-icon">★</span>
+              <span class="rating-num">${product.rating || '4.9'}</span>
+              <span class="rating-reviews">(${product.reviewsCount || 150}+)</span>
+            </div>
+          </div>
+
+          <h3 class="product-title">${product.name}</h3>
           <p class="product-desc">${product.baseDesc}</p>
+          
+          ${chipsHtml}
+          ${featuresHtml}
           ${restockAlertHtml}
           
           <div class="weight-selector">
@@ -1602,7 +1681,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           <div class="price-qty-row">
             <div class="price-display">
-              <span>Price</span>
+              <span class="price-label">Net Price</span>
               <h4 class="card-price-text">₹${sizePrice}</h4>
               <span class="delivery-notice">${(() => {
                 try {
@@ -1612,6 +1691,10 @@ document.addEventListener('DOMContentLoaded', () => {
                   return '(Delivery charges calculated at checkout)';
                 }
               })()}</span>
+            </div>
+            <div class="apiary-fresh-pill">
+              <span class="pulsing-green-dot"></span>
+              <span>Apiary Fresh</span>
             </div>
           </div>
           <div class="product-actions">

@@ -1223,24 +1223,186 @@ header nav {
 }
 
 .product-info {
-  padding: 32px;
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.product-card h3 {
-  font-size: 1.4rem;
+.product-card-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.product-subtitle-tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--dark-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.product-rating-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #92400e;
+  white-space: nowrap;
+}
+
+.product-rating-badge .star-icon {
+  color: #f59e0b;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.product-rating-badge .rating-num {
+  font-weight: 800;
+  color: #1c1a18;
+}
+
+.product-rating-badge .rating-reviews {
+  font-size: 0.7rem;
+  color: #78350f;
+  font-weight: 600;
+}
+
+.product-card h3,
+.product-card .product-title {
+  font-family: var(--font-headings);
+  font-size: 1.45rem;
   color: var(--luxury-charcoal);
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
 }
 
 .product-desc {
   font-size: 0.88rem;
-  color: #666;
-  margin-bottom: 1.25rem;
-  height: 40px;
-  overflow: hidden;
+  color: #555;
+  line-height: 1.55;
+  margin-bottom: 0.9rem;
+}
+
+/* Quick Chips / Tags Row */
+.product-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.product-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(216, 166, 79, 0.35);
+  color: #4a3b2c;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+.product-chip .chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary-gold);
+  display: inline-block;
+}
+
+/* Artisanal Features Highlights Panel */
+.product-features-panel {
+  background: linear-gradient(135deg, rgba(216, 166, 79, 0.08) 0%, rgba(255, 255, 255, 0.75) 100%);
+  border: 1px solid rgba(216, 166, 79, 0.28);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 2px 0 18px 0;
+  box-shadow: inset 0 1px 4px rgba(216, 166, 79, 0.04);
+}
+
+.features-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--dark-gold);
+  margin-bottom: 10px;
+}
+
+.features-panel-heading svg {
+  color: var(--primary-gold);
+  fill: var(--primary-gold);
+}
+
+.product-features-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.product-features-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #3a3835;
+  line-height: 1.42;
+}
+
+.feature-check-svg {
+  color: var(--dark-gold);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Live Apiary Fresh Pill */
+.apiary-fresh-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(39, 174, 96, 0.12);
+  border: 1px solid rgba(46, 204, 113, 0.4);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #27ae60;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.pulsing-green-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 6px #2ecc71;
+  display: inline-block;
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; }
 }
 
 /* Weight Selector Pill buttons */
