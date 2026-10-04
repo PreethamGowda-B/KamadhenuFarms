@@ -2779,6 +2779,42 @@ footer {
   grid-column: span 2;
 }
 
+/* Pincode Live Delivery Estimator Badge */
+.pincode-delivery-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  transition: var(--transition-fast);
+}
+
+.pincode-delivery-badge.badge-bangalore {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #065f46;
+}
+
+.pincode-delivery-badge.badge-karnataka {
+  background: rgba(217, 119, 6, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  color: #92400e;
+}
+
+.pincode-delivery-badge.badge-national {
+  background: rgba(107, 114, 128, 0.08);
+  border: 1px solid rgba(107, 114, 128, 0.25);
+  color: #374151;
+}
+
+.pincode-delivery-badge .badge-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
 .payment-options {
   margin-top: 1.5rem;
 }

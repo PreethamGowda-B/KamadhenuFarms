@@ -2242,12 +2242,40 @@ ${points}
     }
   };
 
+  const updatePincodeDeliveryBadge = (pincode) => {
+    const badge = document.getElementById('pincodeDeliveryBadge');
+    if (!badge) return;
+    const clean = (pincode || '').replace(/\D/g, '');
+    if (clean.length !== 6) {
+      badge.style.display = 'none';
+      badge.textContent = '';
+      return;
+    }
+    const prefix3 = clean.substring(0, 3);
+    const prefix2 = clean.substring(0, 2);
+
+    if (prefix3 === '560' || prefix3 === '562') {
+      badge.innerHTML = `<span class="badge-icon">⚡</span> <span><strong>Bangalore Fast Delivery:</strong> Direct farm dispatch within 24–48 hours!</span>`;
+      badge.className = 'pincode-delivery-badge badge-bangalore';
+      badge.style.display = 'flex';
+    } else if (prefix2 === '57' || prefix2 === '58' || prefix2 === '59') {
+      badge.innerHTML = `<span class="badge-icon">🚚</span> <span><strong>Karnataka Express:</strong> Safe doorstep courier delivery in 2–3 business days.</span>`;
+      badge.className = 'pincode-delivery-badge badge-karnataka';
+      badge.style.display = 'flex';
+    } else {
+      badge.innerHTML = `<span class="badge-icon">📦</span> <span><strong>All-India Delivery:</strong> Cushioned fragile glass packaging, arrives in 3–5 days.</span>`;
+      badge.className = 'pincode-delivery-badge badge-national';
+      badge.style.display = 'flex';
+    }
+  };
+
   if (chkPincodeInput) {
     chkPincodeInput.addEventListener('input', (e) => {
       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
       e.target.value = val;
       autoFillLocationFromPincode(val);
       updateCodBangaloreAvailability(val);
+      updatePincodeDeliveryBadge(val);
       clearTimeout(pincodeCalculationTimer);
       if (val.length === 6) {
         pincodeCalculationTimer = setTimeout(() => calculateShippingRate(val), 350);
@@ -2261,6 +2289,7 @@ ${points}
       const val = e.target.value.replace(/\D/g, '');
       autoFillLocationFromPincode(val);
       updateCodBangaloreAvailability(val);
+      updatePincodeDeliveryBadge(val);
       if (val.length === 6) {
         calculateShippingRate(val);
       }
@@ -2318,6 +2347,7 @@ ${points}
     if (chkPincodeInput && chkPincodeInput.value) {
       autoFillLocationFromPincode(chkPincodeInput.value);
       updateCodBangaloreAvailability(chkPincodeInput.value);
+      updatePincodeDeliveryBadge(chkPincodeInput.value);
     }
     renderCheckoutSummary();
     if (chkPincodeInput && chkPincodeInput.value.trim().length === 6) {

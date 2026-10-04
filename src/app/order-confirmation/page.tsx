@@ -527,6 +527,27 @@ function ConfirmationContent() {
 
           {/* Quick Action Navigation Bar */}
           <div className="mt-8 flex flex-wrap gap-3 justify-center items-center">
+            {/* 1-Tap WhatsApp Order Notification */}
+            <a
+              href={`https://wa.me/919980114675?text=${encodeURIComponent(
+                `Hi Kamadhenu Honey Farms, I have placed an order!\n\n` +
+                `*Order Number:* ${displayOrderNum}\n` +
+                `*Customer:* ${order?.customer?.name || 'Customer'} (+91 ${order?.customer?.mobile || ''})\n` +
+                `*Items:* ${order?.items?.map(it => `${it.productName} (${it.weightVariant}) x${it.quantity}`).join(', ') || 'Pure Raw Honey'}\n` +
+                `*Amount:* ₹${displayTotal} (${isCodOrder ? `₹${advancePaid} Advance Paid, ₹${codRemaining} COD Balance` : 'Paid Online'})\n` +
+                `*Delivery Address:* ${order?.shippingAddress ? `${order.shippingAddress.addressLine1}, ${order.shippingAddress.city} - ${order.shippingAddress.pincode}` : ''}\n\n` +
+                `Please confirm dispatch and send live tracking details. Thank you! 🍯`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition active:scale-[0.98] text-sm"
+            >
+              <svg fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4 shrink-0">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
+              </svg>
+              <span>Send Order to WhatsApp</span>
+            </a>
+
             <button
               onClick={scrollToInvoice}
               className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-amber-600/25 transition active:scale-[0.98] text-sm"
