@@ -942,6 +942,10 @@ document.addEventListener('DOMContentLoaded', () => {
   async function checkCustomerSession() {
     try {
       const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
+      const hasSessionCookie = typeof document !== 'undefined' && document.cookie && document.cookie.includes('khf_customer_session');
+      if (!savedMobile && !hasSessionCookie) {
+        return;
+      }
       const query = savedMobile ? `?mobile=${encodeURIComponent(savedMobile)}` : '';
       const res = await fetch(`/api/customer/me${query}`, { credentials: 'same-origin' });
       const data = await res.json();
@@ -1416,9 +1420,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  const syncRealtimeStock = async () => {
+  let lastStockSyncTime = 0;
+  const syncRealtimeStock = async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastStockSyncTime < 45000) return;
+    lastStockSyncTime = now;
     try {
-      const res = await fetch('/api/products/inventory', { cache: 'no-store' });
+      const res = await fetch('/api/products/inventory');
       const data = await res.json();
       if (data.success && data.inventory) {
         Object.keys(data.inventory).forEach(id => {
