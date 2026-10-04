@@ -1,3 +1,4 @@
+/* cSpell:disable */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PRODUCTS } from '@/lib/products';
