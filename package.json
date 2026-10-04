@@ -13,6 +13,7 @@
     "@hookform/resolvers": "^3.3.4",
     "@prisma/client": "^5.10.2",
     "@types/leaflet": "^1.9.22",
+    "@vercel/analytics": "^2.0.1",
     "canvas-confetti": "^1.9.2",
     "clsx": "^2.1.0",
     "framer-motion": "^11.0.8",
