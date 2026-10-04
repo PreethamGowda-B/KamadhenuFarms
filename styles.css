@@ -4459,6 +4459,10 @@ body:not(.loaded) {
 }
 
 @media (max-width: 768px) {
+  .logo {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
   section {
     padding: 70px 4%;
   }
