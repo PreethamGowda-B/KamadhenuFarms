@@ -3678,17 +3678,32 @@ footer {
   white-space: nowrap;
 }
 
-.mobile-bottom-bar .sticky-wa-btn {
-  background: #25D366;
-  color: #ffffff;
+.mobile-bottom-bar .sticky-shop-btn {
+  background: #FAF6F0;
+  color: #3A2A18;
 }
 
-.mobile-bottom-bar .sticky-wa-btn .mobile-bar-label {
-  color: #ffffff;
+.mobile-bottom-bar .sticky-shop-btn .mobile-bar-label {
+  color: #3A2A18;
+  font-weight: 700;
 }
 
-.mobile-bottom-bar .sticky-wa-btn:hover {
-  background: #128C7E;
+.mobile-bottom-bar .sticky-shop-btn:hover {
+  background: #F3E9D5;
+}
+
+.mobile-bottom-bar .sticky-orders-btn {
+  background: #FFFDF8;
+  color: #8C6219;
+}
+
+.mobile-bottom-bar .sticky-orders-btn .mobile-bar-label {
+  color: #8C6219;
+  font-weight: 700;
+}
+
+.mobile-bottom-bar .sticky-orders-btn:hover {
+  background: #FBF4E4;
 }
 
 .mobile-bottom-bar .sticky-cart-bottom-btn {
@@ -3705,6 +3720,20 @@ footer {
   background: linear-gradient(135deg, #FFD98A 0%, #E2B059 50%, #C49139 100%);
 }
 
+.mobile-bottom-bar .sticky-wa-btn {
+  background: #25D366;
+  color: #ffffff;
+}
+
+.mobile-bottom-bar .sticky-wa-btn .mobile-bar-label {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.mobile-bottom-bar .sticky-wa-btn:hover {
+  background: #128C7E;
+}
+
 .mobile-bottom-bar .sticky-call-btn {
   background: #FAF6F0;
   color: #8C6219;
@@ -3717,6 +3746,24 @@ footer {
 
 .mobile-bottom-bar .sticky-call-btn:hover {
   background: #F3E9D5;
+}
+
+/* Order Drawer Quick Actions */
+.btn-order-track {
+  transition: all 0.2s ease;
+}
+.btn-order-track:hover {
+  background: #bee3f8 !important;
+  color: #2b6cb0 !important;
+  transform: translateY(-1px);
+}
+.btn-order-invoice {
+  transition: all 0.2s ease;
+}
+.btn-order-invoice:hover {
+  background: #edf2f7 !important;
+  color: #2d3748 !important;
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================

@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
     const isCod = String(paymentMethod).toLowerCase() === 'cod';
 
     // Validate customer inputs
-    if (!name?.trim() || !mobile?.trim() || !email?.trim()) {
+    if (!name?.trim() || !mobile?.trim()) {
       return NextResponse.json(
-        { success: false, message: 'Please provide full name, mobile number, and email' },
+        { success: false, message: 'Please provide full name and mobile number' },
         { status: 400 }
       );
     }
@@ -44,6 +44,10 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const cleanEmail = email && typeof email === 'string' && email.trim()
+      ? email.trim().toLowerCase()
+      : `${cleanMobile}@kamadhenuhoneyfarms.in`;
 
     if (!addressLine1?.trim() || !city?.trim() || !state?.trim() || !pincode?.trim()) {
       return NextResponse.json(
@@ -151,7 +155,7 @@ export async function POST(req: NextRequest) {
         subtotal,
         items,
         cleanMobile,
-        email.trim().toLowerCase()
+        cleanEmail
       );
       if (validation.valid) {
         discount = validation.calculatedDiscount;
@@ -168,7 +172,6 @@ export async function POST(req: NextRequest) {
     const orderNumber = generateNextOrderNumber();
 
     // 6. Create or Find Customer & Address in Database
-    const cleanEmail = email.trim().toLowerCase();
     const cleanCustomerName = name.trim();
 
     let appBaseUrl = (

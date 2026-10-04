@@ -109,20 +109,21 @@
           <li><a href="#gallery">Gallery</a></li>
           <li><a href="#reviews">Reviews</a></li>
           <li><a href="#contact">Contact</a></li>
+          <li><a href="#" class="open-orders-btn" onclick="window.openOrders && window.openOrders(event)" style="font-weight:600; color:var(--dark-gold);">My Orders 🛍️</a></li>
           <li><a href="/careers" style="color:var(--primary-gold); font-weight:700;">Careers 🍯</a></li>
         </ul>
       </nav>
 
       <!-- Right actions -->
       <div class="nav-right">
-        <!-- Wishlist toggle -->
-        <button class="nav-icon-btn open-tracker-btn" title="Track Order">
+        <!-- Track Order button -->
+        <button class="nav-icon-btn open-tracker-btn" title="Track Order" aria-label="Track Order" onclick="window.openTracker && window.openTracker(event)">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </button>
         <!-- Customer Memory My Orders trigger -->
-        <button class="nav-icon-btn open-orders-btn" id="openOrdersBtn" title="My Orders" style="display:inline-flex;">
+        <button class="nav-icon-btn open-orders-btn" id="openOrdersBtn" title="My Orders" aria-label="My Orders" style="display:inline-flex;" onclick="window.openOrders && window.openOrders(event)">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
@@ -1971,8 +1972,8 @@
                 <input type="tel" id="chkPhone" class="form-control" placeholder="10-digit mobile" maxlength="10" inputmode="numeric" required>
               </div>
               <div class="form-group">
-                <label for="chkEmail">Email Address *</label>
-                <input type="email" id="chkEmail" class="form-control" placeholder="name@example.com" required>
+                <label for="chkEmail">Email Address <span style="font-weight:400; color:#888; font-size:0.75rem;">(Optional, for GST bill)</span></label>
+                <input type="email" id="chkEmail" class="form-control" placeholder="name@example.com">
               </div>
               <div class="form-group full-width">
                 <label for="chkAddress">Delivery Street Address *</label>
@@ -2222,14 +2223,21 @@
        Sticky Mobile Bottom Bar - 3 Button Tab Bar
        ========================================================================== -->
   <div class="mobile-bottom-bar" id="mobileBottomBar">
-    <a href="https://wa.me/919980114675?text=Hi%20Kamadhenu%20Honey%20Farms%2C%20I%20would%20like%20to%20order%20some%20fresh%20farm%20honey!" class="sticky-wa-btn" aria-label="Chat on WhatsApp">
+    <a href="#products" class="sticky-shop-btn" aria-label="Shop Honey">
       <div class="mobile-bar-icon-wrap">
-        <svg fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
-          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
-        </svg>
+        <span style="font-size:1.15rem; line-height:1;">🍯</span>
       </div>
-      <span class="mobile-bar-label">WhatsApp</span>
+      <span class="mobile-bar-label">Shop Honey</span>
     </a>
+    <button class="open-orders-btn sticky-orders-btn" title="My Orders & Tracking" aria-label="My Orders" onclick="window.openOrders && window.openOrders(event)">
+      <div class="mobile-bar-icon-wrap" style="position:relative;">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+        <span class="customer-badge-dot" id="mobileCustomerBadgeDot" style="display:none; position:absolute; top:-2px; right:-2px; width:7px; height:7px;"></span>
+      </div>
+      <span class="mobile-bar-label">My Orders</span>
+    </button>
     <button class="open-cart-btn sticky-cart-bottom-btn" title="View Cart" aria-label="View Cart" onclick="window.openCart && window.openCart(event)">
       <div class="sticky-cart-icon-wrapper">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
@@ -2239,13 +2247,13 @@
       </div>
       <span class="mobile-bar-label">Cart</span>
     </button>
-    <a href="tel:+919980114675" class="sticky-call-btn" aria-label="Call Now">
+    <a href="https://wa.me/919980114675?text=Hi%20Kamadhenu%20Honey%20Farms%2C%20I%20would%20like%20to%20order%20some%20fresh%20farm%20honey!" class="sticky-wa-btn" aria-label="Chat on WhatsApp">
       <div class="mobile-bar-icon-wrap">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" width="20" height="20">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+        <svg fill="currentColor" viewBox="0 0 24 24" width="20" height="20">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
         </svg>
       </div>
-      <span class="mobile-bar-label">Call Now</span>
+      <span class="mobile-bar-label">WhatsApp</span>
     </a>
   </div>
 

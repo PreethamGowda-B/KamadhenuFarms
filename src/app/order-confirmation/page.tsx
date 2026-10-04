@@ -102,9 +102,14 @@ function ConfirmationContent() {
       if (verifyData.success && verifyData.order) {
         setOrder(verifyData.order);
         setLoading(false);
-        if (verifyData.order.customer?.mobile && typeof window !== 'undefined') {
+        if (typeof window !== 'undefined') {
           try {
-            localStorage.setItem('kamadhenu_customer_mobile', verifyData.order.customer.mobile);
+            if (verifyData.order.customer?.mobile) {
+              localStorage.setItem('kamadhenu_customer_mobile', verifyData.order.customer.mobile);
+            }
+            if (verifyData.order.orderNumber) {
+              localStorage.setItem('kamadhenu_last_order', verifyData.order.orderNumber);
+            }
           } catch (e) {}
         }
         orderLoaded = true;
@@ -130,6 +135,16 @@ function ConfirmationContent() {
 
         if (invoiceData) {
           setOrder(invoiceData);
+          if (typeof window !== 'undefined') {
+            try {
+              if (invoiceData.customer?.mobile) {
+                localStorage.setItem('kamadhenu_customer_mobile', invoiceData.customer.mobile);
+              }
+              if (invoiceData.orderNumber) {
+                localStorage.setItem('kamadhenu_last_order', invoiceData.orderNumber);
+              }
+            } catch (e) {}
+          }
         }
       } catch (err) {
         console.error('Failed to load order invoice details', err);

@@ -905,6 +905,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Expose globally for inline header and bottom bar buttons
+  window.openOrders = openOrders;
+  window.closeOrders = closeOrders;
+
   if (closeOrdersBtn) closeOrdersBtn.addEventListener('click', closeOrders);
   if (ordersOverlay) ordersOverlay.addEventListener('click', closeOrders);
   openOrdersBtns.forEach(btn => {
@@ -920,11 +924,18 @@ document.addEventListener('DOMContentLoaded', () => {
         await fetch('/api/customer/logout', { method: 'POST' });
       } catch (e) {}
       currentCustomer = null;
-      if (openOrdersNavBtn) openOrdersNavBtn.style.display = 'none';
-      if (mobileOrdersLink) mobileOrdersLink.style.display = 'none';
+      try {
+        localStorage.removeItem('kamadhenu_customer_mobile');
+        localStorage.removeItem('kamadhenu_last_order');
+      } catch (e) {}
+      const customerBadgeDot = document.getElementById('customerBadgeDot');
+      const mobileCustomerBadgeDot = document.getElementById('mobileCustomerBadgeDot');
+      if (customerBadgeDot) customerBadgeDot.style.display = 'none';
+      if (mobileCustomerBadgeDot) mobileCustomerBadgeDot.style.display = 'none';
       if (savedAddressesSection) savedAddressesSection.style.display = 'none';
+      if (customerWelcomeSub) customerWelcomeSub.textContent = 'Welcome back!';
       closeOrders();
-      showToast('Signed out of customer memory');
+      showToast('Switched customer account');
     });
   }
 
@@ -934,19 +945,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const query = savedMobile ? `?mobile=${encodeURIComponent(savedMobile)}` : '';
       const res = await fetch(`/api/customer/me${query}`, { credentials: 'same-origin' });
       const data = await res.json();
+      const customerBadgeDot = document.getElementById('customerBadgeDot');
+      const mobileCustomerBadgeDot = document.getElementById('mobileCustomerBadgeDot');
+
+      if (openOrdersNavBtn) {
+        openOrdersNavBtn.style.display = 'inline-flex';
+      }
+      if (mobileOrdersLink) {
+        mobileOrdersLink.style.display = 'flex';
+      }
+
       if (data && data.authenticated && data.customer) {
         currentCustomer = data;
         const firstName = data.customer.name.trim().split(' ')[0] || 'Customer';
 
         if (openOrdersNavBtn) {
-          openOrdersNavBtn.style.display = 'inline-flex';
           openOrdersNavBtn.title = `My Orders (${firstName})`;
         }
-        if (mobileOrdersLink) {
-          mobileOrdersLink.style.display = 'flex';
-          if (mobileOrdersLabel) {
-            mobileOrdersLabel.textContent = `My Orders (${data.ordersCount || 0})`;
-          }
+        if (customerBadgeDot) customerBadgeDot.style.display = 'block';
+        if (mobileCustomerBadgeDot) mobileCustomerBadgeDot.style.display = 'block';
+
+        if (mobileOrdersLabel) {
+          mobileOrdersLabel.textContent = `My Orders (${data.ordersCount || 0})`;
         }
         if (customerWelcomeSub) {
           customerWelcomeSub.textContent = `Welcome back, ${firstName}! • ${data.customer.mobile}`;
@@ -965,9 +985,10 @@ document.addEventListener('DOMContentLoaded', () => {
           renderSavedAddresses(data.savedAddresses);
         }
       } else {
-        // If customer has saved mobile from previous purchase, make My Orders link visible in mobile menu
-        if (savedMobile && mobileOrdersLink) {
-          mobileOrdersLink.style.display = 'flex';
+        if (customerBadgeDot) customerBadgeDot.style.display = 'none';
+        if (mobileCustomerBadgeDot) mobileCustomerBadgeDot.style.display = 'none';
+        if (savedMobile) {
+          if (customerWelcomeSub) customerWelcomeSub.textContent = `Saved Mobile: ${savedMobile}`;
         }
       }
     } catch (err) {
@@ -1084,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  async function loadCustomerOrders() {
+  async function loadCustomerOrders(overrideOrderNum) {
     if (!customerOrdersContainer) return;
     customerOrdersContainer.innerHTML = `
       <div style="text-align:center; padding: 40px 20px; color:#8c7851;">
@@ -1094,8 +1115,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
-      const savedOrder = localStorage.getItem('kamadhenu_last_order') || '';
-      const query = savedMobile ? `?mobile=${encodeURIComponent(savedMobile)}` : (savedOrder ? `?orderNumber=${encodeURIComponent(savedOrder)}` : '');
+      const savedOrder = (typeof overrideOrderNum === 'string' && overrideOrderNum.trim())
+        ? overrideOrderNum.trim()
+        : (localStorage.getItem('kamadhenu_last_order') || '');
+
+      let query = '';
+      if (overrideOrderNum && typeof overrideOrderNum === 'string') {
+        query = `?orderNumber=${encodeURIComponent(overrideOrderNum.trim())}`;
+      } else if (savedMobile) {
+        query = `?mobile=${encodeURIComponent(savedMobile)}`;
+      } else if (savedOrder) {
+        query = `?orderNumber=${encodeURIComponent(savedOrder)}`;
+      }
+
       const res = await fetch(`/api/customer/orders${query}`, { credentials: 'same-origin' });
       const data = await res.json();
 
@@ -1104,11 +1136,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="text-align:center; padding: 40px 20px; color:#718096;">
             <div style="font-size: 2.8rem; margin-bottom: 12px;">🍯</div>
             <h4 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 6px;">Find Your Order History</h4>
-            <p style="font-size: 0.85rem; max-width: 290px; margin: 0 auto 16px; color:#718096;">
-              Enter your mobile number to view your ordered products, invoices & tracking status.
+            <p style="font-size: 0.85rem; max-width: 320px; margin: 0 auto 16px; color:#718096;">
+              Enter your mobile number or Order ID to view your ordered honey, live tracking & tax invoices.
             </p>
-            <div style="display:flex; gap:8px; max-width:280px; margin:0 auto 16px;">
-              <input type="tel" id="inputOrdersPhone" class="form-control" placeholder="10-digit mobile number" maxlength="10" style="padding:9px 12px; font-size:0.85rem;" value="${savedMobile}">
+            <div style="display:flex; gap:8px; max-width:320px; margin:0 auto 16px;">
+              <input type="text" id="inputOrdersPhone" class="form-control" placeholder="Mobile or Order ID (e.g. KM-1029)" style="padding:9px 12px; font-size:0.85rem;" value="${savedMobile || savedOrder}">
               <button class="btn btn-gold" id="btnLookupOrders" style="padding:9px 16px; font-size:0.85rem; white-space:nowrap;">Search</button>
             </div>
             <button class="btn btn-charcoal" id="btnShopFromOrders" style="padding: 9px 22px; font-size:0.85rem;">Explore Honey Collection</button>
@@ -1116,17 +1148,30 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         const btnLookup = document.getElementById('btnLookupOrders');
         const inputPhone = document.getElementById('inputOrdersPhone');
+        const handleSearch = () => {
+          const raw = (inputPhone?.value || '').trim();
+          const cleanDigits = raw.replace(/\D/g, '');
+          if (cleanDigits.length === 10) {
+            try { localStorage.setItem('kamadhenu_customer_mobile', cleanDigits); } catch (e) {}
+            loadCustomerOrders();
+          } else if (raw.length >= 3) {
+            try { localStorage.setItem('kamadhenu_last_order', raw.toUpperCase()); } catch (e) {}
+            loadCustomerOrders(raw.toUpperCase());
+          } else {
+            alert('Please enter your 10-digit mobile number or Order ID (e.g. KM-1029)');
+          }
+        };
+
         if (btnLookup && inputPhone) {
-          btnLookup.addEventListener('click', () => {
-            const p = inputPhone.value.trim().replace(/\D/g, '');
-            if (p.length === 10) {
-              try { localStorage.setItem('kamadhenu_customer_mobile', p); } catch (e) {}
-              loadCustomerOrders();
-            } else {
-              alert('Please enter your 10-digit WhatsApp mobile number');
+          btnLookup.addEventListener('click', handleSearch);
+          inputPhone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSearch();
             }
           });
         }
+
         const btnShop = document.getElementById('btnShopFromOrders');
         if (btnShop) {
           btnShop.addEventListener('click', () => {
@@ -1186,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', () => {
           trackingHtml = `
             <div style="margin-top: 8px; padding: 8px 12px; background: #ebf8ff; border-radius: 8px; font-size: 0.78rem; color: #2b6cb0; display:flex; justify-content:space-between; align-items:center;">
               <span>Courier: <b>${order.shipment.courierProvider}</b> (${order.shipment.trackingNumber})</span>
-              ${order.shipment.trackingUrl ? `<a href="${order.shipment.trackingUrl}" target="_blank" rel="noopener" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Package</a>` : ''}
+              ${order.shipment.trackingUrl ? `<a href="${order.shipment.trackingUrl}" target="_blank" rel="noopener" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Courier ↗</a>` : ''}
             </div>
           `;
         }
@@ -1210,6 +1255,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
           ${trackingHtml}
 
+          <div class="order-card-actions" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid #edf2f7;">
+            <button class="btn-order-track" data-order-number="${order.orderNumber}" style="flex:1; min-width:130px; padding:7px 12px; background:#ebf8ff; color:#2b6cb0; border:1px solid #bee3f8; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+              🔍 Track Live Status
+            </button>
+            <a href="/order-confirmation?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+              📄 View Tax Invoice ↗
+            </a>
+          </div>
+
           <div class="order-card-footer">
             <span style="font-size:0.8rem; color:#718096;">
               Payment: <b style="color:#2d3748;">${order.paymentMethod}</b> (${order.paymentStatus})
@@ -1222,6 +1276,16 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
         `;
+
+        // Wire Track button
+        const trackBtn = card.querySelector('.btn-order-track');
+        if (trackBtn) {
+          trackBtn.addEventListener('click', () => {
+            if (typeof openTracker === 'function') {
+              openTracker(order.orderNumber);
+            }
+          });
+        }
 
         // Wire Reorder All button
         const reorderAllBtn = card.querySelector('.btn-order-reorder-all');
@@ -2120,10 +2184,61 @@ ${points}
     }
   };
 
+  const autoFillLocationFromPincode = (pinVal) => {
+    const clean = (pinVal || '').replace(/\D/g, '').trim();
+    if (clean.length < 3) return;
+
+    const chkCity = document.getElementById('chkCity');
+    const chkState = document.getElementById('chkState');
+    if (!chkCity || !chkState) return;
+
+    const prefix2 = clean.substring(0, 2);
+    const prefix3 = clean.substring(0, 3);
+
+    // Auto-detect State
+    if (['56', '57', '58', '59'].includes(prefix2)) {
+      chkState.value = 'Karnataka';
+    } else if (['60', '61', '62', '63', '64'].includes(prefix2)) {
+      chkState.value = 'Tamil Nadu';
+    } else if (['67', '68', '69'].includes(prefix2)) {
+      chkState.value = 'Kerala';
+    } else if (['50', '51', '52', '53'].includes(prefix2)) {
+      chkState.value = prefix2 === '50' ? 'Telangana' : 'Andhra Pradesh';
+    } else if (['40', '41', '42', '43', '44'].includes(prefix2)) {
+      chkState.value = 'Maharashtra';
+    } else if (['11'].includes(prefix2)) {
+      chkState.value = 'Delhi';
+    }
+
+    // Auto-detect City
+    if (prefix3 === '560') {
+      chkCity.value = 'Bengaluru';
+    } else if (prefix3 === '570' || prefix3 === '571') {
+      chkCity.value = 'Mysuru';
+    } else if (prefix3 === '575') {
+      chkCity.value = 'Mangaluru';
+    } else if (prefix3 === '580') {
+      chkCity.value = 'Hubballi-Dharwad';
+    } else if (prefix3 === '583') {
+      chkCity.value = 'Ballari';
+    } else if (prefix3 === '577') {
+      chkCity.value = 'Shivamogga';
+    } else if (prefix3 === '600') {
+      chkCity.value = 'Chennai';
+    } else if (prefix3 === '500') {
+      chkCity.value = 'Hyderabad';
+    } else if (prefix3 === '400') {
+      chkCity.value = 'Mumbai';
+    } else if (prefix3 === '110') {
+      chkCity.value = 'New Delhi';
+    }
+  };
+
   if (chkPincodeInput) {
     chkPincodeInput.addEventListener('input', (e) => {
       const val = e.target.value.replace(/\D/g, '').slice(0, 6);
       e.target.value = val;
+      autoFillLocationFromPincode(val);
       updateCodBangaloreAvailability(val);
       clearTimeout(pincodeCalculationTimer);
       if (val.length === 6) {
@@ -2136,6 +2251,7 @@ ${points}
 
     chkPincodeInput.addEventListener('blur', (e) => {
       const val = e.target.value.replace(/\D/g, '');
+      autoFillLocationFromPincode(val);
       updateCodBangaloreAvailability(val);
       if (val.length === 6) {
         calculateShippingRate(val);
@@ -2169,18 +2285,32 @@ ${points}
     closeCart(); // Close drawer
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    const checkoutModal = document.querySelector('.checkout-modal');
+    if (checkoutModal) checkoutModal.scrollTop = 0;
     showCheckoutError(null);
     getCashfreeSDK('production'); // Warm up Cashfree SDK in advance
+
     if (currentCustomer && currentCustomer.savedAddresses) {
       renderSavedAddresses(currentCustomer.savedAddresses);
     }
+
+    // Auto-fill phone from customer memory if available
+    const chkPhone = document.getElementById('chkPhone');
+    if (chkPhone && !chkPhone.value) {
+      const savedM = localStorage.getItem('kamadhenu_customer_mobile');
+      if (savedM) chkPhone.value = savedM;
+    }
+
     if (chkPincodeInput && !chkPincodeInput.value) {
       try {
         const savedPin = localStorage.getItem('kamadhenu_user_pincode');
         if (savedPin) chkPincodeInput.value = savedPin;
       } catch (_) {}
     }
-    if (chkPincodeInput) updateCodBangaloreAvailability(chkPincodeInput.value);
+    if (chkPincodeInput && chkPincodeInput.value) {
+      autoFillLocationFromPincode(chkPincodeInput.value);
+      updateCodBangaloreAvailability(chkPincodeInput.value);
+    }
     renderCheckoutSummary();
     if (chkPincodeInput && chkPincodeInput.value.trim().length === 6) {
       calculateShippingRate(chkPincodeInput.value.trim());
@@ -2193,6 +2323,9 @@ ${points}
       document.body.classList.remove('overflow-hidden');
     }
   };
+
+  window.openCheckout = openCheckout;
+  window.closeCheckout = closeCheckout;
 
   if (checkoutBtn) checkoutBtn.addEventListener('click', openCheckout);
   if (closeCheckoutBtn) closeCheckoutBtn.addEventListener('click', closeCheckout);
@@ -2331,9 +2464,9 @@ ${points}
       const activePaymentCard = document.querySelector('.payment-option-card.active');
       const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'cashfree';
 
-      if (!name || !phone || !email || !address || !city || !state || !pincode) {
+      if (!name || !phone || !address || !city || !state || !pincode) {
         isCheckoutSubmitting = false;
-        showCheckoutError('Please fill in all the required delivery fields (Name, Mobile, Email, Address, City, State, Pincode).');
+        showCheckoutError('Please fill in all the required delivery fields (Name, Mobile, Address, City, State, Pincode).');
         return;
       }
 
@@ -2343,6 +2476,8 @@ ${points}
         showCheckoutError('Please enter a valid 10-digit mobile number.');
         return;
       }
+
+      const effectiveEmail = email || `${cleanMobile}@kamadhenuhoneyfarms.in`;
 
       const cleanPin = pincode.replace(/\D/g, '');
       if (cleanPin.length !== 6) {
@@ -2384,7 +2519,7 @@ ${points}
           body: JSON.stringify({
             name,
             mobile: cleanMobile,
-            email,
+            email: effectiveEmail,
             addressLine1: address,
             area,
             city,
@@ -2534,9 +2669,26 @@ ${points}
   /* ==========================================================================
      Simulated Order Tracker Logic
      ========================================================================== */
-  const openTracker = () => {
+  const openTracker = (prefillOrderId) => {
+    closeCart();
+    closeOrders();
     trackerModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
+
+    const idToUse = (typeof prefillOrderId === 'string' && prefillOrderId.trim())
+      ? prefillOrderId.trim().toUpperCase()
+      : (localStorage.getItem('kamadhenu_last_order') || '');
+
+    if (trackerInput) {
+      if (idToUse) {
+        trackerInput.value = idToUse;
+      }
+      setTimeout(() => trackerInput.focus(), 150);
+    }
+
+    if (idToUse && typeof prefillOrderId === 'string' && trackerSubmitBtn) {
+      setTimeout(() => trackerSubmitBtn.click(), 200);
+    }
   };
 
   const closeTracker = () => {
@@ -2546,12 +2698,24 @@ ${points}
     }
   };
 
-  openTrackerBtns.forEach(btn => btn.addEventListener('click', openTracker));
+  window.openTracker = openTracker;
+  window.closeTracker = closeTracker;
+
+  openTrackerBtns.forEach(btn => btn.addEventListener('click', () => openTracker()));
   if (closeTrackerBtn) closeTrackerBtn.addEventListener('click', closeTracker);
 
   const trackerInput = document.getElementById('trackerInput');
   const trackerSubmitBtn = document.getElementById('trackerSubmitBtn');
   const trackerResults = document.getElementById('trackerResults');
+
+  if (trackerInput && trackerSubmitBtn) {
+    trackerInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        trackerSubmitBtn.click();
+      }
+    });
+  }
 
   if (trackerSubmitBtn) {
     trackerSubmitBtn.addEventListener('click', async () => {
