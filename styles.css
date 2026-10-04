@@ -947,7 +947,13 @@ header nav {
   height: 100%;
   perspective: 1500px;
   transform-style: preserve-3d;
-  will-change: transform;
+  contain: layout style;
+}
+
+@media (hover: hover) {
+  .product-card:hover {
+    will-change: transform;
+  }
 }
 
 .product-card:hover {
@@ -6713,6 +6719,8 @@ body.overflow-hidden {
   align-items: center;
   box-sizing: border-box;
   user-select: none;
+  contain: layout paint;
+  transform: translateZ(0);
 }
 
 /* Radiant Gold Shimmer Sweep across top border */
@@ -6972,10 +6980,24 @@ body.overflow-hidden {
 
 @keyframes announcementMarqueeScroll {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-100%);
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+/* Modern Rendering Containment: Browser skips layout & paint of deep offscreen sections */
+@supports (content-visibility: auto) {
+  .gallery,
+  .journey,
+  .benefits,
+  .testimonials,
+  .faq,
+  .contact,
+  .final-cta {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 750px;
   }
 }
 

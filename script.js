@@ -1519,7 +1519,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="card-thumb-nav">
           ${product.images.map((img, idx) => `
             <button class="thumb-nav-btn ${idx === 0 ? 'active' : ''}" data-img-src="${img}" data-index="${idx}">
-              <img src="${img}" alt="thumbnail ${idx}">
+              <img src="${img}" alt="thumbnail ${idx}" loading="lazy" decoding="async">
             </button>
           `).join('')}
         </div>
@@ -1649,7 +1649,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </svg>
         </button>
         <div class="product-media">
-          <img src="${product.image}" alt="${product.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <img src="${product.image}" alt="${product.name}" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <div class="media-placeholder" style="display:none;">
             ${product.placeholderIcon}
             <span>${product.name}</span>
@@ -1726,13 +1726,14 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         };
 
-        // Automatically change image when card is visible on screen
+        // Automatically cycle images only on desktop (skip on touch/mobile to guarantee 60fps buttery scrolling)
         let autoSlideTimer = null;
+        const isTouchOrMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 768;
         const startAutoSlide = () => {
-          if (autoSlideTimer || document.hidden) return;
+          if (isTouchOrMobile || autoSlideTimer || document.hidden) return;
           autoSlideTimer = setInterval(() => {
-            if (!document.hidden) switchImage(currentImgIdx + 1);
-          }, 4500);
+            if (!document.hidden && cardIsVisible) switchImage(currentImgIdx + 1);
+          }, 7000);
         };
         const stopAutoSlide = () => {
           if (autoSlideTimer) {
@@ -1938,9 +1939,13 @@ ${points}
     }
   });
 
-  // Bind Search events
+  // Bind Search events with lightweight 120ms debounce
   if (productSearch) {
-    productSearch.addEventListener('input', renderProductCards);
+    let searchDebounceTimer = null;
+    productSearch.addEventListener('input', () => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(renderProductCards, 120);
+    });
   }
 
   // Bind Filter tabs events
@@ -3131,6 +3136,7 @@ ${points}
   };
 
   const nextTestimonial = () => {
+    if (document.hidden) return; // Prevent background execution
     const cards = document.querySelectorAll('.testimonial-card');
     if (cards.length === 0) return;
     let nextIndex = testimonialIndex + 1;
@@ -3145,12 +3151,16 @@ ${points}
     carouselInterval = setInterval(nextTestimonial, 5000);
   };
 
-  // Adjust Testimonial width dynamically on resize
+  // Adjust Testimonial width dynamically on resize (debounced 150ms)
+  let testimonialResizeTimer = null;
   window.addEventListener('resize', () => {
-    if (carouselTrack) {
-      setTestimonial(testimonialIndex);
-    }
-  });
+    clearTimeout(testimonialResizeTimer);
+    testimonialResizeTimer = setTimeout(() => {
+      if (carouselTrack) {
+        setTestimonial(testimonialIndex);
+      }
+    }, 150);
+  }, { passive: true });
 
   /* ==========================================================================
      Intersection Observer (Scroll Animations reveal hooks)
@@ -3608,6 +3618,7 @@ ${points}
       document.body.appendChild(this.canvas);
       this.ctx = this.canvas.getContext('2d');
       
+      let confettiResizeTimer = null;
       const resize = () => {
         if (this.canvas) {
           this.canvas.width = window.innerWidth;
@@ -3615,7 +3626,10 @@ ${points}
         }
       };
       resize();
-      window.addEventListener('resize', resize, { passive: true });
+      window.addEventListener('resize', () => {
+        clearTimeout(confettiResizeTimer);
+        confettiResizeTimer = setTimeout(resize, 200);
+      }, { passive: true });
     },
 
     trigger: function(button, product, event, isFirstItem) {
@@ -3894,7 +3908,7 @@ ${points}
     }
 
     const showToast = () => {
-      if (isDismissed || isPaused) return;
+      if (isDismissed || isPaused || document.hidden) return;
 
       const cartDrawer = document.getElementById('cartDrawer');
       const ordersDrawer = document.getElementById('ordersDrawer');
