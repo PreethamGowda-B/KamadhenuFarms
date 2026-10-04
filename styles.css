@@ -6692,122 +6692,282 @@ body.overflow-hidden {
 }
 
 /* ==========================================================================
-   Premium Running Announcement Banner (New Arrivals Marquee)
+/* ==========================================================================
+   Heavy Premium Flagship Launch Advertisement Banner
    ========================================================================== */
-.announcement-marquee-wrapper {
+.announcement-marquee-wrapper.heavy-premium-launch {
   position: relative;
   width: 100%;
   max-width: 100%;
-  height: 62px;
-  margin: 0 0 32px 0;
-  background: linear-gradient(90deg, #FAF6EE 0%, #FFFDF9 50%, #FAF6EE 100%);
-  border: 1px solid rgba(216, 166, 79, 0.35);
-  border-radius: 12px;
+  height: 68px;
+  margin: 0 0 34px 0;
+  background: linear-gradient(135deg, #15110A 0%, #241A0E 40%, #16120B 75%, #251B0E 100%);
+  border: 1.5px solid rgba(216, 166, 79, 0.45);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 18px rgba(182, 133, 47, 0.08);
+  box-shadow: 
+    0 12px 35px rgba(22, 17, 10, 0.28), 
+    0 0 25px rgba(216, 166, 79, 0.12), 
+    inset 0 1px 0 rgba(255, 235, 175, 0.25);
   display: flex;
   align-items: center;
   box-sizing: border-box;
   user-select: none;
 }
 
-/* Subtle edge gradients for smooth fade in/out */
-.announcement-marquee-wrapper::before,
-.announcement-marquee-wrapper::after {
+/* Radiant Gold Shimmer Sweep across top border */
+.announcement-marquee-wrapper.heavy-premium-launch::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 230, 160, 0.12), transparent);
+  animation: goldSweepSheen 6s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 4;
+}
+
+@keyframes goldSweepSheen {
+  0% { left: -60%; }
+  50% { left: 120%; }
+  100% { left: 120%; }
+}
+
+/* Subtle edge gradients for smooth fade in/out on the track */
+.announcement-marquee-wrapper.heavy-premium-launch::after {
   content: '';
   position: absolute;
   top: 0;
   bottom: 0;
+  right: 120px;
   width: 48px;
-  z-index: 2;
+  background: linear-gradient(to right, transparent, rgba(21, 17, 10, 0.95));
+  z-index: 3;
   pointer-events: none;
 }
 
-.announcement-marquee-wrapper::before {
-  left: 0;
-  background: linear-gradient(to right, rgba(250, 246, 238, 0.95), transparent);
+/* Sticky / Anchor Left VIP Launch Tag */
+.launch-sticky-tag {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px 0 16px;
+  height: 100%;
+  background: linear-gradient(90deg, #1A130A 0%, #261B0E 80%, rgba(38, 27, 14, 0.95) 100%);
+  border-right: 1px solid rgba(216, 166, 79, 0.35);
+  box-shadow: 6px 0 18px rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
-.announcement-marquee-wrapper::after {
-  right: 0;
-  background: linear-gradient(to left, rgba(250, 246, 238, 0.95), transparent);
+.launch-sticky-tag .pulsing-gold-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #F59E0B;
+  box-shadow: 0 0 10px #F59E0B;
+  animation: pulseGoldDot 2s infinite ease-in-out;
+  flex-shrink: 0;
 }
 
-.marquee-track {
+@keyframes pulseGoldDot {
+  0%, 100% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 6px #F59E0B; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 14px #FBBF24; }
+}
+
+.launch-tag-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.launch-tag-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.launch-tag-title {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  background: linear-gradient(135deg, #FFF5D0 0%, #E6BA67 50%, #FFDF96 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+}
+
+.launch-tag-sub {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #D8A64F;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+/* The Marquee Track & Groups */
+.announcement-marquee-wrapper.heavy-premium-launch .marquee-track {
   display: flex;
   width: max-content;
   align-items: center;
 }
 
-.marquee-group {
+.announcement-marquee-wrapper.heavy-premium-launch .marquee-group {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  animation: announcementMarqueeScroll 30s linear infinite;
+  animation: announcementMarqueeScroll 32s linear infinite;
   will-change: transform;
 }
 
-.announcement-marquee-wrapper:hover .marquee-group {
+.announcement-marquee-wrapper.heavy-premium-launch:hover .marquee-group {
   animation-play-state: paused;
 }
 
-.marquee-segment {
+/* Individual Launch Item Card */
+.launch-item-card {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  padding: 0 16px;
+  padding: 8px 18px;
+  margin: 0 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(216, 166, 79, 0.25);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
-.marquee-icon {
-  font-size: 1.15rem;
+.launch-item-card:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(216, 166, 79, 0.6);
+  transform: translateY(-1px);
+}
+
+.launch-item-icon {
+  font-size: 1.3rem;
   line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(216, 166, 79, 0.35));
+  filter: drop-shadow(0 2px 6px rgba(216, 166, 79, 0.4));
 }
 
-.marquee-badge {
-  display: inline-flex;
+.launch-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.launch-item-title-row {
+  display: flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(216, 166, 79, 0.14);
-  color: #8C6219;
-  border: 1px solid rgba(216, 166, 79, 0.4);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
+  gap: 8px;
 }
 
-.marquee-badge.highlight {
-  background: linear-gradient(135deg, #F5CF7A 0%, #D8A64F 100%);
-  color: #14120C;
-  border-color: #D8A64F;
-  box-shadow: 0 2px 8px rgba(216, 166, 79, 0.3);
-}
-
-.marquee-item {
-  font-family: var(--font-body);
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: #3A2A18;
-  letter-spacing: 0.2px;
-}
-
-.marquee-dot {
-  color: #D8A64F;
-  font-size: 1.2rem;
-  font-weight: 800;
-  line-height: 1;
-  opacity: 0.85;
-}
-
-.marquee-brand {
+.launch-item-name {
   font-family: var(--font-body);
   font-size: 0.88rem;
   font-weight: 700;
-  color: #8C6219;
-  letter-spacing: 0.5px;
+  color: #FFFDF9;
+  letter-spacing: 0.2px;
+}
+
+.launch-item-desc {
+  font-size: 0.74rem;
+  color: #D3C3A7;
+  letter-spacing: 0.2px;
+}
+
+/* Custom Badges */
+.launch-item-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.launch-item-badge.new {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #120E08;
+  box-shadow: 0 1px 6px rgba(245, 158, 11, 0.45);
+}
+
+.launch-item-badge.fresh {
+  background: rgba(46, 204, 113, 0.2);
+  border: 1px solid rgba(46, 204, 113, 0.55);
+  color: #2ECC71;
+}
+
+.launch-item-badge.deluxe {
+  background: rgba(216, 166, 79, 0.2);
+  border: 1px solid rgba(216, 166, 79, 0.55);
+  color: #F5CF7A;
+}
+
+.launch-item-badge.organic {
+  background: rgba(52, 152, 219, 0.2);
+  border: 1px solid rgba(52, 152, 219, 0.55);
+  color: #74B9FF;
+}
+
+.launch-item-badge.offer {
+  background: linear-gradient(135deg, #E67E22 0%, #D35400 100%);
+  color: #FFF;
+  box-shadow: 0 1px 6px rgba(230, 126, 34, 0.4);
+}
+
+.perk-card {
+  background: rgba(216, 166, 79, 0.08);
+  border-color: rgba(216, 166, 79, 0.4);
+}
+
+/* Diamond Separator */
+.marquee-diamond {
+  color: #D8A64F;
+  font-size: 0.85rem;
+  margin: 0 10px;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 4px rgba(216, 166, 79, 0.6));
+}
+
+/* Sticky Right CTA */
+.launch-sticky-cta {
+  position: relative;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  margin: 0 12px 0 6px;
+  background: linear-gradient(135deg, #F5D075 0%, #D8A64F 50%, #B6852F 100%);
+  color: #141007;
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(216, 166, 79, 0.35);
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.launch-sticky-cta:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(216, 166, 79, 0.55);
+  color: #000;
 }
 
 @keyframes announcementMarqueeScroll {
@@ -6821,46 +6981,67 @@ body.overflow-hidden {
 
 /* Mobile responsive sizing */
 @media (max-width: 768px) {
-  .announcement-marquee-wrapper {
-    height: 52px;
+  .announcement-marquee-wrapper.heavy-premium-launch {
+    height: 58px;
     margin: 0 0 24px 0;
-    border-radius: 10px;
+    border-radius: 12px;
   }
-  .announcement-marquee-wrapper::before,
-  .announcement-marquee-wrapper::after {
-    width: 28px;
+  .announcement-marquee-wrapper.heavy-premium-launch::after {
+    display: none;
   }
-  .marquee-segment {
-    gap: 9px;
-    padding: 0 10px;
+  .launch-sticky-tag {
+    padding: 0 10px 0 10px;
+    gap: 6px;
   }
-  .marquee-icon {
-    font-size: 1rem;
+  .launch-tag-icon {
+    font-size: 0.95rem;
   }
-  .marquee-badge {
+  .launch-tag-title {
     font-size: 0.68rem;
-    padding: 3px 8px;
   }
-  .marquee-item,
-  .marquee-brand {
+  .launch-tag-sub {
+    display: none;
+  }
+  .launch-item-card {
+    padding: 5px 12px;
+    gap: 8px;
+    margin: 0 4px;
+    border-radius: 9px;
+  }
+  .launch-item-icon {
+    font-size: 1.1rem;
+  }
+  .launch-item-name {
     font-size: 0.78rem;
   }
-  .marquee-dot {
-    font-size: 1rem;
+  .launch-item-desc {
+    font-size: 0.68rem;
+  }
+  .launch-item-badge {
+    font-size: 0.56rem;
+    padding: 1px 5px;
+  }
+  .marquee-diamond {
+    margin: 0 6px;
+    font-size: 0.75rem;
+  }
+  .launch-sticky-cta {
+    padding: 6px 11px;
+    font-size: 0.68rem;
+    margin: 0 8px 0 4px;
   }
 }
 
-@media (max-width: 360px) {
-  .announcement-marquee-wrapper {
-    height: 48px;
+@media (max-width: 420px) {
+  .launch-sticky-tag .launch-tag-text {
+    display: none;
   }
-  .marquee-segment {
-    gap: 7px;
-    padding: 0 8px;
+  .launch-sticky-cta span {
+    display: none;
   }
-  .marquee-item,
-  .marquee-brand {
-    font-size: 0.74rem;
+  .launch-sticky-cta {
+    padding: 6px 8px;
+    margin: 0 6px 0 2px;
   }
 }
 
