@@ -1,0 +1,25 @@
+name: Keep Database & Backend Active
+
+on:
+  schedule:
+    # Runs at 04:00 and 16:00 UTC daily (09:30 AM and 09:30 PM IST)
+    - cron: '0 4,16 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab anytime
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Live Website & Supabase Database
+        run: |
+          echo "Sending keep-alive ping to Kamadhenu Honey Farms production server..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://kamadhenuhoneyfarms.in/api/cron/keep-alive)
+          echo "HTTP Status Code: $STATUS"
+          if [ "$STATUS" -eq 200 ]; then
+            echo "✅ Keep-alive ping successful! Database and backend are active."
+          else
+            echo "⚠️ Received status $STATUS, retrying in 5 seconds..."
+            sleep 5
+            RETRY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://kamadhenuhoneyfarms.in/api/cron/keep-alive)
+            echo "Retry HTTP Status: $RETRY_STATUS"
+          fi
