@@ -547,57 +547,6 @@
        ========================================================================== -->
   <section class="products" id="products">
     <div class="container">
-      <div class="products-header reveal reveal-fade-up">
-        <span class="section-subtitle">Pure Organic Delicacies</span>
-        <h2>Our Premium Honey Collection</h2>
-        
-        <!-- Search & Category Filters -->
-        <div class="shop-controls">
-          <div class="search-box">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input type="text" id="productSearch" placeholder="Search our honey collection...">
-          </div>
-          <div class="filter-tabs">
-            <button class="filter-tab active" data-filter="all">All Honey</button>
-            <button class="filter-tab" data-filter="raw">Raw Varieties</button>
-            <button class="filter-tab" data-filter="infused">Premium Infusions</button>
-            <button class="filter-tab" data-filter="honeycomb">Raw Honeycomb</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Instant Pincode Delivery Estimator -->
-      <div class="pincode-estimator-card reveal reveal-fade-up" id="pincodeEstimatorCard">
-        <div class="estimator-header">
-          <div class="estimator-icon-box">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-            </svg>
-          </div>
-          <div class="estimator-text">
-            <h4>Check Delivery Speed to Your Doorstep</h4>
-            <p>Dispatched directly from our apiary in Taverekere, Bangalore South</p>
-          </div>
-        </div>
-
-        <div class="estimator-action-group">
-          <div class="estimator-input-wrapper">
-            <input type="text" id="estimatorPincodeInput" placeholder="Enter Pincode (e.g. 560040)" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="postal-code">
-            <button type="button" class="btn btn-gold" id="btnCheckPincode">Check Speed</button>
-          </div>
-        </div>
-
-        <div class="estimator-result-box" id="estimatorResultBox" style="display: none;"></div>
-      </div>
-
-      <!-- Reactive Product Grid -->
-      <div class="products-grid" id="productGrid">
-        <!-- Rendered Dynamically via script.js to support sizes and wishlist states -->
-      </div>
-
       <!-- ==========================================================================
            Premium Running Announcement Banner (New Arrivals Marquee)
            ========================================================================== -->
@@ -688,6 +637,57 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="products-header reveal reveal-fade-up">
+        <span class="section-subtitle">Pure Organic Delicacies</span>
+        <h2>Our Premium Honey Collection</h2>
+        
+        <!-- Search & Category Filters -->
+        <div class="shop-controls">
+          <div class="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input type="text" id="productSearch" placeholder="Search our honey collection...">
+          </div>
+          <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="all">All Honey</button>
+            <button class="filter-tab" data-filter="raw">Raw Varieties</button>
+            <button class="filter-tab" data-filter="infused">Premium Infusions</button>
+            <button class="filter-tab" data-filter="honeycomb">Raw Honeycomb</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Instant Pincode Delivery Estimator -->
+      <div class="pincode-estimator-card reveal reveal-fade-up" id="pincodeEstimatorCard">
+        <div class="estimator-header">
+          <div class="estimator-icon-box">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+          </div>
+          <div class="estimator-text">
+            <h4>Check Delivery Speed to Your Doorstep</h4>
+            <p>Dispatched directly from our apiary in Taverekere, Bangalore South</p>
+          </div>
+        </div>
+
+        <div class="estimator-action-group">
+          <div class="estimator-input-wrapper">
+            <input type="text" id="estimatorPincodeInput" placeholder="Enter Pincode (e.g. 560040)" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="postal-code">
+            <button type="button" class="btn btn-gold" id="btnCheckPincode">Check Speed</button>
+          </div>
+        </div>
+
+        <div class="estimator-result-box" id="estimatorResultBox" style="display: none;"></div>
+      </div>
+
+      <!-- Reactive Product Grid -->
+      <div class="products-grid" id="productGrid">
+        <!-- Rendered Dynamically via script.js to support sizes and wishlist states -->
       </div>
 
       <!-- Bulk Orders / Wholesale Banner -->

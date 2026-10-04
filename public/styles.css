@@ -6537,7 +6537,7 @@ body.overflow-hidden {
   width: 100%;
   max-width: 100%;
   height: 62px;
-  margin: 32px 0 24px 0;
+  margin: 0 0 32px 0;
   background: linear-gradient(90deg, #FAF6EE 0%, #FFFDF9 50%, #FAF6EE 100%);
   border: 1px solid rgba(216, 166, 79, 0.35);
   border-radius: 12px;
@@ -6661,7 +6661,7 @@ body.overflow-hidden {
 @media (max-width: 768px) {
   .announcement-marquee-wrapper {
     height: 52px;
-    margin: 24px 0 20px 0;
+    margin: 0 0 24px 0;
     border-radius: 10px;
   }
   .announcement-marquee-wrapper::before,
