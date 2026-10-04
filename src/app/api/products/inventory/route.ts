@@ -29,7 +29,7 @@ export async function GET() {
         stockStatus: 'IN_STOCK',
         restockDays: 3,
         restockNote: 'Stock will be restocked within 3 days',
-        badgeText: p.category === 'raw' ? 'Organic' : 'Deluxe',
+        badgeText: p.category === 'raw' ? 'Organic' : (p.category === 'honeycomb' ? (p.id === 'p3' ? 'Most Innovative' : 'Pure Comb') : 'Deluxe'),
         canPreorder: false,
         prices: p.prices,
         image: p.image,

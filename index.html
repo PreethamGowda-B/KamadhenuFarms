@@ -93,6 +93,52 @@
           "highPrice": "749",
           "offerCount": "3"
         }
+      },
+      {
+        "@type": "Product",
+        "name": "Dry Fruits Honey",
+        "description": "Premium raw honey rich in hand-sorted almonds, cashews, pistachios, and walnuts.",
+        "brand": {
+          "@type": "Brand",
+          "name": "Kamadhenu Honey Farms"
+        },
+        "offers": {
+          "@type": "AggregateOffer",
+          "priceCurrency": "INR",
+          "lowPrice": "399",
+          "highPrice": "999",
+          "offerCount": "3"
+        }
+      },
+      {
+        "@type": "Product",
+        "name": "Bee-Crafted Honey Comb Jar",
+        "description": "Unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey.",
+        "brand": {
+          "@type": "Brand",
+          "name": "Kamadhenu Honey Farms"
+        },
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "INR",
+          "price": "599",
+          "availability": "https://schema.org/InStock"
+        }
+      },
+      {
+        "@type": "Product",
+        "name": "Raw Honey Comb Box",
+        "description": "Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste and nutrients.",
+        "brand": {
+          "@type": "Brand",
+          "name": "Kamadhenu Honey Farms"
+        },
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "INR",
+          "price": "899",
+          "availability": "https://schema.org/InStock"
+        }
       }
     ]
   }
@@ -517,6 +563,7 @@
             <button class="filter-tab active" data-filter="all">All Honey</button>
             <button class="filter-tab" data-filter="raw">Raw Varieties</button>
             <button class="filter-tab" data-filter="infused">Premium Infusions</button>
+            <button class="filter-tab" data-filter="honeycomb">Raw Honeycomb</button>
           </div>
         </div>
       </div>
@@ -660,234 +707,7 @@
     </div>
   </section>
 
-  <!-- ==========================================================================
-       Upcoming Products Section (Premium Showcasing)
-       ========================================================================== -->
-  <section class="upcoming-products" id="upcoming">
-    <div class="container">
-      <div class="upcoming-header reveal reveal-fade-up">
-        <span class="section-subtitle">Exclusive Harvest</span>
-        <h2>Bee-Crafted Honeycomb Collection</h2>
-        <p class="upcoming-subheading">Discover our premium bee-crafted products, designed to bring you pure honey exactly as nature creates it.</p>
-      </div>
 
-      <!-- Ambient Glow Blob 2 -->
-      <div class="upcoming-glow-blob2" aria-hidden="true"></div>
-      <!-- Cinematic Scan Line -->
-      <div class="upcoming-scan-line" aria-hidden="true"></div>
-
-      <div class="upcoming-grid">
-        <!-- Product Card 1 (Flagship / Standout) -->
-        <div class="upcoming-card flagship-card reveal reveal-fade-up" id="product-p3" data-product-id="p3" style="transition-delay: 0.1s;">
-          <!-- Ribbon for Flagship Product -->
-          <div class="flagship-ribbon">Most Innovative</div>
-
-          <!-- Share Button -->
-          <button class="upcoming-share-btn share-product-btn" data-product-id="p3" data-product-name="Bee-Crafted Honey Comb Jar" title="Share this product">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185z" />
-            </svg>
-          </button>
-          
-          <!-- Badges -->
-          <div class="upcoming-badges-container">
-            <span class="upcoming-badge premium-badge">🍯 Fresh Harvest</span>
-            <span class="upcoming-badge innovation-badge">🏆 Kamadhenu Innovation</span>
-          </div>
-
-          <div class="upcoming-media-placeholder">
-            <!-- Shimmer Rings -->
-            <div class="upcoming-shimmer-ring" aria-hidden="true"></div>
-            <div class="upcoming-shimmer-ring" aria-hidden="true"></div>
-            <div class="upcoming-shimmer-ring" aria-hidden="true"></div>
-            <!-- Ambient Golden Glow -->
-            <div class="placeholder-glow"></div>
-            <!-- Main Product Image -->
-            <img class="upcoming-main-img" src="assets/ChatGPT Image Jun 13, 2026, 07_29_45 PM.png" alt="Bee-Crafted Honey Comb Jar" loading="lazy" decoding="async" onerror="this.style.display='none';">
-            
-            <!-- Custom Honeycomb SVG Overlay -->
-            <svg class="honeycomb-pattern-svg" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M10,25 L20,20 L30,25 L30,35 L20,40 L10,35 Z M30,25 L40,20 L50,25 L50,35 L40,40 L30,35 Z M50,25 L60,20 L70,25 L70,35 L60,40 L50,35 Z M70,25 L80,20 L90,25 L90,35 L80,40 L70,35 Z
-                       M20,40 L30,35 L40,40 L40,50 L30,55 L20,50 Z M40,40 L50,35 L60,40 L60,50 L50,55 L40,50 Z M60,40 L70,35 L80,40 L80,50 L70,55 L60,50 Z
-                       M10,55 L20,50 L30,55 L30,65 L20,70 L10,65 Z M30,55 L40,50 L50,55 L50,65 L40,70 L30,65 Z M50,55 L60,50 L70,55 L70,65 L60,70 L50,65 Z M70,55 L80,50 L90,55 L90,65 L80,70 L70,65 Z" 
-                    fill="none" stroke="rgba(216, 166, 79, 0.15)" stroke-width="0.75" />
-            </svg>
-
-            <!-- Gallery Thumbnails -->
-            <div class="card-thumb-nav">
-              <button class="thumb-nav-btn active" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_29_45 PM.png" data-index="0">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_29_45 PM.png" alt="thumbnail 0" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_31_52 PM.png" data-index="1">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_31_52 PM.png" alt="thumbnail 1" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_36_11 PM.png" data-index="2">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_36_11 PM.png" alt="thumbnail 2" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_51_53 PM.png" data-index="3">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_51_53 PM.png" alt="thumbnail 3" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_54_12 PM.png" data-index="4">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_54_12 PM.png" alt="thumbnail 4" loading="lazy" decoding="async">
-              </button>
-            </div>
-          </div>
-
-          <div class="upcoming-content">
-            <div class="card-title-area">
-              <h3>Bee-Crafted Honey Comb Jar</h3>
-              <p class="upcoming-subtitle">Built by Bees. Not by Machines.</p>
-            </div>
-            <p class="upcoming-desc">A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey. Harvested exactly as nature intended.</p>
-            
-            <!-- Highlighted Feature Box -->
-            <div class="why-special-box">
-              <span class="box-heading">🏆 Why It's Special</span>
-              <ul class="why-special-list">
-                <li>Bees naturally build the honeycomb directly inside the glass jar.</li>
-                <li>No extraction process.</li>
-                <li>No processing.</li>
-                <li>Harvested exactly as nature intended.</li>
-                <li>A truly unique farm-to-jar experience.</li>
-              </ul>
-            </div>
-
-            <!-- Conversion Action -->
-            <div class="upcoming-action">
-              <div class="price-qty-row">
-                <div class="price-display">
-                  <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--primary-gold); letter-spacing: 1px; font-weight: 700;">Net Wt: 500g Glass Jar</span>
-                  <h4 class="card-price-text upcoming-price-display" data-product-id="p3">₹1</h4>
-                  <span class="delivery-notice">(Delivery calculated at checkout)</span>
-                </div>
-                <div class="stock-pill" style="display: inline-flex; align-items: center; gap: 7px; background: rgba(39, 174, 96, 0.18); border: 1px solid rgba(46, 204, 113, 0.45); padding: 5px 12px; border-radius: 999px; box-shadow: 0 2px 10px rgba(39, 174, 96, 0.2); white-space: nowrap;">
-                  <span class="stock-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; box-shadow: 0 0 8px #2ecc71; display: inline-block; flex-shrink: 0;"></span>
-                  <span class="stock-text" style="color: #2ecc71 !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;">Fresh Apiary Stock</span>
-                </div>
-              </div>
-
-              <div class="upcoming-buttons-group">
-                <button class="btn btn-gold upcoming-add-cart-btn" data-product-id="p3" data-size="500g" title="Add to Cart">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                  </svg>
-                  <span>Add to Cart</span>
-                </button>
-                <button class="btn btn-charcoal upcoming-buy-now-btn" data-product-id="p3" data-size="500g" title="Buy Now & Proceed to Checkout">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                  <span>Buy Now</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Product Card 2 -->
-        <div class="upcoming-card reveal reveal-fade-up" id="product-p4" data-product-id="p4" style="transition-delay: 0.2s;">
-          <!-- Share Button -->
-          <button class="upcoming-share-btn share-product-btn" data-product-id="p4" data-product-name="Raw Honey Comb Box" title="Share this product">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185z" />
-            </svg>
-          </button>
-
-          <!-- Badges -->
-          <div class="upcoming-badges-container">
-            <span class="upcoming-badge premium-badge">🍯 Fresh Honeycomb</span>
-          </div>
-
-          <div class="upcoming-media-placeholder">
-            <!-- Shimmer Rings -->
-            <div class="upcoming-shimmer-ring" aria-hidden="true"></div>
-            <div class="upcoming-shimmer-ring" aria-hidden="true"></div>
-            <div class="upcoming-shimmer-ring" aria-hidden="true"></div>
-            <!-- Ambient Golden Glow -->
-            <div class="placeholder-glow"></div>
-            <!-- Main Product Image -->
-            <img class="upcoming-main-img" src="assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png" alt="Raw Honey Comb Box" loading="lazy" decoding="async" onerror="this.style.display='none';">
-
-            <!-- Custom Honeycomb SVG Overlay -->
-            <svg class="honeycomb-pattern-svg" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M10,25 L20,20 L30,25 L30,35 L20,40 L10,35 Z M30,25 L40,20 L50,25 L50,35 L40,40 L30,35 Z M50,25 L60,20 L70,25 L70,35 L60,40 L50,35 Z M70,25 L80,20 L90,25 L90,35 L80,40 L70,35 Z
-                       M20,40 L30,35 L40,40 L40,50 L30,55 L20,50 Z M40,40 L50,35 L60,40 L60,50 L50,55 L40,50 Z M60,40 L70,35 L80,40 L80,50 L70,55 L60,50 Z
-                       M10,55 L20,50 L30,55 L30,65 L20,70 L10,65 Z M30,55 L40,50 L50,55 L50,65 L40,70 L30,65 Z M50,55 L60,50 L70,55 L70,65 L60,70 L50,65 Z M70,55 L80,50 L90,55 L90,65 L80,70 L70,65 Z" 
-                    fill="none" stroke="rgba(216, 166, 79, 0.15)" stroke-width="0.75" />
-            </svg>
-
-            <!-- Gallery Thumbnails -->
-            <div class="card-thumb-nav">
-              <button class="thumb-nav-btn active" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png" data-index="0">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_39_22 PM.png" alt="thumbnail 0" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_42_34 PM.png" data-index="1">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_42_34 PM.png" alt="thumbnail 1" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_43_33 PM.png" data-index="2">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_43_33 PM.png" alt="thumbnail 2" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_46_15 PM.png" data-index="3">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_46_15 PM.png" alt="thumbnail 3" loading="lazy" decoding="async">
-              </button>
-              <button class="thumb-nav-btn" data-img-src="assets/ChatGPT Image Jun 13, 2026, 07_47_14 PM.png" data-index="4">
-                <img src="assets/ChatGPT Image Jun 13, 2026, 07_47_14 PM.png" alt="thumbnail 4" loading="lazy" decoding="async">
-              </button>
-            </div>
-          </div>
-
-          <div class="upcoming-content">
-            <div class="card-title-area">
-              <h3>Raw Honey Comb Box</h3>
-              <p class="upcoming-subtitle">Straight From The Hive.</p>
-            </div>
-            <p class="upcoming-desc">Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.</p>
-            
-            <!-- Highlighted Feature Box -->
-            <div class="why-special-box">
-              <span class="box-heading">🍯 Why It's Special</span>
-              <ul class="why-special-list">
-                <li>Fresh honeycomb harvested directly from active bee colonies.</li>
-                <li>Raw and unprocessed.</li>
-                <li>Rich in natural enzymes and nutrients.</li>
-                <li>Packed carefully to preserve quality and freshness.</li>
-              </ul>
-            </div>
-
-            <!-- Conversion Action -->
-            <div class="upcoming-action">
-              <div class="price-qty-row">
-                <div class="price-display">
-                  <span style="font-size: 0.75rem; text-transform: uppercase; color: var(--primary-gold); letter-spacing: 1px; font-weight: 700;">Net Wt: 500g Comb Box</span>
-                  <h4 class="card-price-text upcoming-price-display" data-product-id="p4">₹1</h4>
-                  <span class="delivery-notice">(Delivery calculated at checkout)</span>
-                </div>
-                <div class="stock-pill" style="display: inline-flex; align-items: center; gap: 7px; background: rgba(39, 174, 96, 0.18); border: 1px solid rgba(46, 204, 113, 0.45); padding: 5px 12px; border-radius: 999px; box-shadow: 0 2px 10px rgba(39, 174, 96, 0.2); white-space: nowrap;">
-                  <span class="stock-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; box-shadow: 0 0 8px #2ecc71; display: inline-block; flex-shrink: 0;"></span>
-                  <span class="stock-text" style="color: #2ecc71 !important; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;">Fresh Apiary Stock</span>
-                </div>
-              </div>
-
-              <div class="upcoming-buttons-group">
-                <button class="btn btn-gold upcoming-add-cart-btn" data-product-id="p4" data-size="500g" title="Add to Cart">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                  </svg>
-                  <span>Add to Cart</span>
-                </button>
-                <button class="btn btn-charcoal upcoming-buy-now-btn" data-product-id="p4" data-size="500g" title="Buy Now & Proceed to Checkout">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                  <span>Buy Now</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
 
   <!-- ==========================================================================

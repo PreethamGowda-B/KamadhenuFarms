@@ -107,11 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
       name: 'Bee-Crafted Honey Comb Jar',
       subtitle: 'Built by Bees. Not by Machines.',
       category: 'honeycomb',
-      stockStatus: 'RESTOCKING_SOON',
-      restockDays: 7,
-      canPreorder: true,
-      badgeText: 'Restocking in 7 days',
-      restockNote: 'Stock will be restocked within 7 days',
+      stockStatus: 'IN_STOCK',
+      restockDays: 0,
+      canPreorder: false,
+      badgeText: 'Most Innovative',
       baseDesc: 'A unique innovation where bees naturally build honeycomb directly inside a glass jar and fill it with pure raw honey. Harvested exactly as nature intended.',
       prices: {
         '500g': 599
@@ -140,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
       stockStatus: 'IN_STOCK',
       restockDays: 0,
       canPreorder: false,
+      badgeText: 'Pure Comb',
       baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',
       prices: {
         '500g': 899
@@ -1415,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.textContent = `⏳ ${p.badgeText || `Restocking in ${p.restockDays || 3} days`}`;
       } else {
         badge.className = 'product-badge';
-        badge.textContent = p.badgeText || (p.category === 'raw' ? 'Organic' : 'Deluxe');
+        badge.textContent = p.badgeText || (p.category === 'raw' ? 'Organic' : p.category === 'honeycomb' ? 'Honeycomb' : 'Deluxe');
       }
     }
   };
@@ -1458,11 +1458,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeTab = document.querySelector('.filter-tab.active');
     const activeCategory = activeTab ? activeTab.dataset.filter : 'all';
 
-    // Loop through our product configs
+    // Loop through our product configs (all 4 products: Raw, Infused, Honeycomb Jar & Honeycomb Box)
     Object.values(productDatabase).forEach(product => {
-      // Honeycomb products are showcased in their dedicated luxury section below
-      if (product.category === 'honeycomb') return;
-
       // Filter out search matches
       const matchesSearch = product.name.toLowerCase().includes(searchQuery) || product.baseDesc.toLowerCase().includes(searchQuery);
       // Filter out category tabs
@@ -1500,7 +1497,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (isRestocking) {
         badgeHtml = `<div class="product-badge restocking">⏳ ${product.badgeText || `Restocking in ${product.restockDays || 3} days`}</div>`;
       } else {
-        badgeHtml = `<div class="product-badge">${product.badgeText || (product.category === 'raw' ? 'Organic' : 'Deluxe')}</div>`;
+        badgeHtml = `<div class="product-badge">${product.badgeText || (product.category === 'raw' ? 'Organic' : product.category === 'honeycomb' ? 'Honeycomb' : 'Deluxe')}</div>`;
       }
 
       let restockAlertHtml = '';

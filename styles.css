@@ -899,6 +899,8 @@ header nav {
 .filter-tabs {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .filter-tab {
@@ -926,8 +928,8 @@ header nav {
 .products-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 40px;
-  max-width: 1000px;
+  gap: 36px;
+  max-width: 1060px;
   margin: 0 auto;
 }
 
@@ -1760,9 +1762,10 @@ header nav {
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 40px;
-  margin-top: 3rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 36px;
+  max-width: 1060px;
+  margin: 3rem auto 0 auto;
 }
 
 /* Duplicate product card definition removed for clean layout rules */
