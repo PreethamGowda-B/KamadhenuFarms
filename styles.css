@@ -267,19 +267,22 @@ header.scrolled {
 }
 
 .nav-container {
-  max-width: 1380px;
+  max-width: 1480px;
   height: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4%;
+  padding: 0 clamp(16px, 2.5vw, 32px);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  margin-left: clamp(14px, 1.8vw, 28px);
+  margin-right: clamp(24px, 3.2vw, 50px);
+  flex-shrink: 0;
   font-family: var(--font-headings);
   font-size: clamp(1.1rem, 1.8vw, 1.4rem);
   font-weight: 700;
@@ -328,7 +331,7 @@ header nav {
 .nav-menu {
   display: flex;
   list-style: none;
-  gap: clamp(15px, 2.2vw, 30px);
+  gap: clamp(10px, 1.35vw, 22px);
   align-items: center;
   height: 100%;
 }
@@ -344,11 +347,12 @@ header nav {
   align-items: center;
   height: 100%;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--luxury-charcoal);
   position: relative;
   white-space: nowrap;
   transition: var(--transition-fast);
+  padding: 0 3px;
 }
 
 .nav-menu li a::after {
@@ -370,8 +374,9 @@ header nav {
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: clamp(8px, 1.1vw, 14px);
   height: 100%;
+  flex-shrink: 0;
 }
 
 /* Nav Icons (Cart, Wishlist) */
@@ -422,7 +427,7 @@ header nav {
 .header-cta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   height: 100%;
 }
 
@@ -430,9 +435,9 @@ header nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 42px;
-  padding: 0 20px;
-  font-size: 0.85rem;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 0.84rem;
   font-weight: 600;
   border-radius: 50px;
 }
@@ -4425,15 +4430,37 @@ body:not(.loaded) {
   }
 }
 
+@media (max-width: 1180px) {
+  .nav-menu {
+    gap: 12px;
+  }
+  .nav-menu li a {
+    font-size: 0.84rem;
+    padding: 0 1px;
+  }
+  .logo {
+    margin-right: 20px;
+    margin-left: 10px;
+  }
+  .header-cta .btn {
+    padding: 0 12px;
+    font-size: 0.8rem;
+    height: 36px;
+  }
+}
+
+@media (max-width: 991px) {
+  .nav-menu, .header-cta {
+    display: none !important;
+  }
+  .hamburger {
+    display: flex !important;
+  }
+}
+
 @media (max-width: 768px) {
   section {
     padding: 70px 4%;
-  }
-  .nav-menu, .header-cta {
-    display: none;
-  }
-  .hamburger {
-    display: flex;
   }
   .cart-drawer {
     width: 100% !important;

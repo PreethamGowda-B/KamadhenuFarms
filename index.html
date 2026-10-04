@@ -109,37 +109,30 @@
           <li><a href="#gallery">Gallery</a></li>
           <li><a href="#reviews">Reviews</a></li>
           <li><a href="#contact">Contact</a></li>
-          <li><a href="#" class="open-orders-btn" onclick="window.openOrders && window.openOrders(event)" style="font-weight:600; color:var(--dark-gold);">My Orders 🛍️</a></li>
           <li><a href="/careers" style="color:var(--primary-gold); font-weight:700;">Careers 🍯</a></li>
         </ul>
       </nav>
 
       <!-- Right actions -->
       <div class="nav-right">
-        <!-- Track Order button -->
-        <button class="nav-icon-btn open-tracker-btn" title="Track Order" aria-label="Track Order" onclick="window.openTracker && window.openTracker(event)">
+        <!-- Customer Memory My Orders & Live Tracking trigger -->
+        <button class="nav-icon-btn open-orders-btn open-tracker-btn" id="openOrdersBtn" title="My Orders & Live Tracking" aria-label="My Orders & Live Tracking" style="display:inline-flex;" onclick="window.openOrders && window.openOrders(event)">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        </button>
-        <!-- Customer Memory My Orders trigger -->
-        <button class="nav-icon-btn open-orders-btn" id="openOrdersBtn" title="My Orders" aria-label="My Orders" style="display:inline-flex;" onclick="window.openOrders && window.openOrders(event)">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <span class="customer-badge-dot" id="customerBadgeDot"></span>
         </button>
         <!-- Shopping cart drawer trigger -->
-        <button class="nav-icon-btn open-cart-btn" title="Cart" onclick="window.openCart && window.openCart(event)">
+        <button class="nav-icon-btn open-cart-btn" title="Shopping Cart" aria-label="Shopping Cart" onclick="window.openCart && window.openCart(event)">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
           </svg>
           <span class="badge-count cart-count">0</span>
         </button>
 
         <div class="header-cta">
-          <a href="https://wa.me/919980114675" class="btn btn-glass" style="color:var(--luxury-charcoal); border-color:var(--primary-gold); padding: 8px 16px;">WhatsApp</a>
-          <a href="tel:9980114675" class="btn btn-gold" style="padding: 8px 16px;">Call</a>
+          <a href="https://wa.me/919980114675" class="btn btn-glass" style="color:var(--luxury-charcoal); border-color:var(--primary-gold); padding: 7px 15px;">WhatsApp</a>
+          <a href="tel:9980114675" class="btn btn-gold" style="padding: 7px 15px;">Call</a>
         </div>
 
         <!-- Mobile hamburger menu (3-line icon) -->
