@@ -16,7 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     let app: any = null;
 
-    // 1. Check Neon PostgreSQL Database
+    // 1. Check PostgreSQL Database
     if (process.env.DATABASE_URL) {
       try {
         app = await (prisma as any).application.findUnique({

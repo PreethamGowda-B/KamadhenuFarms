@@ -7,7 +7,7 @@
 [![Next.js 14](https://img.shields.io/badge/Next.js-14.1.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)  
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)  
 [![Prisma ORM](https://img.shields.io/badge/Prisma-5.22-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)  
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon%20Serverless-4169E1?style=for-the-badge&logo=postgresql)](https://neon.tech/)  
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)  
 [![Cashfree Payments](https://img.shields.io/badge/Payments-Cashfree%20V3-008080?style=for-the-badge)](https://www.cashfree.com/)
 
 * * *
@@ -81,9 +81,9 @@ Type-safe business logic, models, and API contracts
 
 **Database**
 
-[PostgreSQL via Neon](https://neon.tech/)
+[PostgreSQL via Supabase](https://supabase.com/)
 
-Serverless scalable relational database
+Scalable relational database with connection pooling
 
 **ORM**
 
@@ -157,7 +157,7 @@ KamadhenuFarms/
 
 -   **Node.js** (v18.17.0 or higher recommended)
 -   **npm** or **yarn**
--   A **PostgreSQL** database (e.g. [Neon.tech](https://neon.tech/), Supabase, or local PostgreSQL)
+-   A **PostgreSQL** database (e.g. [Supabase](https://supabase.com/) or local PostgreSQL)
 
 ### 2\. Clone the Repository
 
@@ -177,9 +177,9 @@ npm install
 Create a `.env` file in the root directory:
 
 ```env
-# Database Connections (Neon Serverless PostgreSQL)
-DATABASE_URL="postgresql://user:password@ep-sample-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require"
-DIRECT_URL="postgresql://user:password@ep-sample.us-east-2.aws.neon.tech/neondb?sslmode=require"
+# Database Connections (Supabase PostgreSQL)
+DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
 
 # App URL
 NEXT_PUBLIC_APP_URL="https://www.kamadhenuhoneyfarms.in"
