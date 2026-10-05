@@ -105,6 +105,8 @@ export default function AdminReferralsPage() {
 
   // Share Modal & Top-Company Framework State
   const [shareOffer, setShareOffer] = useState<ReferralOffer | null>(null);
+  const [recipientName, setRecipientName] = useState<string>('');
+  const [recipientMobile, setRecipientMobile] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedTemplateIdx, setCopiedTemplateIdx] = useState<number | null>(null);
   const [activeTemplateTab, setActiveTemplateTab] = useState<number>(0);
@@ -238,6 +240,16 @@ export default function AdminReferralsPage() {
     navigator.clipboard.writeText(text);
     setCopiedTemplateIdx(index);
     setTimeout(() => setCopiedTemplateIdx(null), 2000);
+  };
+
+  const handleOpenShare = (offer: ReferralOffer) => {
+    setShareOffer(offer);
+    const defaultName = offer.referrerCustomer?.name || (offer.code.startsWith('KHF-') ? offer.code.replace('KHF-', '').replace(/_/g, ' ') : '');
+    setRecipientName(defaultName);
+    setRecipientMobile(offer.referrerCustomer?.mobile || '');
+    setActiveTemplateTab(0);
+    setCopiedLink(false);
+    setCopiedTemplateIdx(null);
   };
 
   return (
@@ -505,7 +517,7 @@ export default function AdminReferralsPage() {
                                 )}
                               </button>
                               <button
-                                onClick={() => setShareOffer(offer)}
+                                onClick={() => handleOpenShare(offer)}
                                 className="text-amber-600 hover:text-amber-800 transition p-1 rounded hover:bg-amber-100/70"
                                 title="Share referral link & messaging copy"
                               >
@@ -555,7 +567,7 @@ export default function AdminReferralsPage() {
                           <td className="py-3 px-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
                               <button
-                                onClick={() => setShareOffer(offer)}
+                                onClick={() => handleOpenShare(offer)}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs shadow-sm transition hover:scale-[1.02] active:scale-[0.98]"
                                 title={`Share referral offer ${offer.code}`}
                               >
@@ -869,28 +881,32 @@ export default function AdminReferralsPage() {
 
       {/* SHARE REFERRAL MODAL */}
       {shareOffer && (() => {
-        const storeUrl = typeof window !== 'undefined' && window.location.origin
-          ? `${window.location.origin}/?ref=${shareOffer.code}`
+        // ALWAYS use the public customer storefront URL, NEVER the admin subdomain!
+        const storeUrl = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? `http://localhost:${window.location.port || '3000'}/?ref=${shareOffer.code}`
           : `https://www.kamadhenuhoneyfarms.in/?ref=${shareOffer.code}`;
+
+        const cleanPhone = (recipientMobile || '').replace(/\D/g, '');
+        const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : (cleanPhone.length > 10 ? cleanPhone : '');
 
         const templates = [
           {
-            title: 'WhatsApp / Personal Recommendation',
-            badge: 'Top D2C Conversion (3.8x)',
+            title: 'Store Owner ➔ Customer (Invite to Share)',
+            badge: 'Direct WhatsApp',
             icon: MessageCircle,
-            text: `Hey! 🍯 I order 100% pure, unpasteurized raw honey directly from Kamadhenu Honey Farms in Bangalore.\n\nUse my personal referral link to get ${shareOffer.discountPercent}% OFF on your 1kg jar (Code: ${shareOffer.code}):\n${storeUrl}\n\nPure wild harvest with active enzymes and zero adulteration. You'll love the quality! 🐝`,
+            text: `Namaste ${recipientName ? recipientName : 'Valued Customer'}! 🍯\n\nGreetings from Kamadhenu Honey Farms, Bangalore.\n\nThank you for choosing our authentic pure raw honey! Here is your personal referral code:\n👉 Your Code: *${shareOffer.code}*\n👉 Your Referral Link: ${storeUrl}\n\n📢 *If any of your friends, family, or colleagues want 100% pure raw farm honey, please share this link with them!*\n✨ *What your friends get:* ${shareOffer.discountPercent}% OFF instantly on their order of 1kg pure honey!\n🎁 *What you earn:* An exclusive 5% reward discount voucher on your next honey order for each friend who orders!\n\nThey can order directly from the farm here:\n${storeUrl}\n(Code *${shareOffer.code}* is auto-applied at checkout)\n\nThank you for supporting pure, local beekeeping! 🐝\n- Kamadhenu Honey Farms, Bangalore`,
           },
           {
-            title: 'Health & Ayurvedic Purity Focus',
-            badge: 'High Trust / Wellness',
-            icon: Sparkles,
-            text: `Namaste! 🙏 If you're looking for genuine farm-fresh raw honey with zero processing, unheated enzymes, and authentic bee pollen, try Kamadhenu Honey Farms.\n\nUse my referral code ${shareOffer.code} for an exclusive ${shareOffer.discountPercent}% discount on 1kg or more:\n${storeUrl}\n\n100% direct from local beekeepers in Bangalore. 🌿`,
-          },
-          {
-            title: 'Short SMS / Social Media / Status',
-            badge: 'Quick Share',
+            title: 'Ready-to-Forward (For Customer to send Friends)',
+            badge: 'One-Click Forward',
             icon: Send,
-            text: `Get ${shareOffer.discountPercent}% OFF pure Bangalore raw comb & wildflower honey at Kamadhenu Honey Farms! Use invite code ${shareOffer.code} at checkout: ${storeUrl}`,
+            text: `Hey everyone! 🍯\n\nI order pure, 100% unpasteurized raw honey directly from Kamadhenu Honey Farms in Bangalore.\n\nIf you want authentic raw wildflower honey with active enzymes and zero adulteration, use my personal discount link to get ${shareOffer.discountPercent}% OFF on 1kg or more:\n${storeUrl}\n(Coupon Code: *${shareOffer.code}*)\n\nFresh harvest straight from the apiary bee boxes. Highly recommended! 🐝`,
+          },
+          {
+            title: 'Short SMS / WhatsApp Note',
+            badge: 'Quick Note',
+            icon: Sparkles,
+            text: `Namaste ${recipientName ? recipientName : 'Friend'}! Share your Kamadhenu Honey Farms referral link with friends: ${storeUrl} (Code: ${shareOffer.code}). They get ${shareOffer.discountPercent}% OFF on pure raw honey, and you earn 5% rewards on your next purchase! 🍯`,
           },
         ];
 
@@ -898,7 +914,10 @@ export default function AdminReferralsPage() {
 
         const handleWhatsAppShare = (msg?: string) => {
           const textToSend = msg || currentTemplate.text;
-          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(textToSend)}`, '_blank');
+          const waUrl = formattedPhone
+            ? `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(textToSend)}`
+            : `https://api.whatsapp.com/send?text=${encodeURIComponent(textToSend)}`;
+          window.open(waUrl, '_blank');
         };
 
         const handleNativeShare = async () => {
@@ -906,11 +925,11 @@ export default function AdminReferralsPage() {
             try {
               await navigator.share({
                 title: `Kamadhenu Honey Farms - ${shareOffer.discountPercent}% Referral Offer`,
-                text: `Get ${shareOffer.discountPercent}% OFF pure farm raw honey with code ${shareOffer.code}`,
+                text: currentTemplate.text,
                 url: storeUrl,
               });
             } catch (err) {
-              // user cancelled or share failed
+              // user cancelled
             }
           } else {
             copyShareLink(storeUrl);
@@ -918,8 +937,8 @@ export default function AdminReferralsPage() {
         };
 
         const handleEmailShare = () => {
-          const subject = encodeURIComponent(`Exclusive ${shareOffer.discountPercent}% OFF on Pure Raw Honey - Kamadhenu Honey Farms`);
-          const body = encodeURIComponent(`Hi,\n\nI wanted to share a personal recommendation for 100% pure, unpasteurized raw honey directly from Kamadhenu Honey Farms in Bangalore.\n\nYou can use my referral link to get ${shareOffer.discountPercent}% OFF on orders of 1kg or more:\n${storeUrl}\n\n(Referral Code: ${shareOffer.code})\n\nEnjoy the authentic apiary honey!`);
+          const subject = encodeURIComponent(`Your Referral Link for Friends: ${shareOffer.discountPercent}% OFF Pure Raw Honey - Kamadhenu Honey Farms`);
+          const body = encodeURIComponent(currentTemplate.text);
           window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
         };
 
@@ -936,7 +955,7 @@ export default function AdminReferralsPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-serif font-bold text-stone-900">
-                        Share Referral Offer
+                        Share Referral Offer to Customer
                       </h3>
                       <span className="font-mono font-bold text-xs bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md border border-amber-200">
                         {shareOffer.code}
@@ -948,7 +967,7 @@ export default function AdminReferralsPage() {
                       </span>
                     </div>
                     <p className="text-xs text-stone-500">
-                      Multi-channel sharing suite with top-company referral incentives & pre-formatted copy
+                      Send to your customer so they can share it with their friends and family to get a discount
                     </p>
                   </div>
                 </div>
@@ -958,6 +977,39 @@ export default function AdminReferralsPage() {
                 >
                   ✕
                 </button>
+              </div>
+
+              {/* Customer Personalization Details */}
+              <div className="bg-[#FAF7F0] border border-amber-200/80 rounded-2xl p-3.5 space-y-3">
+                <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Customer Details (Recipient)</span>
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-[11px] font-semibold text-stone-600 block mb-1">Customer Name</label>
+                    <input
+                      type="text"
+                      value={recipientName}
+                      onChange={(e) => setRecipientName(e.target.value)}
+                      placeholder="e.g. Shankar"
+                      className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 font-medium text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-stone-600 block mb-1">Customer WhatsApp Number (Optional)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-stone-400 font-bold text-xs">+91</span>
+                      <input
+                        type="tel"
+                        value={recipientMobile}
+                        onChange={(e) => setRecipientMobile(e.target.value.replace(/\D/g, '').slice(-10))}
+                        placeholder="10-digit mobile number"
+                        className="w-full bg-white border border-stone-200 rounded-xl pl-11 pr-3 py-2 font-mono font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Dual-Sided Value Framework (Top Company Pattern) */}
@@ -993,15 +1045,17 @@ export default function AdminReferralsPage() {
                 </div>
               </div>
 
-              {/* Tracked Link Box */}
+              {/* Public Storefront Link Box */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-700 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-stone-700 flex items-center gap-1.5">
                     <Zap className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Tracked Referral Link (Auto-applies code at checkout)</span>
+                    <span>Customer Storefront Link</span>
+                  </label>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    ✅ Public Honey Store (Never Admin Panel)
                   </span>
-                  <span className="text-[11px] text-stone-400 font-normal">Query param: ?ref={shareOffer.code}</span>
-                </label>
+                </div>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-mono text-stone-800 truncate select-all">
                     {storeUrl}
@@ -1026,50 +1080,38 @@ export default function AdminReferralsPage() {
                     href={storeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 border border-stone-200 hover:bg-stone-100 rounded-xl text-stone-600 transition"
-                    title="Test Open in New Tab"
+                    className="px-3 py-2 border border-stone-200 hover:bg-stone-100 rounded-xl text-stone-700 text-xs font-bold transition flex items-center gap-1 whitespace-nowrap"
+                    title="Open live customer storefront"
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <span>Test Storefront</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 </div>
               </div>
 
-              {/* 1-Click Social Sharing Channels */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-stone-700 block">Instant Share Channels</span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    onClick={() => handleWhatsAppShare()}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition hover:scale-[1.01] active:scale-[0.99]"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Share on WhatsApp</span>
-                  </button>
-                  <button
-                    onClick={handleNativeShare}
-                    className="bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition hover:scale-[1.01] active:scale-[0.99]"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span>Native Mobile Share</span>
-                  </button>
-                  <button
-                    onClick={handleEmailShare}
-                    className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>Invite via Email</span>
-                  </button>
-                </div>
+              {/* Primary WhatsApp Action Button */}
+              <div>
+                <button
+                  onClick={() => handleWhatsAppShare()}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-2xl text-sm flex items-center justify-center gap-2.5 shadow-md transition hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>
+                    {recipientMobile
+                      ? `Send Directly to ${recipientName || 'Customer'} on WhatsApp (+91 ${recipientMobile})`
+                      : `Send to ${recipientName || 'Customer'} on WhatsApp`}
+                  </span>
+                </button>
               </div>
 
-              {/* Curated Message Templates (Top-Company Standard) */}
+              {/* Curated Message Templates */}
               <div className="space-y-2.5 border-t border-stone-100 pt-4">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Pre-Written Message Templates (Top D2C Benchmarks)</span>
+                    <span>Choose Message Tone / Format</span>
                   </span>
-                  <span className="text-[10px] text-stone-400">Click tab to switch copy</span>
+                  <span className="text-[10px] text-stone-400">Click to switch template</span>
                 </div>
 
                 {/* Template Selector Tabs */}
@@ -1084,7 +1126,7 @@ export default function AdminReferralsPage() {
                           : 'bg-stone-50 text-stone-600 hover:bg-stone-100 border border-stone-200'
                       }`}
                     >
-                      <span>{tpl.title.split(' ')[0]}</span>
+                      <span>{tpl.title}</span>
                       <span className="text-[9px] px-1 py-0.2 rounded bg-amber-200/60 text-amber-950 font-medium">
                         {tpl.badge}
                       </span>
@@ -1104,7 +1146,7 @@ export default function AdminReferralsPage() {
                     </span>
                   </div>
 
-                  <p className="text-xs text-stone-700 whitespace-pre-line leading-relaxed font-sans bg-white/70 p-3 rounded-xl border border-stone-200/60 select-all">
+                  <p className="text-xs text-stone-800 whitespace-pre-line leading-relaxed font-sans bg-white p-3 rounded-xl border border-stone-200 select-all">
                     {currentTemplate.text}
                   </p>
 
@@ -1121,7 +1163,7 @@ export default function AdminReferralsPage() {
                       ) : (
                         <>
                           <Copy className="w-3.5 h-3.5 text-stone-500" />
-                          <span>Copy Message</span>
+                          <span>Copy Message Text</span>
                         </>
                       )}
                     </button>
@@ -1130,34 +1172,52 @@ export default function AdminReferralsPage() {
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
-                      <span>Send This via WhatsApp</span>
+                      <span>Send This Message</span>
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Secondary Instant Share Channels */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleNativeShare}
+                  className="flex-1 bg-amber-100 hover:bg-amber-200 text-amber-950 font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Native Mobile Share</span>
+                </button>
+                <button
+                  onClick={handleEmailShare}
+                  className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Invite via Email</span>
+                </button>
               </div>
 
               {/* Top-Company Referral Terms & Safeguards Checklist */}
               <div className="bg-stone-50 rounded-2xl p-3.5 border border-stone-200 space-y-2 text-xs">
                 <div className="flex items-center gap-1.5 font-bold text-stone-900">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Top-Company Referral Standards & Anti-Abuse Rules Enforced</span>
+                  <span>Referral Rules Enforced Automatically</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-stone-600">
                   <div className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
-                    <span><strong>New Customers Only:</strong> Referral discount activates exclusively on first purchase mobile numbers.</span>
+                    <span><strong>New Customers:</strong> Referral discount activates on first purchase mobile numbers.</span>
                   </div>
                   <div className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
-                    <span><strong>Self-Referral Shield:</strong> Customer cannot redeem their own referral code (phone matching).</span>
+                    <span><strong>Anti-Self-Referral:</strong> Customer cannot use their own referral code.</span>
                   </div>
                   <div className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
-                    <span><strong>Threshold Protection:</strong> Minimum qualifying cart size is ≥ {shareOffer.minPurchaseKg}kg pure honey.</span>
+                    <span><strong>Threshold:</strong> Minimum qualifying cart size is ≥ {shareOffer.minPurchaseKg}kg pure honey.</span>
                   </div>
                   <div className="flex items-start gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 shrink-0" />
-                    <span><strong>Payment-Triggered Reward:</strong> 5% advocate voucher is issued only after Cashfree payment succeeds.</span>
+                    <span><strong>Reward Settlement:</strong> 5% advocate voucher is generated once friend's order is paid.</span>
                   </div>
                 </div>
               </div>
@@ -1165,7 +1225,7 @@ export default function AdminReferralsPage() {
               {/* Footer */}
               <div className="flex justify-between items-center pt-2 border-t border-stone-100">
                 <span className="text-[11px] text-stone-400">
-                  Kamadhenu Honey Farms Referral Suite • Authoritative Server Verification
+                  Kamadhenu Honey Farms • Public Storefront: https://www.kamadhenuhoneyfarms.in
                 </span>
                 <button
                   onClick={() => setShareOffer(null)}
