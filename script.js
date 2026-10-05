@@ -207,6 +207,50 @@ document.addEventListener('DOMContentLoaded', () => {
     return item;
   });
 
+  /* ==========================================================================
+     Global Toast Notification Manager
+     ========================================================================== */
+  let globalToastTimer = null;
+  const showToast = (titleOrMessage, subtitleText = '') => {
+    try {
+      const toast = document.getElementById('cart-celebration-toast');
+      if (!toast) return;
+
+      const titleEl = toast.querySelector('.toast-title');
+      const subEl = toast.querySelector('.toast-subtitle');
+      const progressBar = toast.querySelector('.toast-progress-bar');
+
+      if (subtitleText) {
+        if (titleEl) titleEl.textContent = titleOrMessage;
+        if (subEl) subEl.textContent = subtitleText;
+      } else {
+        if (titleEl) titleEl.textContent = 'Success!';
+        if (subEl) subEl.textContent = titleOrMessage;
+      }
+
+      toast.className = 'toast-hidden';
+      if (progressBar) progressBar.classList.remove('toast-progress-shrink');
+
+      requestAnimationFrame(() => {
+        toast.className = 'toast-show';
+        if (progressBar) progressBar.classList.add('toast-progress-shrink');
+      });
+
+      if (globalToastTimer) clearTimeout(globalToastTimer);
+      globalToastTimer = setTimeout(() => {
+        toast.className = 'toast-hidden';
+      }, 3200);
+
+      toast.onclick = () => {
+        clearTimeout(globalToastTimer);
+        toast.className = 'toast-hidden';
+      };
+    } catch (err) {
+      console.warn('Toast display error:', err);
+    }
+  };
+  window.showToast = showToast;
+
   // Coupons Database
   const validCoupons = {
     'KAMADHENU10': { type: 'percent', value: 10 },
