@@ -888,6 +888,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Auto-capture & prefill referral codes from URL query param (?ref= or ?coupon=)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('coupon');
+    if (refCode) {
+      const cleanRef = refCode.trim().toUpperCase();
+      sessionStorage.setItem('khf_referral_code', cleanRef);
+      if (couponInput && !couponInput.value) {
+        couponInput.value = cleanRef;
+        if (cart.length > 0 && applyCouponBtn) {
+          setTimeout(() => applyCouponBtn.click(), 600);
+        }
+      }
+    }
+  } catch (e) {}
+
   // Add Item to local cart helper
   const addItemToCart = (productId, size, qty = 1, openDrawer = false) => {
     const dbProduct = productDatabase[productId];
