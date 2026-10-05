@@ -229,3 +229,5 @@ Kamadhenu Honey Farms is dedicated to preserving the ancient tradition of natura
 ## 📄 License
 
 This repository is maintained for Kamadhenu Honey Farms. All rights reserved.
+
+<!-- cspell:words ಕಾಮಧೇನು ಜೇನು ಫಾರ್ಮ್ಸ್ HMAC pooler pgbouncer -->
