@@ -15,8 +15,22 @@
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Guard against duplicate script initialization & duplicate DOM event bindings
+  if (typeof window !== 'undefined' && window.__KAMADHENU_INITIALIZED__) {
+    console.warn('⚠️ [Kamadhenu Farms] DOM listeners already initialized. Skipping duplicate execution.');
+    return;
+  }
+  if (typeof window !== 'undefined') {
+    window.__KAMADHENU_INITIALIZED__ = true;
+  }
+
   // Global App State
-  let cart = JSON.parse(localStorage.getItem('kamadhenu_cart')) || [];
+  let cart = [];
+  try {
+    cart = JSON.parse(localStorage.getItem('kamadhenu_cart')) || [];
+  } catch (_) {
+    cart = [];
+  }
   let wishlist = JSON.parse(localStorage.getItem('kamadhenu_wishlist')) || [];
   let currentCoupon = null;
   let isCheckoutSubmitting = false;
@@ -198,14 +212,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Refresh cart items with active product prices in case user has previous local cache
-  cart = cart.map(item => {
-    const dbp = productDatabase[item.id];
-    if (dbp && dbp.prices && dbp.prices[item.size]) {
-      return { ...item, price: dbp.prices[item.size] };
-    }
-    return item;
-  });
+  // Sanitize and ensure 100% authoritative pricing & valid quantities in cart
+  const sanitizeCart = (rawCart) => {
+    if (!Array.isArray(rawCart)) return [];
+    return rawCart
+      .filter(item => item && item.id && productDatabase[item.id])
+      .map(item => {
+        const dbp = productDatabase[item.id];
+        const validSize = (item.size && dbp.prices && dbp.prices[item.size])
+          ? item.size
+          : Object.keys(dbp.prices)[0];
+        const authoritativePrice = dbp.prices[validSize];
+        const validQty = Math.max(1, parseInt(item.qty, 10) || 1);
+        return {
+          id: item.id,
+          name: dbp.name,
+          size: validSize,
+          price: authoritativePrice,
+          qty: validQty,
+          img: dbp.image || item.img
+        };
+      });
+  };
+
+  cart = sanitizeCart(cart);
 
   /* ==========================================================================
      Global Toast Notification Manager
@@ -514,11 +544,35 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const saveCart = () => {
+    cart = sanitizeCart(cart);
     localStorage.setItem('kamadhenu_cart', JSON.stringify(cart));
     updateBadges();
     renderCart();
     renderCheckoutSummary();
+
+    // In real-time: If a 6-digit delivery pincode is entered or remembered, recalculate shipping for new cart weight and subtotal!
+    const cleanPin = (document.getElementById('chkPincode')?.value || localStorage.getItem('kamadhenu_user_pincode') || '').replace(/\D/g, '').trim();
+    if (cleanPin.length === 6 && typeof calculateShippingRate === 'function') {
+      clearTimeout(pincodeCalculationTimer);
+      pincodeCalculationTimer = setTimeout(() => calculateShippingRate(cleanPin), 150);
+    }
   };
+
+  // Cross-tab real-time cart synchronization
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'kamadhenu_cart') {
+      try {
+        cart = sanitizeCart(JSON.parse(e.newValue || '[]'));
+        updateBadges();
+        renderCart();
+        renderCheckoutSummary();
+        const pin = (document.getElementById('chkPincode')?.value || localStorage.getItem('kamadhenu_user_pincode') || '').replace(/\D/g, '').trim();
+        if (pin.length === 6 && typeof calculateShippingRate === 'function') {
+          calculateShippingRate(pin);
+        }
+      } catch (_) {}
+    }
+  });
 
   const saveWishlist = () => {
     localStorage.setItem('kamadhenu_wishlist', JSON.stringify(wishlist));
@@ -2207,20 +2261,22 @@ ${points}
     if (!cart || cart.length === 0) {
       isShippingCalculated = false;
       currentShippingCharge = 0;
+      currentShippingDetails = null;
       if (checkoutShippingEl) {
         checkoutShippingEl.textContent = 'Add items to cart first';
         checkoutShippingEl.style.color = '#888';
       }
+      if (checkoutShippingNoticeEl) checkoutShippingNoticeEl.textContent = '';
       renderCheckoutSummary();
       return;
     }
 
-    try {
-      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-      const prefix2 = cleanPin.substring(0, 2);
-      const isKarnataka = ['56', '57', '58', '59'].includes(prefix2);
-      const reachedThreshold = subtotal >= 999;
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const prefix2 = cleanPin.substring(0, 2);
+    const isKarnataka = ['56', '57', '58', '59'].includes(prefix2);
+    const reachedThreshold = subtotal >= 999;
 
+    try {
       const response = await fetchWithTimeout('/api/shipping/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2464,6 +2520,7 @@ ${points}
   };
 
   const openCheckout = () => {
+    cart = sanitizeCart(cart);
     closeCart(); // Close drawer
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
@@ -2513,31 +2570,83 @@ ${points}
   if (checkoutBtn) checkoutBtn.addEventListener('click', openCheckout);
   if (closeCheckoutBtn) closeCheckoutBtn.addEventListener('click', closeCheckout);
 
-  // Render items inside the checkout modal sidebar
+  // Render items inside the checkout modal sidebar with real-time controls
   const renderCheckoutSummary = () => {
     if (!checkoutSummaryItems) return;
     checkoutSummaryItems.innerHTML = '';
 
     if (cart.length === 0) {
-      checkoutSummaryItems.innerHTML = '<p style="text-align:center; color:#888;">No items in cart.</p>';
+      checkoutSummaryItems.innerHTML = '<p style="text-align:center; color:#888; padding:12px 0;">No items in cart.</p>';
       checkoutSubtotalEl.textContent = '₹0';
-      checkoutDiscountRow.style.display = 'none';
+      if (checkoutDiscountRow) checkoutDiscountRow.style.display = 'none';
       checkoutTotalEl.textContent = '₹0';
       if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = true;
+      if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Cart is empty';
       return;
     }
 
     if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = false;
 
-    cart.forEach(item => {
+    cart.forEach((item, index) => {
       const summaryRow = document.createElement('div');
       summaryRow.className = 'checkout-summary-item';
       summaryRow.innerHTML = `
-        <span class="item-name">${item.name}</span>
-        <span class="item-qty-size">${item.qty} × ${item.size}</span>
-        <span class="item-price">₹${item.price * item.qty}</span>
+        <div style="flex:1; min-width:0; padding-right:8px;">
+          <span class="item-name" title="${item.name}" style="display:block; font-weight:600; color:#3A2A18; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.name}</span>
+          <span class="item-qty-size" style="font-size:0.75rem; color:#888;">${item.size} &bull; ₹${item.price} each</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:inline-flex; align-items:center; border:1px solid #d8a64f; border-radius:12px; overflow:hidden; background:#fff;">
+            <button type="button" class="checkout-dec-qty" data-index="${index}" title="Decrease quantity" style="border:none; background:transparent; padding:2px 7px; font-weight:700; cursor:pointer; color:#8c6d37; line-height:1;">-</button>
+            <span style="font-size:0.78rem; font-weight:700; min-width:16px; text-align:center; color:#3A2A18;">${item.qty}</span>
+            <button type="button" class="checkout-inc-qty" data-index="${index}" title="Increase quantity" style="border:none; background:transparent; padding:2px 7px; font-weight:700; cursor:pointer; color:#8c6d37; line-height:1;">+</button>
+          </div>
+          <span class="item-price" style="font-weight:700; font-size:0.88rem; min-width:50px; text-align:right; color:#27ae60;">₹${item.price * item.qty}</span>
+          <button type="button" class="checkout-remove-item" data-index="${index}" title="Remove item" style="border:none; background:transparent; color:#c0392b; cursor:pointer; padding:2px 4px; font-size:0.85rem; line-height:1;">✕</button>
+        </div>
       `;
       checkoutSummaryItems.appendChild(summaryRow);
+    });
+
+    // Wire up inline quantity & remove triggers in checkout invoice summary
+    checkoutSummaryItems.querySelectorAll('.checkout-dec-qty').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index, 10);
+        if (!isNaN(idx) && cart[idx]) {
+          if (cart[idx].qty > 1) {
+            cart[idx].qty--;
+          } else {
+            cart.splice(idx, 1);
+          }
+          saveCart();
+        }
+      };
+    });
+
+    checkoutSummaryItems.querySelectorAll('.checkout-inc-qty').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index, 10);
+        if (!isNaN(idx) && cart[idx]) {
+          cart[idx].qty++;
+          saveCart();
+        }
+      };
+    });
+
+    checkoutSummaryItems.querySelectorAll('.checkout-remove-item').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.index, 10);
+        if (!isNaN(idx) && cart[idx]) {
+          cart.splice(idx, 1);
+          saveCart();
+        }
+      };
     });
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -2669,8 +2778,10 @@ ${points}
         return;
       }
 
+      cart = sanitizeCart(cart);
       if (cart.length === 0) {
         isCheckoutSubmitting = false;
+        checkoutSubmitBtn.disabled = false;
         showCheckoutError('Your cart is empty. Please add products to cart.');
         return;
       }

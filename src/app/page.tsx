@@ -12,16 +12,18 @@ export default function RootHomePage() {
     if (bodyMatch && bodyMatch[1]) {
       htmlContent = bodyMatch[1];
     }
+    // Strip any nested <script> tags to prevent duplicate script execution
+    htmlContent = htmlContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
   } catch (e) {
     console.error('Failed to read index.html', e);
   }
 
   return (
     <>
-      <link rel="stylesheet" href="/styles.css?v=20261005_v41" />
+      <link rel="stylesheet" href="/styles.css?v=20261010_v42" />
       <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
       <script src="https://sdk.cashfree.com/js/v3/cashfree.js" async />
-      <script src="/script.js?v=20261005_v41" defer />
+      <script src="/script.js?v=20261010_v42" defer />
     </>
   );
 }
