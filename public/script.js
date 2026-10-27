@@ -421,11 +421,17 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', handleScrollThrottled, { passive: true });
 
   // Mobile Hamburger toggling (Global & Delegated)
+  // Mobile Hamburger toggling (Global & Delegated) with 350ms cooldown guard
+  let lastNavToggleTime = 0;
   window.toggleMobileNav = function(e) {
     if (e) {
       if (typeof e.preventDefault === 'function') e.preventDefault();
       if (typeof e.stopPropagation === 'function') e.stopPropagation();
     }
+    const now = Date.now();
+    if (now - lastNavToggleTime < 350) return;
+    lastNavToggleTime = now;
+
     const hamburgerEl = document.querySelector('.hamburger, #navHamburger');
     const mobileNavEl = document.querySelector('.mobile-nav, #mobileNavMenu');
     if (mobileNavEl) {
@@ -508,22 +514,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Touchstart listener strictly for hamburger button to guarantee instant mobile open
-  document.addEventListener('touchstart', (e) => {
-    const hamburgerBtn = e.target.closest('.hamburger, #navHamburger');
-    if (hamburgerBtn) {
-      window.toggleMobileNav(e);
-    }
-  }, { passive: false });
-
   /* ==========================================================================
      E-Commerce State Synchronization
      ========================================================================== */
+  const updateMobileFloatingCart = () => {
+    const floatingBar = document.getElementById('mobileFloatingCartBar');
+    if (!floatingBar) return;
+    const isMobile = window.innerWidth <= 768;
+    const hasItems = cart && cart.length > 0;
+    const isDrawerOpen = (typeof cartDrawer !== 'undefined' && cartDrawer && cartDrawer.classList.contains('active')) ||
+                         (typeof checkoutModalOverlay !== 'undefined' && checkoutModalOverlay && checkoutModalOverlay.classList.contains('active')) ||
+                         (document.body.classList.contains('overflow-hidden'));
+
+    if (isMobile && hasItems && !isDrawerOpen) {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+      const subtotalEl = document.getElementById('floatingCartSubtotal');
+      if (subtotalEl) subtotalEl.textContent = `₹${subtotal}`;
+      floatingBar.style.display = 'flex';
+    } else {
+      floatingBar.style.display = 'none';
+    }
+  };
+  window.updateMobileFloatingCart = updateMobileFloatingCart;
+  window.addEventListener('resize', updateMobileFloatingCart);
+
   const updateBadges = () => {
     // Accurately calculate total quantity from state
     const totalQty = (cart || []).reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
     
-    // Update all cart count badges in header and drawer title
+    // Update all cart count badges in header, floating bar and drawer title
     document.querySelectorAll('.cart-count').forEach(el => {
       el.textContent = totalQty;
     });
@@ -541,6 +560,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.classList.remove('active');
       }
     });
+
+    updateMobileFloatingCart();
   };
 
   const saveCart = () => {
@@ -549,6 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateBadges();
     renderCart();
     renderCheckoutSummary();
+    updateMobileFloatingCart();
 
     // In real-time: If a 6-digit delivery pincode is entered or remembered, recalculate shipping for new cart weight and subtotal!
     const cleanPin = (document.getElementById('chkPincode')?.value || localStorage.getItem('kamadhenu_user_pincode') || '').replace(/\D/g, '').trim();
@@ -1001,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cartOverlay) cartOverlay.classList.add('active');
     if (cartDrawer) cartDrawer.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    updateMobileFloatingCart();
   }
 
   function closeCart(e) {
@@ -1011,6 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mobileNav && !mobileNav.classList.contains('active')) {
       document.body.classList.remove('overflow-hidden');
     }
+    updateMobileFloatingCart();
   }
 
   // Expose globally for inline buttons and mobile handlers
@@ -1698,26 +1722,26 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       } else {
         actionsHtml = `
-          <button class="btn btn-add-cart add-to-cart-trigger">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-            </svg>
-            ${isRestocking ? 'Pre-Order Now' : 'Add to Cart'}
-          </button>
-          <div class="product-actions-row">
+          <div class="product-actions-primary-row">
+            <button class="btn btn-add-cart add-to-cart-trigger" title="Add to Cart">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+              </svg>
+              <span>${isRestocking ? 'Pre-Order' : 'Add to Cart'}</span>
+            </button>
             <button class="btn btn-gold buy-now-trigger" title="Buy Now & Proceed to Checkout">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
-              ${isRestocking ? 'Pre-Order' : 'Buy Now'}
-            </button>
-            <button class="btn btn-charcoal wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
-              </svg>
-              Bulk Inquiry
+              <span>${isRestocking ? 'Pre-Order' : 'Buy Now'}</span>
             </button>
           </div>
+          <button class="btn btn-bulk-subtle wa-bulk-order-trigger" title="Inquire for Bulk / Wholesale Orders (10kg+)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
+            </svg>
+            <span>Bulk Orders (10kg+)? WhatsApp Us</span>
+          </button>
         `;
       }
 
@@ -2218,6 +2242,10 @@ ${points}
     if (msg) {
       checkoutErrorMsg.textContent = msg;
       checkoutErrorMsg.style.display = 'block';
+      try {
+        checkoutErrorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (_) {}
+      showToast(msg);
     } else {
       checkoutErrorMsg.style.display = 'none';
     }
@@ -2524,6 +2552,7 @@ ${points}
     closeCart(); // Close drawer
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    updateMobileFloatingCart();
     const checkoutModal = document.querySelector('.checkout-modal');
     if (checkoutModal) checkoutModal.scrollTop = 0;
     showCheckoutError(null);
@@ -2562,6 +2591,7 @@ ${points}
     if (!mobileNav.classList.contains('active')) {
       document.body.classList.remove('overflow-hidden');
     }
+    updateMobileFloatingCart();
   };
 
   window.openCheckout = openCheckout;
@@ -2582,10 +2612,22 @@ ${points}
       checkoutTotalEl.textContent = '₹0';
       if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = true;
       if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Cart is empty';
+      const mobileStickyTotal = document.getElementById('mobileStickyTotal');
+      if (mobileStickyTotal) mobileStickyTotal.textContent = '₹0';
+      const mobileSummaryTogglePrice = document.getElementById('mobileSummaryTogglePrice');
+      if (mobileSummaryTogglePrice) mobileSummaryTogglePrice.textContent = '₹0';
+      const mobileSummaryItemCount = document.getElementById('mobileSummaryItemCount');
+      if (mobileSummaryItemCount) mobileSummaryItemCount.textContent = '0 items';
+      const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+      if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = true;
+      const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
+      if (mobileStickyPayBtnText) mobileStickyPayBtnText.textContent = 'Cart is empty';
       return;
     }
 
     if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = false;
+    const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+    if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
 
     cart.forEach((item, index) => {
       const summaryRow = document.createElement('div');
@@ -2701,6 +2743,21 @@ ${points}
     const finalTotal = Math.max(0, subtotal - discount + shippingCharge);
     checkoutTotalEl.textContent = `₹${finalTotal}`;
 
+    // Mobile Summary and Sticky Checkout elements update
+    const mobileStickyTotal = document.getElementById('mobileStickyTotal');
+    if (mobileStickyTotal) mobileStickyTotal.textContent = `₹${finalTotal}`;
+
+    const mobileSummaryTogglePrice = document.getElementById('mobileSummaryTogglePrice');
+    if (mobileSummaryTogglePrice) mobileSummaryTogglePrice.textContent = `₹${finalTotal}`;
+
+    const totalCartItems = cart.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
+    const mobileSummaryItemCount = document.getElementById('mobileSummaryItemCount');
+    if (mobileSummaryItemCount) {
+      mobileSummaryItemCount.textContent = `${totalCartItems} item${totalCartItems > 1 ? 's' : ''}`;
+    }
+
+    const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
+
     // Update submit button text and COD breakdown
     const activePaymentCard = document.querySelector('.payment-option-card.active');
     const paymentMethod = activePaymentCard ? activePaymentCard.dataset.method : 'cashfree';
@@ -2717,13 +2774,38 @@ ${points}
       if (checkoutSubmitBtnText) {
         checkoutSubmitBtnText.textContent = `Pay 50% Advance via Cashfree ₹${advanceAmount} (₹${remainingAmount} on Delivery)`;
       }
+      if (mobileStickyPayBtnText) {
+        mobileStickyPayBtnText.textContent = `Pay 50% Advance ₹${advanceAmount} ➔`;
+      }
     } else {
       if (codBreakdownEl) codBreakdownEl.style.display = 'none';
       if (checkoutSubmitBtnText) {
         checkoutSubmitBtnText.textContent = `Pay Securely via Cashfree ₹${finalTotal}`;
       }
+      if (mobileStickyPayBtnText) {
+        mobileStickyPayBtnText.textContent = `Pay Securely ₹${finalTotal} ➔`;
+      }
     }
   };
+
+  // Wire up mobile collapsible Order Summary toggle
+  const checkoutSummaryToggle = document.getElementById('checkoutSummaryToggle');
+  const checkoutSummaryCard = document.getElementById('checkoutSummaryCard');
+  const toggleSummaryArrow = document.getElementById('toggleSummaryArrow');
+  if (checkoutSummaryToggle && checkoutSummaryCard) {
+    checkoutSummaryToggle.addEventListener('click', () => {
+      const isExpanded = checkoutSummaryCard.classList.contains('mobile-expanded');
+      if (isExpanded) {
+        checkoutSummaryCard.classList.remove('mobile-expanded');
+        toggleSummaryArrow?.classList.remove('rotated');
+        checkoutSummaryToggle.setAttribute('aria-expanded', 'false');
+      } else {
+        checkoutSummaryCard.classList.add('mobile-expanded');
+        toggleSummaryArrow?.classList.add('rotated');
+        checkoutSummaryToggle.setAttribute('aria-expanded', 'true');
+      }
+    });
+  }
 
   // Wire Payment Option Toggles
   const paymentCards = document.querySelectorAll('.payment-option-card');
@@ -2758,6 +2840,20 @@ ${points}
 
       if (!name || !phone || !address || !city || !state || !pincode) {
         isCheckoutSubmitting = false;
+        let missingEl = null;
+        if (!name) missingEl = document.getElementById('chkName');
+        else if (!phone) missingEl = document.getElementById('chkPhone');
+        else if (!address) missingEl = document.getElementById('chkAddress');
+        else if (!city) missingEl = document.getElementById('chkCity');
+        else if (!state) missingEl = document.getElementById('chkState');
+        else if (!pincode) missingEl = document.getElementById('chkPincode');
+
+        if (missingEl) {
+          missingEl.focus();
+          try { missingEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+          missingEl.classList.add('input-error-highlight');
+          setTimeout(() => missingEl.classList.remove('input-error-highlight'), 2000);
+        }
         showCheckoutError('Please fill in all the required delivery fields (Name, Mobile, Address, City, State, Pincode).');
         return;
       }
@@ -2765,6 +2861,13 @@ ${points}
       const cleanMobile = phone.replace(/\D/g, '');
       if (cleanMobile.length < 10) {
         isCheckoutSubmitting = false;
+        const phoneEl = document.getElementById('chkPhone');
+        if (phoneEl) {
+          phoneEl.focus();
+          try { phoneEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+          phoneEl.classList.add('input-error-highlight');
+          setTimeout(() => phoneEl.classList.remove('input-error-highlight'), 2000);
+        }
         showCheckoutError('Please enter a valid 10-digit mobile number.');
         return;
       }
@@ -2774,6 +2877,13 @@ ${points}
       const cleanPin = pincode.replace(/\D/g, '');
       if (cleanPin.length !== 6) {
         isCheckoutSubmitting = false;
+        const pinEl = document.getElementById('chkPincode');
+        if (pinEl) {
+          pinEl.focus();
+          try { pinEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+          pinEl.classList.add('input-error-highlight');
+          setTimeout(() => pinEl.classList.remove('input-error-highlight'), 2000);
+        }
         showCheckoutError('Please enter a valid 6-digit delivery pincode.');
         return;
       }
@@ -2781,7 +2891,9 @@ ${points}
       cart = sanitizeCart(cart);
       if (cart.length === 0) {
         isCheckoutSubmitting = false;
-        checkoutSubmitBtn.disabled = false;
+        if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = false;
+        const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+        if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
         showCheckoutError('Your cart is empty. Please add products to cart.');
         return;
       }
@@ -2801,9 +2913,15 @@ ${points}
         return;
       }
 
-      checkoutSubmitBtn.disabled = true;
+      if (checkoutSubmitBtn) checkoutSubmitBtn.disabled = true;
+      const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+      if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = true;
+      const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
       if (checkoutSubmitBtnText) {
         checkoutSubmitBtnText.textContent = paymentMethod === 'cod' ? 'Securing 50% advance...' : 'Opening Cashfree...';
+      }
+      if (mobileStickyPayBtnText) {
+        mobileStickyPayBtnText.textContent = paymentMethod === 'cod' ? 'Securing 50% advance...' : 'Opening Cashfree...';
       }
 
       try {
@@ -2856,6 +2974,8 @@ ${points}
             showCheckoutError(result.error.message || 'Payment was cancelled or encountered an error.');
             isCheckoutSubmitting = false;
             checkoutSubmitBtn.disabled = false;
+            const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+            if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
             renderCheckoutSummary();
             return;
           }
@@ -2868,7 +2988,11 @@ ${points}
 
           // Payment completed in modal: Verify with backend
           checkoutSubmitBtn.disabled = true;
+          const mobileStickyPayBtnModal = document.getElementById('mobileStickyPayBtn');
+          if (mobileStickyPayBtnModal) mobileStickyPayBtnModal.disabled = true;
           if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
+          const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
+          if (mobileStickyPayBtnText) mobileStickyPayBtnText.textContent = 'Verifying...';
 
           try {
             let verifyData = null;
@@ -2940,6 +3064,8 @@ ${points}
             showCheckoutError(vErr.message || `Payment completed on Cashfree but verification timed out. If money was deducted, your order will be confirmed shortly.`);
             isCheckoutSubmitting = false;
             checkoutSubmitBtn.disabled = false;
+            const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+            if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
             renderCheckoutSummary();
           }
         }).catch((cfErr) => {
@@ -2947,6 +3073,8 @@ ${points}
           showCheckoutError(cfErr.message || 'Payment window closed or encountered an error.');
           isCheckoutSubmitting = false;
           checkoutSubmitBtn.disabled = false;
+          const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+          if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
           renderCheckoutSummary();
         });
 
@@ -2955,6 +3083,8 @@ ${points}
         showCheckoutError(err.message || 'Error communicating with payment gateway');
         isCheckoutSubmitting = false;
         checkoutSubmitBtn.disabled = false;
+        const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+        if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
         renderCheckoutSummary();
       }
     });

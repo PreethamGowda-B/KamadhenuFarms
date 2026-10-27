@@ -45,7 +45,7 @@
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20261001_v30">
+  <link rel="stylesheet" href="styles.css?v=20261027_v43">
 
   <!-- Structured SEO Schema Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -201,7 +201,7 @@
         </div>
 
         <!-- Mobile hamburger menu (3-line icon) -->
-        <div class="hamburger" id="navHamburger" role="button" aria-label="Toggle Navigation Menu" tabindex="0" onclick="window.toggleMobileNav && window.toggleMobileNav(event)" ontouchstart="window.toggleMobileNav && window.toggleMobileNav(event)">
+        <div class="hamburger" id="navHamburger" role="button" aria-label="Toggle Navigation Menu" tabindex="0">
           <span></span>
           <span></span>
           <span></span>
@@ -1952,8 +1952,20 @@
 
         <!-- Invoice Summary Right -->
         <div class="checkout-summary">
-          <h3>Order Invoice Summary</h3>
-          <div class="checkout-summary-card">
+          <!-- Mobile Collapsible Accordion Header -->
+          <div class="checkout-summary-toggle" id="checkoutSummaryToggle" role="button" tabindex="0" aria-expanded="false" title="Click to view/hide order items">
+            <div class="toggle-summary-left">
+              <span class="toggle-cart-icon">🍯</span>
+              <span class="toggle-title">Order Summary (<span id="mobileSummaryItemCount">0 items</span>)</span>
+              <span class="toggle-arrow" id="toggleSummaryArrow">▼</span>
+            </div>
+            <div class="toggle-summary-right">
+              <span class="toggle-price" id="mobileSummaryTogglePrice">₹0</span>
+            </div>
+          </div>
+
+          <h3 class="desktop-summary-title">Order Invoice Summary</h3>
+          <div class="checkout-summary-card" id="checkoutSummaryCard">
             <div class="checkout-summary-items" id="checkoutSummaryItems">
               <!-- Injected dynamically by script.js -->
             </div>
@@ -1987,6 +1999,20 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Sticky Mobile Checkout Bar -->
+      <div class="checkout-mobile-sticky-bar" id="checkoutMobileStickyBar">
+        <div class="sticky-bar-total-info">
+          <span class="sticky-bar-label">Total Payable</span>
+          <span class="sticky-bar-amount" id="mobileStickyTotal">₹0</span>
+        </div>
+        <button type="submit" form="checkoutForm" class="btn btn-gold sticky-bar-pay-btn" id="mobileStickyPayBtn">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width: 17px; height: 17px; margin-right: 4px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <span id="mobileStickyPayBtnText">Pay Securely ➔</span>
+        </button>
       </div>
     </div>
   </div>
@@ -2132,10 +2158,26 @@
   </button>
 
   <!-- ==========================================================================
-       Sticky Mobile Bottom WhatsApp Conversion Bar
+       Floating Mobile Quick-Cart Bar (Appears when items are in cart)
        ========================================================================== -->
+  <div class="mobile-floating-cart-bar" id="mobileFloatingCartBar" style="display: none;">
+    <div class="floating-cart-details" onclick="window.openCart && window.openCart(event)" role="button" tabindex="0" title="View Honey Basket">
+      <div class="floating-cart-icon-bubble">
+        <span>🍯</span>
+        <span class="floating-cart-counter cart-count">0</span>
+      </div>
+      <div class="floating-cart-meta">
+        <span class="floating-cart-title"><span class="cart-count">0</span> item(s) in Basket</span>
+        <span class="floating-cart-subtotal" id="floatingCartSubtotal">₹0</span>
+      </div>
+    </div>
+    <button type="button" class="btn btn-gold floating-cart-checkout-btn" onclick="window.openCheckout && window.openCheckout(event)" title="Proceed directly to Checkout">
+      Checkout ➔
+    </button>
+  </div>
+
   <!-- ==========================================================================
-       Sticky Mobile Bottom Bar - 3 Button Tab Bar
+       Sticky Mobile Bottom Bar - 4 Button Tab Bar
        ========================================================================== -->
   <div class="mobile-bottom-bar" id="mobileBottomBar">
     <a href="#products" class="sticky-shop-btn" aria-label="Shop Honey">
@@ -2187,6 +2229,6 @@
   <div id="socialProofToast" class="social-proof-toast" aria-live="polite" style="display: none;"></div>
 
   <!-- Application Script -->
-  <script src="script.js?v=20261010_v42" defer></script>
+  <script src="script.js?v=20261027_v43" defer></script>
 </body>
 </html>
