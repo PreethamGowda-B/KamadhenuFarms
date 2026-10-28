@@ -531,8 +531,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const subtotalEl = document.getElementById('floatingCartSubtotal');
       if (subtotalEl) subtotalEl.textContent = `₹${subtotal}`;
       floatingBar.style.display = 'flex';
+      document.body.classList.add('has-floating-cart');
+      const toastEl = document.getElementById('socialProofToast');
+      if (toastEl) {
+        toastEl.classList.remove('visible');
+        toastEl.style.display = 'none';
+      }
     } else {
       floatingBar.style.display = 'none';
+      document.body.classList.remove('has-floating-cart');
     }
   };
   window.updateMobileFloatingCart = updateMobileFloatingCart;
@@ -4220,8 +4227,10 @@ ${points}
       const isOrdersOpen = ordersDrawer && ordersDrawer.classList.contains('active');
       const isCheckoutOpen = checkoutModal && checkoutModal.classList.contains('active');
       const isAdOpen = adModal && adModal.classList.contains('active');
+      const isMobile = window.innerWidth <= 768;
+      const hasCartItems = cart && cart.length > 0;
 
-      if (isCartOpen || isOrdersOpen || isCheckoutOpen || isAdOpen) {
+      if (isCartOpen || isOrdersOpen || isCheckoutOpen || isAdOpen || (isMobile && hasCartItems)) {
         return;
       }
 
