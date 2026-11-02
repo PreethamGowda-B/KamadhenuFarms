@@ -5209,7 +5209,9 @@ body:not(.loaded) {
     border-radius: 0 !important;
     border: none !important;
     margin: 0 !important;
-    transform: none !important;
+    transform: translateY(14px) !important;
+    opacity: 0 !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease !important;
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
@@ -5218,6 +5220,10 @@ body:not(.loaded) {
     z-index: 1006 !important;
     overscroll-behavior: contain !important;
     overscroll-behavior-y: contain !important;
+  }
+  .modal-overlay.active .checkout-modal {
+    transform: translateY(0) !important;
+    opacity: 1 !important;
   }
   .checkout-header {
     flex-shrink: 0 !important;
@@ -8225,5 +8231,210 @@ body.overflow-hidden {
   body.has-floating-cart .social-proof-toast,
   .social-proof-toast.cart-active {
     bottom: calc(134px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ==========================================================================
+   Fast & Animated Ordering UX Enhancements (GPU Accelerated, Zero Lag)
+   ========================================================================== */
+
+/* 1. Continuous Luxury Gold Sheen Sweep on Primary Action Triggers */
+.buy-now-trigger,
+.cart-checkout-btn,
+.checkout-submit-btn,
+.floating-cart-checkout-btn,
+.sticky-bar-pay-btn,
+.upcoming-buy-now-btn {
+  position: relative !important;
+  overflow: hidden !important;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.buy-now-trigger::after,
+.cart-checkout-btn::after,
+.checkout-submit-btn::after,
+.floating-cart-checkout-btn::after,
+.sticky-bar-pay-btn::after,
+.upcoming-buy-now-btn::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -120%;
+  width: 50%;
+  height: 220%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(25deg);
+  animation: ctaSheenSweep 3.8s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes ctaSheenSweep {
+  0% { left: -120%; }
+  35% { left: 150%; }
+  100% { left: 150%; }
+}
+
+/* 2. Tactile Instant Feedback on Tap/Click for All CTA Elements */
+.buy-now-trigger:active,
+.cart-checkout-btn:active,
+.checkout-submit-btn:active,
+.floating-cart-checkout-btn:active,
+.sticky-bar-pay-btn:active,
+.upcoming-buy-now-btn:active,
+.add-to-cart-trigger:active,
+.btn-gold:active,
+.btn-cart-upsell-add:active,
+.qty-btn:active,
+.weight-pill:active,
+.payment-option-card:active {
+  transform: scale(0.96) !important;
+  transition: transform 0.08s ease !important;
+}
+
+/* 3. Cart Badge Bouncy Pop on Quantity Update */
+@keyframes cartBadgeBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.42); }
+  65% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.cart-badge-bounce {
+  display: inline-block;
+  animation: cartBadgeBounce 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275) both !important;
+}
+
+/* 4. Cart Item Slide & Fade-In Animation */
+@keyframes cartItemSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cart-item {
+  animation: cartItemSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 5. Weight Variant Pills Smooth Pop and Selection */
+.weight-pill {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease !important;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.weight-pill:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--primary-gold) !important;
+}
+
+.weight-pill.active {
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 4px 14px rgba(216, 166, 79, 0.4) !important;
+}
+
+@keyframes pricePop {
+  0% { transform: scale(0.92); opacity: 0.6; }
+  50% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.price-pop {
+  display: inline-block;
+  animation: pricePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 6. Liquid Free Delivery Progress Bar */
+.shipping-progress-fill {
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.35s ease !important;
+}
+
+/* 7. Honey Icon Bubble Pulse in Mobile Floating Cart */
+@keyframes honeyBubblePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); box-shadow: 0 0 14px rgba(216, 166, 79, 0.55); }
+}
+
+.floating-cart-icon-bubble {
+  animation: honeyBubblePulse 3s infinite ease-in-out !important;
+}
+
+/* 8. Saved Address Cards Smooth Selection */
+.saved-addr-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+  cursor: pointer;
+}
+
+.saved-addr-card:hover {
+  border-color: rgba(216, 166, 79, 0.6) !important;
+  transform: translateY(-1px) !important;
+}
+
+.saved-addr-card.selected {
+  border-color: var(--primary-gold) !important;
+  background: rgba(216, 166, 79, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(216, 166, 79, 0.2), 0 0 0 1px var(--primary-gold) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 9. Payment Option Card Micro-Interactions */
+.payment-option-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease !important;
+  cursor: pointer;
+}
+
+.payment-option-card:hover {
+  border-color: var(--primary-gold) !important;
+  transform: translateY(-2px) !important;
+}
+
+.payment-option-card.active {
+  border-color: var(--primary-gold) !important;
+  background: rgba(216, 166, 79, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(216, 166, 79, 0.18) !important;
+  transform: translateY(-1px) !important;
+}
+
+@keyframes radioDotPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.payment-option-card.active .payment-radio::after {
+  animation: radioDotPop 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 10. Mini Loading Spin Icon for Fast CTAs */
+.spin-icon {
+  animation: spin 0.75s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* 11. Prefers-Reduced-Motion Respect */
+@media (prefers-reduced-motion: reduce) {
+  .buy-now-trigger::after,
+  .cart-checkout-btn::after,
+  .checkout-submit-btn::after,
+  .floating-cart-checkout-btn::after,
+  .sticky-bar-pay-btn::after,
+  .upcoming-buy-now-btn::after,
+  .floating-cart-icon-bubble,
+  .cart-item,
+  .cart-badge-bounce,
+  .price-pop {
+    animation: none !important;
+    transition: none !important;
   }
 }

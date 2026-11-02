@@ -551,7 +551,13 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Update all cart count badges in header, floating bar and drawer title
     document.querySelectorAll('.cart-count').forEach(el => {
+      const prev = el.textContent;
       el.textContent = totalQty;
+      if (prev !== String(totalQty)) {
+        el.classList.remove('cart-badge-bounce');
+        void el.offsetWidth;
+        el.classList.add('cart-badge-bounce');
+      }
     });
 
     // Update Wishlist counters
@@ -774,7 +780,12 @@ document.addEventListener('DOMContentLoaded', () => {
           addUpsellBtn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
+            addUpsellBtn.innerHTML = '✓ Added!';
+            addUpsellBtn.style.background = '#27ae60';
             addItemToCart(recId, recSize, 1, false);
+            if (window.CartCelebration) {
+              window.CartCelebration.playChime(false);
+            }
           };
         }
       } else {
@@ -1259,6 +1270,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Trigger shipping calculation and Bangalore COD check
         if (chkPincode && chkPincode.value.trim().length === 6) {
           calculateShippingRate(chkPincode.value.trim());
+          if (typeof updatePincodeDeliveryBadge === 'function') {
+            updatePincodeDeliveryBadge(chkPincode.value.trim());
+          }
         }
         if (typeof updateCodBangaloreAvailability === 'function') {
           updateCodBangaloreAvailability(addr.pincode);
@@ -1971,7 +1985,12 @@ document.addEventListener('DOMContentLoaded', () => {
           weightPills.forEach(p => p.classList.remove('active'));
           pill.classList.add('active');
           selectedSize = pill.dataset.size;
-          priceText.textContent = `₹${product.prices[selectedSize]}`;
+          if (priceText) {
+            priceText.textContent = `₹${product.prices[selectedSize]}`;
+            priceText.classList.remove('price-pop');
+            void priceText.offsetWidth;
+            priceText.classList.add('price-pop');
+          }
         });
       });
 
@@ -2008,8 +2027,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const buyNowBtn = productCard.querySelector('.buy-now-trigger');
       if (buyNowBtn) {
         buyNowBtn.addEventListener('click', () => {
+          if (buyNowBtn.classList.contains('is-ordering')) return;
+          buyNowBtn.classList.add('is-ordering');
+          const originalContent = buyNowBtn.innerHTML;
+          buyNowBtn.innerHTML = `
+            <svg class="spin-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="margin-right:4px; display:inline-block; vertical-align:middle;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            <span>Opening...</span>
+          `;
+          
           addItemToCart(product.id, selectedSize, 1, false);
-          openCheckout();
+          
+          if (window.CartCelebration) {
+            window.CartCelebration.playChime(false);
+          }
+          
+          setTimeout(() => {
+            openCheckout();
+            buyNowBtn.innerHTML = originalContent;
+            buyNowBtn.classList.remove('is-ordering');
+          }, 100);
         });
       }
 
@@ -3586,10 +3624,26 @@ ${points}
   const upcomingBuyNowBtns = document.querySelectorAll('.upcoming-buy-now-btn');
   upcomingBuyNowBtns.forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.classList.contains('is-ordering')) return;
+      btn.classList.add('is-ordering');
+      const orig = btn.innerHTML;
+      btn.innerHTML = `
+        <svg class="spin-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="margin-right:4px; display:inline-block; vertical-align:middle;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
+        <span>Opening...</span>
+      `;
       const pid = btn.dataset.productId;
       const size = btn.dataset.size || '500g';
       addItemToCart(pid, size, 1, false);
-      openCheckout();
+      if (window.CartCelebration) {
+        window.CartCelebration.playChime(false);
+      }
+      setTimeout(() => {
+        openCheckout();
+        btn.innerHTML = orig;
+        btn.classList.remove('is-ordering');
+      }, 100);
     });
   });
 
