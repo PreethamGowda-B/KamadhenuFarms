@@ -1,8 +1,16 @@
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+import crypto from 'crypto';
 
 export const ADMIN_COOKIE_NAME = 'khf_admin_token';
-const JWT_SECRET = process.env.JWT_SECRET || 'kamadhenu-luxury-secret-key-2026-super-secure';
+
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.trim() === '') {
+    throw new Error('CRITICAL CONFIGURATION ERROR: JWT_SECRET environment variable is missing.');
+  }
+  return secret.trim();
+}
 
 export interface AdminPayload {
   email: string;
@@ -45,10 +53,9 @@ export function signJwt(payload: Omit<AdminPayload, 'iat' | 'exp'>, expiresInSec
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const body = Buffer.from(JSON.stringify(fullPayload)).toString('base64url');
   
-  // Simple HMAC signature simulation for standard Web Node runtime
   const signatureInput = `${header}.${body}`;
-  const crypto = require('crypto');
-  const signature = crypto.createHmac('sha256', JWT_SECRET).update(signatureInput).digest('base64url');
+  const secret = getJwtSecret();
+  const signature = crypto.createHmac('sha256', secret).update(signatureInput).digest('base64url');
 
   return `${header}.${body}.${signature}`;
 }
@@ -60,15 +67,24 @@ export function verifyJwt(token: string): AdminPayload | null {
 
     const [header, body, signature] = parts;
     const signatureInput = `${header}.${body}`;
-    const crypto = require('crypto');
-    const expectedSignature = crypto.createHmac('sha256', JWT_SECRET).update(signatureInput).digest('base64url');
+    const secret = getJwtSecret();
+    const expectedSignature = crypto.createHmac('sha256', secret).update(signatureInput).digest('base64url');
 
-    if (signature !== expectedSignature) return null;
+    // Constant-time signature comparison to prevent timing attacks
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+      return null;
+    }
 
     const payload: AdminPayload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     const now = Math.floor(Date.now() / 1000);
 
     if (payload.exp && now > payload.exp) {
+      return null;
+    }
+
+    if (payload.role !== 'ADMIN') {
       return null;
     }
 
@@ -78,9 +94,19 @@ export function verifyJwt(token: string): AdminPayload | null {
   }
 }
 
-// Password Verification against default admin or hashed password
+// Password Verification against configured environment password using timing-safe comparison
 export function verifyAdminPassword(password: string): boolean {
-  return password === 'Preethu@4959';
+  const expectedPassword = process.env.ADMIN_PASSWORD;
+  if (!expectedPassword || !password) {
+    return false;
+  }
+
+  const a = Buffer.from(password);
+  const b = Buffer.from(expectedPassword);
+  if (a.length !== b.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(a, b);
 }
 
 export function getAdminSessionFromRequest(req: NextRequest): AdminPayload | null {

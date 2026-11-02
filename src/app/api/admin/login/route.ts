@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Credential Verification
-    const isValidEmail = email.trim().toLowerCase() === 'admin@kamadhenuhoneyfarms.in';
+    const expectedAdminEmail = (process.env.ADMIN_EMAIL || 'admin@kamadhenuhoneyfarms.in').trim().toLowerCase();
+    const isValidEmail = email.trim().toLowerCase() === expectedAdminEmail;
     const isValidPassword = verifyAdminPassword(password);
 
     if (!isValidEmail || !isValidPassword) {
@@ -43,17 +44,17 @@ export async function POST(req: NextRequest) {
 
     // 3. Generate Signed JWT Token (8 hours or 30 days if rememberMe)
     const expiresInSeconds = rememberMe ? 30 * 24 * 3600 : 8 * 3600;
-    const token = signJwt({ email: 'admin@kamadhenuhoneyfarms.in', role: 'ADMIN' }, expiresInSeconds);
+    const token = signJwt({ email: expectedAdminEmail, role: 'ADMIN' }, expiresInSeconds);
 
     // 4. Audit Log
-    logAdminAction('admin@kamadhenuhoneyfarms.in', 'LOGIN_SUCCESS', undefined, `RememberMe: ${!!rememberMe}`, ip);
+    logAdminAction(expectedAdminEmail, 'LOGIN_SUCCESS', undefined, `RememberMe: ${!!rememberMe}`, ip);
 
     // 5. Create Response & Set HttpOnly Cookie
     const response = NextResponse.json({
       success: true,
       message: 'Admin authentication successful',
       user: {
-        email: 'admin@kamadhenuhoneyfarms.in',
+        email: expectedAdminEmail,
         role: 'ADMIN',
       },
     });

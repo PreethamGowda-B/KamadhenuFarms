@@ -20,11 +20,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || 'kcr1lyfv';
-    const apiKey = process.env.CLOUDINARY_API_KEY || '112225381679784';
-    const apiSecret = process.env.CLOUDINARY_API_SECRET || 'kLQ6QF5R9g-yV7VyhOArLKm5XLg';
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
+      console.error('Cloudinary configuration error: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY or CLOUDINARY_API_SECRET is missing.');
       return NextResponse.json(
         { success: false, message: 'File upload service is not configured. Please contact support.' },
         { status: 503 }

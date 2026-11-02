@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getApplicationsStore } from '@/lib/store';
+import { getAdminSessionFromRequest } from '@/lib/auth';
 import { 
   sendEmail, 
   getHiredSelectionTemplate, 
@@ -10,6 +11,14 @@ import {
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const admin = getAdminSessionFromRequest(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: '403 Unauthorized: Admin session required' },
+        { status: 403 }
+      );
+    }
+
     const id = params.id;
     const body = await req.json();
     const { type, date, time, location } = body;

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logAdminAction } from '@/lib/audit';
+import { getAdminSessionFromRequest } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
+    const admin = getAdminSessionFromRequest(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: '403 Unauthorized: Admin session required' },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'ALL';
@@ -194,6 +202,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const admin = getAdminSessionFromRequest(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: '403 Unauthorized: Admin session required' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const {
       shopName,

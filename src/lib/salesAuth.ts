@@ -1,10 +1,9 @@
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
-import { getAdminSessionFromRequest } from '@/lib/auth';
+import { getAdminSessionFromRequest, getJwtSecret } from '@/lib/auth';
 
 export const SALES_COOKIE_NAME = 'khf_sales_token';
-const JWT_SECRET = process.env.JWT_SECRET || 'kamadhenu-luxury-secret-key-2026-super-secure';
 
 export interface SalespersonPayload {
   id: string;
@@ -29,7 +28,8 @@ export function signSalesJwt(
   const body = Buffer.from(JSON.stringify(fullPayload)).toString('base64url');
 
   const signatureInput = `${header}.${body}`;
-  const signature = crypto.createHmac('sha256', JWT_SECRET).update(signatureInput).digest('base64url');
+  const secret = getJwtSecret();
+  const signature = crypto.createHmac('sha256', secret).update(signatureInput).digest('base64url');
 
   return `${header}.${body}.${signature}`;
 }
@@ -41,9 +41,15 @@ export function verifySalesJwt(token: string): SalespersonPayload | null {
 
     const [header, body, signature] = parts;
     const signatureInput = `${header}.${body}`;
-    const expectedSignature = crypto.createHmac('sha256', JWT_SECRET).update(signatureInput).digest('base64url');
+    const secret = getJwtSecret();
+    const expectedSignature = crypto.createHmac('sha256', secret).update(signatureInput).digest('base64url');
 
-    if (signature !== expectedSignature) return null;
+    // Constant-time signature comparison to prevent timing attacks
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+      return null;
+    }
 
     const payload: SalespersonPayload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     const now = Math.floor(Date.now() / 1000);

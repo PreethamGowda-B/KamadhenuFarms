@@ -1152,13 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function checkCustomerSession() {
     try {
-      const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
-      const hasSessionCookie = typeof document !== 'undefined' && document.cookie && document.cookie.includes('khf_customer_session');
-      if (!savedMobile && !hasSessionCookie) {
-        return;
-      }
-      const query = savedMobile ? `?mobile=${encodeURIComponent(savedMobile)}` : '';
-      const res = await fetch(`/api/customer/me${query}`, { credentials: 'same-origin' });
+      const res = await fetch('/api/customer/me', { credentials: 'same-origin' });
       const data = await res.json();
       const customerBadgeDot = document.getElementById('customerBadgeDot');
       const mobileCustomerBadgeDot = document.getElementById('mobileCustomerBadgeDot');
@@ -1355,34 +1349,25 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     try {
-      const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
-      const savedOrder = (typeof overrideOrderNum === 'string' && overrideOrderNum.trim())
-        ? overrideOrderNum.trim()
-        : (localStorage.getItem('kamadhenu_last_order') || '');
-
-      let query = '';
-      if (overrideOrderNum && typeof overrideOrderNum === 'string') {
-        query = `?orderNumber=${encodeURIComponent(overrideOrderNum.trim())}`;
-      } else if (savedMobile) {
-        query = `?mobile=${encodeURIComponent(savedMobile)}`;
-      } else if (savedOrder) {
-        query = `?orderNumber=${encodeURIComponent(savedOrder)}`;
-      }
-
-      const res = await fetch(`/api/customer/orders${query}`, { credentials: 'same-origin' });
+      // Fetch authenticated customer orders using session cookie
+      const res = await fetch('/api/customer/orders', { credentials: 'same-origin' });
       const data = await res.json();
 
       if (!data.success || !data.orders || data.orders.length === 0) {
+        const savedOrder = (typeof overrideOrderNum === 'string' && overrideOrderNum.trim())
+          ? overrideOrderNum.trim()
+          : (localStorage.getItem('kamadhenu_last_order') || '');
+
         customerOrdersContainer.innerHTML = `
           <div style="text-align:center; padding: 40px 20px; color:#718096;">
             <div style="font-size: 2.8rem; margin-bottom: 12px;">🍯</div>
-            <h4 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 6px;">Find Your Order History</h4>
+            <h4 style="font-size: 1.1rem; color: #2d3748; margin-bottom: 6px;">Track Your Order</h4>
             <p style="font-size: 0.85rem; max-width: 320px; margin: 0 auto 16px; color:#718096;">
-              Enter your mobile number or Order ID to view your ordered honey, live tracking & tax invoices.
+              Enter your Order Number to view live courier tracking & shipment details.
             </p>
             <div style="display:flex; gap:8px; max-width:320px; margin:0 auto 16px;">
-              <input type="text" id="inputOrdersPhone" class="form-control" placeholder="Mobile or Order ID (e.g. KM-1029)" style="padding:9px 12px; font-size:0.85rem;" value="${savedMobile || savedOrder}">
-              <button class="btn btn-gold" id="btnLookupOrders" style="padding:9px 16px; font-size:0.85rem; white-space:nowrap;">Search</button>
+              <input type="text" id="inputOrdersPhone" class="form-control" placeholder="Order Number (e.g. KHF-ORD-...)" style="padding:9px 12px; font-size:0.85rem;" value="${savedOrder || ''}">
+              <button class="btn btn-gold" id="btnLookupOrders" style="padding:9px 16px; font-size:0.85rem; white-space:nowrap;">Track</button>
             </div>
             <button class="btn btn-charcoal" id="btnShopFromOrders" style="padding: 9px 22px; font-size:0.85rem;">Explore Honey Collection</button>
           </div>
@@ -1391,15 +1376,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const inputPhone = document.getElementById('inputOrdersPhone');
         const handleSearch = () => {
           const raw = (inputPhone?.value || '').trim();
-          const cleanDigits = raw.replace(/\D/g, '');
-          if (cleanDigits.length === 10) {
-            try { localStorage.setItem('kamadhenu_customer_mobile', cleanDigits); } catch (e) {}
-            loadCustomerOrders();
-          } else if (raw.length >= 3) {
-            try { localStorage.setItem('kamadhenu_last_order', raw.toUpperCase()); } catch (e) {}
-            loadCustomerOrders(raw.toUpperCase());
+          if (raw.length >= 3) {
+            closeOrders();
+            if (typeof openTracker === 'function') {
+              openTracker(raw.toUpperCase());
+            }
           } else {
-            alert('Please enter your 10-digit mobile number or Order ID (e.g. KM-1029)');
+            alert('Please enter your Order Number (e.g. KHF-ORD-...) to track.');
           }
         };
 

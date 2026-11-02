@@ -13,8 +13,8 @@ interface EmailPayload {
 
 export async function sendEmail({ to, subject, html, attachments }: EmailPayload): Promise<{ success: boolean; messageId?: string }> {
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const user = process.env.SMTP_USER || 'kamadhenuhoneyfarms@gmail.com';
-  const pass = process.env.SMTP_PASS || 'narmnawnbgpauxil';
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
 
   if (host && user && pass) {
     try {

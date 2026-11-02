@@ -3,15 +3,91 @@ import { NextRequest, NextResponse } from 'next/server';
 const ADMIN_COOKIE_NAME = 'khf_admin_token';
 const SALES_COOKIE_NAME = 'khf_sales_token';
 
+/**
+ * Edge Runtime compatible HMAC-SHA256 JWT signature verification using native Web Crypto API.
+ * Validates token structure (3 segments), header algorithm (HS256), cryptographic signature,
+ * token expiry (exp claim), and expected role.
+ */
+async function verifyJwtEdge(token: string | undefined, expectedRole: string): Promise<boolean> {
+  if (!token || typeof token !== 'string') return false;
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return false;
+
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+
+    const base64UrlDecode = (str: string): string => {
+      let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+      const pad = b64.length % 4;
+      if (pad) b64 += '='.repeat(4 - pad);
+      return atob(b64);
+    };
+
+    // 1. Verify Header algorithm & type
+    const header = JSON.parse(base64UrlDecode(headerB64));
+    if (header.alg !== 'HS256' || header.typ !== 'JWT') {
+      return false;
+    }
+
+    // 2. Cryptographic Signature Verification via Web Crypto API (Constant-time)
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    let sigB64 = signatureB64.replace(/-/g, '+').replace(/_/g, '/');
+    const sigPad = sigB64.length % 4;
+    if (sigPad) sigB64 += '='.repeat(4 - sigPad);
+    const sigBinary = atob(sigB64);
+    const sigBytes = new Uint8Array(sigBinary.length);
+    for (let i = 0; i < sigBinary.length; i++) {
+      sigBytes[i] = sigBinary.charCodeAt(i);
+    }
+
+    const dataBytes = enc.encode(`${headerB64}.${payloadB64}`);
+    const isValidSignature = await crypto.subtle.verify('HMAC', key, sigBytes, dataBytes);
+    if (!isValidSignature) {
+      return false;
+    }
+
+    // 3. Verify Payload claims and expiration
+    const payload = JSON.parse(base64UrlDecode(payloadB64));
+    const now = Math.floor(Date.now() / 1000);
+
+    if (payload.exp && now > payload.exp) {
+      return false;
+    }
+
+    if (payload.role !== expectedRole) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.hostname || '').toLowerCase();
   const proto = req.headers.get('x-forwarded-proto') || 'https';
 
-  // 0. CANONICAL DOMAIN ENFORCEMENT:
-  // Automatically redirect any traffic hitting *.vercel.app to the official custom domain https://kamadhenuhoneyfarms.in
-  // This completely solves mobile/desktop domain fragmentation and Cashfree domain whitelisting errors.
-  if (host.includes('vercel.app')) {
+  // 0. CANONICAL DOMAIN & HTTPS ENFORCEMENT:
+  // Redirect www and *.vercel.app aliases to the official canonical origin https://kamadhenuhoneyfarms.in
+  // Preserves dedicated subdomains (admin.* and form.*)
+  const isWww = host === 'www.kamadhenuhoneyfarms.in' || (host.startsWith('www.') && !host.includes('localhost'));
+  const isVercelAlias = host.includes('vercel.app');
+
+  if (isWww || isVercelAlias) {
     const canonicalUrl = new URL(req.nextUrl.pathname + req.nextUrl.search, 'https://kamadhenuhoneyfarms.in');
     return NextResponse.redirect(canonicalUrl, 308);
   }
@@ -33,7 +109,7 @@ export async function middleware(req: NextRequest) {
 
   // Force HTTPS in production to prevent CORS redirects during client fetch
   if (proto === 'http' && !host.includes('localhost') && !host.includes('127.0.0.1')) {
-    return NextResponse.redirect(`https://${host}${req.nextUrl.pathname}${req.nextUrl.search}`, 301);
+    return NextResponse.redirect(`https://${host}${req.nextUrl.pathname}${req.nextUrl.search}`, 308);
   }
 
   // Helper to add CORS headers to outgoing response
@@ -54,43 +130,13 @@ export async function middleware(req: NextRequest) {
   const isAdminSubdomain = host.startsWith('admin.');
   const isFormSubdomain = host.startsWith('form.');
 
-  // 2. Validate Admin JWT Session from Cookie
+  // 2. Validate Admin JWT Session from Cookie with HMAC-SHA256 Signature Verification
   const adminToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  let isAdminAuthenticated = false;
+  const isAdminAuthenticated = await verifyJwtEdge(adminToken, 'ADMIN');
 
-  if (adminToken) {
-    try {
-      const parts = adminToken.split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-        const now = Math.floor(Date.now() / 1000);
-        if (payload.exp && now < payload.exp && payload.role === 'ADMIN') {
-          isAdminAuthenticated = true;
-        }
-      }
-    } catch (e) {
-      isAdminAuthenticated = false;
-    }
-  }
-
-  // 3. Validate Sales Executive JWT Session from Cookie
+  // 3. Validate Sales Executive JWT Session from Cookie with HMAC-SHA256 Signature Verification
   const salesToken = req.cookies.get(SALES_COOKIE_NAME)?.value;
-  let isSalesAuthenticated = false;
-
-  if (salesToken) {
-    try {
-      const parts = salesToken.split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-        const now = Math.floor(Date.now() / 1000);
-        if (payload.exp && now < payload.exp && payload.role === 'SALES_EXECUTIVE') {
-          isSalesAuthenticated = true;
-        }
-      }
-    } catch (e) {
-      isSalesAuthenticated = false;
-    }
-  }
+  const isSalesAuthenticated = await verifyJwtEdge(salesToken, 'SALES_EXECUTIVE');
 
   // 4. FORM SUBDOMAIN ROUTING (form.kamadhenuhoneyfarms.in)
   if (isFormSubdomain) {
