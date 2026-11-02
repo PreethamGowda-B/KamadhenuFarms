@@ -4318,26 +4318,41 @@ h2::after {
 /* Realistic Metallic Gold Foil Text */
 .gold-foil-text {
   background: linear-gradient(
-    -45deg,
-    #cf9e46 0%,
-    #e8c173 25%,
-    #fdf0a6 40%,
+    115deg,
+    #91641b 0%,
+    #b88628 18%,
+    #d8aa46 32%,
+    #fff4b8 44%,
     #ffffff 50%,
-    #fdf0a6 60%,
-    #cf9e46 80%,
-    #b3812d 100%
+    #fff4b8 56%,
+    #d8aa46 68%,
+    #b88628 82%,
+    #91641b 100%
   );
-  background-size: 300% 300%;
+  background-size: 240% auto;
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: foil-shimmer 8s ease infinite;
+  color: transparent;
+  animation: foil-shimmer 4.5s ease-in-out infinite alternate;
   display: inline-block;
+  filter: drop-shadow(0 2px 10px rgba(184, 134, 40, 0.28));
+  will-change: background-position;
+}
+
+.gold-foil-text span,
+.hero-content h1.gold-foil-text span {
+  background: inherit !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  font-weight: 400;
+  font-style: italic;
 }
 
 @keyframes foil-shimmer {
-  0% { background-position: 100% 50%; }
-  50% { background-position: 0% 50%; }
+  0% { background-position: 0% 50%; }
   100% { background-position: 100% 50%; }
 }
 
@@ -4797,6 +4812,43 @@ body:not(.loaded) {
     margin-bottom: 10px !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
+  }
+  .gold-foil-text {
+    font-size: clamp(2.4rem, 8.8vw, 3.2rem) !important;
+    line-height: 1.16 !important;
+    letter-spacing: 0.02em !important;
+    display: inline-block !important;
+    text-align: center !important;
+    background: linear-gradient(
+      115deg,
+      #91641b 0%,
+      #b88628 18%,
+      #d8aa46 32%,
+      #fff4b8 44%,
+      #ffffff 50%,
+      #fff4b8 56%,
+      #d8aa46 68%,
+      #b88628 82%,
+      #91641b 100%
+    ) !important;
+    background-size: 240% auto !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    animation: foil-shimmer 4.5s ease-in-out infinite alternate !important;
+    filter: drop-shadow(0 2px 10px rgba(184, 134, 40, 0.32)) !important;
+    will-change: background-position !important;
+  }
+  .gold-foil-text span,
+  .hero-content h1.gold-foil-text span {
+    background: inherit !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    font-weight: 400 !important;
+    font-style: italic !important;
   }
 
   /* E-Commerce Search & Filter Controls on Mobile */
@@ -7216,7 +7268,6 @@ body.overflow-hidden {
     transform: translate(-50%, 0) !important;
   }
 
-  .gold-foil-text,
   h2::after,
   .badge-luxury,
   .placeholder-icon,
