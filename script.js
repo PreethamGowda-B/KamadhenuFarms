@@ -3210,15 +3210,16 @@ ${points}
   window.openTracker = openTracker;
   window.closeTracker = closeTracker;
 
-  // Prevent mobile background page rubberbanding/scrolling through modals & drawers
-  document.addEventListener('touchmove', (e) => {
-    if (document.body.classList.contains('overflow-hidden')) {
-      const scrollable = e.target.closest('.checkout-body, .cart-items-container, .orders-items-container, .saved-addresses-list');
-      if (!scrollable) {
-        if (e.cancelable) e.preventDefault();
-      }
+  // Prevent background scroll only when dragging directly on backdrop overlays
+  [checkoutModalOverlay, cartOverlay, ordersOverlay, trackerModalOverlay].forEach(el => {
+    if (el) {
+      el.addEventListener('touchmove', (e) => {
+        if (e.target === el && e.cancelable) {
+          e.preventDefault();
+        }
+      }, { passive: false });
     }
-  }, { passive: false });
+  });
 
   openTrackerBtns.forEach(btn => btn.addEventListener('click', () => openTracker()));
   if (closeTrackerBtn) closeTrackerBtn.addEventListener('click', closeTracker);

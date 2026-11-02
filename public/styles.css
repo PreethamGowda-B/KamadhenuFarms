@@ -7169,7 +7169,6 @@ body.overflow-hidden {
   height: 100% !important;
   height: 100dvh !important;
   overscroll-behavior: none !important;
-  touch-action: none;
 }
 
 /* Add to Cart button success state */
