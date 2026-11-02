@@ -2958,6 +2958,7 @@ footer {
   pointer-events: none;
   transition: var(--transition-fast);
   padding: 20px;
+  overscroll-behavior: contain;
 }
 
 .modal-overlay.active {
@@ -2980,6 +2981,7 @@ footer {
   position: relative;
   transform: translateY(20px);
   transition: var(--transition-smooth);
+  overscroll-behavior: contain;
 }
 
 .modal-overlay.active .checkout-modal {
@@ -3013,6 +3015,9 @@ footer {
 .checkout-body {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  overscroll-behavior-y: contain;
   padding: 40px;
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
@@ -5187,6 +5192,8 @@ body:not(.loaded) {
     height: 100dvh !important;
     margin: 0 !important;
     z-index: 1005 !important;
+    overflow: hidden !important;
+    overscroll-behavior: contain !important;
   }
   .checkout-modal {
     position: fixed !important;
@@ -5209,6 +5216,8 @@ body:not(.loaded) {
     box-sizing: border-box !important;
     background: var(--cream-bg) !important;
     z-index: 1006 !important;
+    overscroll-behavior: contain !important;
+    overscroll-behavior-y: contain !important;
   }
   .checkout-header {
     flex-shrink: 0 !important;
@@ -5244,10 +5253,15 @@ body:not(.loaded) {
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 12px 14px 20px 14px !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    padding: 12px 14px 28px 14px !important;
     gap: 12px !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
     box-sizing: border-box !important;
   }
   .checkout-summary {
@@ -5461,6 +5475,11 @@ body:not(.loaded) {
   .saved-addr-recipient {
     flex-wrap: wrap !important;
     gap: 4px !important;
+  }
+  .btn-toggle-saved-addrs {
+    font-size: 0.78rem !important;
+    padding: 8px 10px !important;
+    min-height: 38px !important;
   }
 
   /* Floating Mobile Quick-Cart Bar */
@@ -7144,8 +7163,13 @@ body.overflow-hidden #navHamburger {
   box-shadow: 0 6px 16px rgba(216, 166, 79, 0.3) !important;
 }
 
+html.overflow-hidden,
 body.overflow-hidden {
   overflow: hidden !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
 }
 
 /* Add to Cart button success state */
@@ -7523,6 +7547,37 @@ body.overflow-hidden {
   color: #1a202c;
   display: flex;
   justify-content: space-between;
+}
+
+.saved-addr-card.saved-addr-extra {
+  display: none;
+}
+
+.saved-addresses-list.show-all .saved-addr-card.saved-addr-extra {
+  display: flex !important;
+}
+
+.btn-toggle-saved-addrs {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(216, 166, 79, 0.08);
+  border: 1px dashed rgba(216, 166, 79, 0.45);
+  border-radius: 8px;
+  color: var(--dark-gold, #8c6219);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn-toggle-saved-addrs:hover {
+  background: rgba(216, 166, 79, 0.16);
+  border-style: solid;
 }
 
 /* Honeycomb Card Live Stock Indicator (Fresh Apiary Stock) */

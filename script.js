@@ -1030,16 +1030,25 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cartOverlay) cartOverlay.classList.add('active');
     if (cartDrawer) cartDrawer.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    document.documentElement.classList.add('overflow-hidden');
     updateMobileFloatingCart();
+    const cartItems = document.getElementById('cartItems');
+    if (cartItems) cartItems.scrollTop = 0;
+    if (cartDrawer) cartDrawer.scrollTop = 0;
+    requestAnimationFrame(() => {
+      if (cartItems) cartItems.scrollTop = 0;
+    });
   }
 
   function closeCart(e) {
     if (e && e.preventDefault) e.preventDefault();
     if (cartOverlay) cartOverlay.classList.remove('active');
     if (cartDrawer) cartDrawer.classList.remove('active');
-    // Only remove overflow-hidden if mobile-nav isn't active
-    if (mobileNav && !mobileNav.classList.contains('active')) {
+    const isCheckoutOpen = typeof checkoutModalOverlay !== 'undefined' && checkoutModalOverlay && checkoutModalOverlay.classList.contains('active');
+    const isNavOpen = typeof mobileNav !== 'undefined' && mobileNav && mobileNav.classList.contains('active');
+    if (!isCheckoutOpen && !isNavOpen) {
       document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
     }
     updateMobileFloatingCart();
   }
@@ -1077,14 +1086,22 @@ document.addEventListener('DOMContentLoaded', () => {
     if (ordersOverlay) ordersOverlay.classList.add('active');
     if (ordersDrawer) ordersDrawer.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    document.documentElement.classList.add('overflow-hidden');
+    const ordersContainer = document.getElementById('customerOrdersContainer');
+    if (ordersContainer) ordersContainer.scrollTop = 0;
+    if (ordersDrawer) ordersDrawer.scrollTop = 0;
     loadCustomerOrders();
   }
 
   function closeOrders() {
     if (ordersOverlay) ordersOverlay.classList.remove('active');
     if (ordersDrawer) ordersDrawer.classList.remove('active');
-    if (!mobileNav || !mobileNav.classList.contains('active')) {
+    const isCheckoutOpen = typeof checkoutModalOverlay !== 'undefined' && checkoutModalOverlay && checkoutModalOverlay.classList.contains('active');
+    const isCartOpen = typeof cartDrawer !== 'undefined' && cartDrawer && cartDrawer.classList.contains('active');
+    const isNavOpen = typeof mobileNav !== 'undefined' && mobileNav && mobileNav.classList.contains('active');
+    if (!isCheckoutOpen && !isCartOpen && !isNavOpen) {
       document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
     }
   }
 
@@ -1187,6 +1204,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!savedAddressesSection || !savedAddressesList) return;
     savedAddressesList.innerHTML = '';
 
+    const existingToggle = savedAddressesSection.querySelector('.btn-toggle-saved-addrs');
+    if (existingToggle) existingToggle.remove();
+    savedAddressesList.classList.remove('show-all');
+
     if (!addresses || addresses.length === 0) {
       savedAddressesSection.style.display = 'none';
       return;
@@ -1195,8 +1216,9 @@ document.addEventListener('DOMContentLoaded', () => {
     savedAddressesSection.style.display = 'block';
 
     addresses.forEach((addr, idx) => {
+      const isExtra = idx >= 2;
       const card = document.createElement('div');
-      card.className = `saved-addr-card ${idx === 0 ? 'selected' : ''}`;
+      card.className = `saved-addr-card ${idx === 0 ? 'selected' : ''} ${isExtra ? 'saved-addr-extra' : ''}`;
       card.innerHTML = `
         <input type="radio" name="selectedSavedAddress" class="saved-addr-radio" id="savedAddr_${addr.id}" ${idx === 0 ? 'checked' : ''}>
         <div class="saved-addr-details">
@@ -1245,6 +1267,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
       savedAddressesList.appendChild(card);
     });
+
+    // Only show 2 addresses by default if customer has more than 2 addresses
+    if (addresses.length > 2) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className = 'btn-toggle-saved-addrs';
+      const remainingCount = addresses.length - 2;
+      toggleBtn.innerHTML = `<span>▾ View ${remainingCount} more saved address${remainingCount > 1 ? 'es' : ''}</span>`;
+      toggleBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isShowAll = savedAddressesList.classList.toggle('show-all');
+        toggleBtn.innerHTML = isShowAll
+          ? `<span>▴ Show less (showing 2 of ${addresses.length})</span>`
+          : `<span>▾ View ${remainingCount} more saved address${remainingCount > 1 ? 'es' : ''}</span>`;
+      });
+      savedAddressesSection.appendChild(toggleBtn);
+    }
 
     // Auto-populate first address if address input is currently blank
     const firstAddr = addresses[0];
@@ -2559,9 +2599,20 @@ ${points}
     closeCart(); // Close drawer
     checkoutModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    document.documentElement.classList.add('overflow-hidden');
     updateMobileFloatingCart();
+
+    // Reset any focused element to prevent mobile viewport jump/auto-scroll to center
+    if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement.tagName !== 'BODY') {
+      try { document.activeElement.blur(); } catch (_) {}
+    }
+
     const checkoutModal = document.querySelector('.checkout-modal');
+    const checkoutBody = document.querySelector('.checkout-body');
     if (checkoutModal) checkoutModal.scrollTop = 0;
+    if (checkoutBody) checkoutBody.scrollTop = 0;
+    if (checkoutModalOverlay) checkoutModalOverlay.scrollTop = 0;
+
     showCheckoutError(null);
     getCashfreeSDK('production'); // Warm up Cashfree SDK in advance
 
@@ -2588,15 +2639,37 @@ ${points}
       updatePincodeDeliveryBadge(chkPincodeInput.value);
     }
     renderCheckoutSummary();
+
+    // Reset summary accordion to collapsed by default on mobile
+    const summaryCard = document.getElementById('checkoutSummaryCard');
+    const summaryArrow = document.getElementById('toggleSummaryArrow');
+    const summaryToggle = document.getElementById('checkoutSummaryToggle');
+    if (summaryCard) summaryCard.classList.remove('mobile-expanded');
+    if (summaryArrow) summaryArrow.classList.remove('rotated');
+    if (summaryToggle) summaryToggle.setAttribute('aria-expanded', 'false');
+
     if (chkPincodeInput && chkPincodeInput.value.trim().length === 6) {
       calculateShippingRate(chkPincodeInput.value.trim());
     }
+
+    // Firmly reset scroll position to top after dynamic rendering pass
+    if (checkoutBody) checkoutBody.scrollTop = 0;
+    requestAnimationFrame(() => {
+      if (checkoutBody) checkoutBody.scrollTop = 0;
+      if (checkoutModal) checkoutModal.scrollTop = 0;
+    });
+    setTimeout(() => {
+      if (checkoutBody) checkoutBody.scrollTop = 0;
+    }, 50);
   };
 
   const closeCheckout = () => {
     checkoutModalOverlay.classList.remove('active');
-    if (!mobileNav.classList.contains('active')) {
+    const isCartOpen = typeof cartDrawer !== 'undefined' && cartDrawer && cartDrawer.classList.contains('active');
+    const isNavOpen = typeof mobileNav !== 'undefined' && mobileNav && mobileNav.classList.contains('active');
+    if (!isCartOpen && !isNavOpen) {
       document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
     }
     updateMobileFloatingCart();
   };
@@ -3105,6 +3178,7 @@ ${points}
     closeOrders();
     trackerModalOverlay.classList.add('active');
     document.body.classList.add('overflow-hidden');
+    document.documentElement.classList.add('overflow-hidden');
 
     const idToUse = (typeof prefillOrderId === 'string' && prefillOrderId.trim())
       ? prefillOrderId.trim().toUpperCase()
@@ -3124,13 +3198,27 @@ ${points}
 
   const closeTracker = () => {
     trackerModalOverlay.classList.remove('active');
-    if (!mobileNav.classList.contains('active')) {
+    const isCheckoutOpen = typeof checkoutModalOverlay !== 'undefined' && checkoutModalOverlay && checkoutModalOverlay.classList.contains('active');
+    const isCartOpen = typeof cartDrawer !== 'undefined' && cartDrawer && cartDrawer.classList.contains('active');
+    const isNavOpen = typeof mobileNav !== 'undefined' && mobileNav && mobileNav.classList.contains('active');
+    if (!isCheckoutOpen && !isCartOpen && !isNavOpen) {
       document.body.classList.remove('overflow-hidden');
+      document.documentElement.classList.remove('overflow-hidden');
     }
   };
 
   window.openTracker = openTracker;
   window.closeTracker = closeTracker;
+
+  // Prevent mobile background page rubberbanding/scrolling through modals & drawers
+  document.addEventListener('touchmove', (e) => {
+    if (document.body.classList.contains('overflow-hidden')) {
+      const scrollable = e.target.closest('.checkout-body, .cart-items-container, .orders-items-container, .saved-addresses-list');
+      if (!scrollable) {
+        if (e.cancelable) e.preventDefault();
+      }
+    }
+  }, { passive: false });
 
   openTrackerBtns.forEach(btn => btn.addEventListener('click', () => openTracker()));
   if (closeTrackerBtn) closeTrackerBtn.addEventListener('click', closeTracker);
@@ -3276,81 +3364,6 @@ ${points}
         trackerSubmitBtn.textContent = 'Track';
       }
     });
-  }
-
-  /* ==========================================================================
-     First-Time Visitor Advertisement: Corporate & Bulk Orders Modal
-     ========================================================================== */
-  const bulkAdModal = document.getElementById('bulkAdModalOverlay');
-  const closeBulkAdBtn = document.getElementById('closeBulkAdBtn');
-  const dismissBulkAdBtn = document.getElementById('dismissBulkAdBtn');
-  const claimBulkOfferBtn = document.getElementById('claimBulkOfferBtn');
-  const bulkOrderEnquiryBtn = document.getElementById('bulkOrderEnquiryBtn');
-
-  const BULK_AD_STORAGE_KEY = 'kamadhenu_bulk_ad_seen';
-
-  const closeBulkAd = () => {
-    if (!bulkAdModal) return;
-    bulkAdModal.classList.remove('active');
-    try {
-      localStorage.setItem(BULK_AD_STORAGE_KEY, 'true');
-    } catch (_) {}
-  };
-
-  const openBulkAd = () => {
-    if (!bulkAdModal) return;
-    bulkAdModal.classList.add('active');
-  };
-
-  if (bulkAdModal) {
-    let hasSeenBulkAd = false;
-    try {
-      hasSeenBulkAd = localStorage.getItem(BULK_AD_STORAGE_KEY) === 'true';
-    } catch (_) {}
-
-    // Only auto-show for first-time visitors who haven't dismissed it
-    if (!hasSeenBulkAd) {
-      setTimeout(() => {
-        const isCheckoutActive = checkoutModalOverlay?.classList.contains('active');
-        const isCartOpen = cartDrawer?.classList.contains('open');
-        const isTrackerActive = trackerModalOverlay?.classList.contains('active');
-        if (!isCheckoutActive && !isCartOpen && !isTrackerActive) {
-          openBulkAd();
-        }
-      }, 2500);
-    }
-
-    closeBulkAdBtn?.addEventListener('click', closeBulkAd);
-    dismissBulkAdBtn?.addEventListener('click', closeBulkAd);
-
-    claimBulkOfferBtn?.addEventListener('click', () => {
-      try {
-        localStorage.setItem(BULK_AD_STORAGE_KEY, 'true');
-      } catch (_) {}
-      setTimeout(closeBulkAd, 400);
-    });
-
-    // Dismiss when clicking outside modal card
-    bulkAdModal.addEventListener('click', (e) => {
-      if (e.target === bulkAdModal) {
-        closeBulkAd();
-      }
-    });
-
-    // Dismiss on ESC key
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && bulkAdModal.classList.contains('active')) {
-        closeBulkAd();
-      }
-    });
-
-    // Allow user to manually re-open offer via the bulk enquiry banner on home page
-    if (bulkOrderEnquiryBtn) {
-      bulkOrderEnquiryBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openBulkAd();
-      });
-    }
   }
 
   /* ==========================================================================
