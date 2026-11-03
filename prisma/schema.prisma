@@ -428,10 +428,12 @@ model AdminNotification {
   link        String?
   isRead      Boolean  @default(false)
   metadata    String?
+  dedupKey    String?  @unique
   createdAt   DateTime @default(now())
 
   @@index([isRead])
   @@index([createdAt])
+  @@index([dedupKey])
 }
 
 // ============================================================================

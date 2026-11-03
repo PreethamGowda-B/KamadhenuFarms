@@ -275,6 +275,20 @@ export async function POST(req: NextRequest) {
           data: { paymentStatus: 'FAILED' },
         });
 
+        // Log failed payment alert for admin (idempotent)
+        const firstName = order.customer?.name ? String(order.customer.name).trim().split(' ')[0] : 'Customer';
+        await prisma.adminNotification.upsert({
+          where: { dedupKey: `PAYMENT_FAILED:${order.orderNumber}` },
+          update: {},
+          create: {
+            title: `Payment Failed: ${order.orderNumber}`,
+            message: `${firstName}'s payment attempt of ₹${order.total} (${order.orderNumber}) was declined or cancelled.`,
+            type: 'PAYMENT_FAILED',
+            link: `/admin/orders/${order.id}`,
+            dedupKey: `PAYMENT_FAILED:${order.orderNumber}`,
+          },
+        }).catch((e) => console.warn('Failed to record admin payment failed notification:', e));
+
         return NextResponse.json(
           {
             success: false,
@@ -422,12 +436,15 @@ export async function POST(req: NextRequest) {
               },
             });
 
-            await tx.adminNotification.create({
-              data: {
+            await tx.adminNotification.upsert({
+              where: { dedupKey: `REF_REWARD:${order.orderNumber}:${rewardCode}` },
+              update: {},
+              create: {
                 title: `Referral Reward Earned (5%)`,
                 message: `Referrer earned reward code ${rewardCode} from new customer order ${order.orderNumber}.`,
                 type: 'REFERRAL_REWARD',
                 link: `/admin/referrals`,
+                dedupKey: `REF_REWARD:${order.orderNumber}:${rewardCode}`,
               },
             });
           }
@@ -450,13 +467,24 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Create Admin Notification for verified order
-      await tx.adminNotification.create({
-        data: {
-          title: `New Online Order: ${order.orderNumber}`,
-          message: `${order.customer.name} placed order of ₹${order.total} (${order.orderNumber}) via Cashfree.`,
+      // Create Admin Notification for verified order (idempotent with dedupKey)
+      const firstName = order.customer?.name ? String(order.customer.name).trim().split(' ')[0] : 'Customer';
+      await tx.adminNotification.upsert({
+        where: { dedupKey: `ORDER_PAID:${order.orderNumber}` },
+        update: {},
+        create: {
+          title: `New Order: ${order.orderNumber}`,
+          message: `${firstName} placed order of ₹${order.total} (${order.orderNumber}) via Cashfree.`,
           type: 'HIGH_VALUE_ORDER',
           link: `/admin/orders/${order.id}`,
+          dedupKey: `ORDER_PAID:${order.orderNumber}`,
+          metadata: JSON.stringify({
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            total: order.total,
+            itemCount: order.items?.length || 1,
+            source: 'checkout_verify',
+          }),
         },
       });
 

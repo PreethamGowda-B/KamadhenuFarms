@@ -3,6 +3,7 @@
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import AdminHeader from '@/components/admin/AdminHeader';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,8 +18,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col lg:flex-row">
       <AdminSidebar />
-      <div className="flex-1 min-w-0 min-h-screen overflow-y-auto">
-        {children}
+      <div className="flex-1 min-w-0 min-h-screen overflow-y-auto flex flex-col">
+        <AdminHeader />
+        <div className="flex-1">
+          {children}
+        </div>
       </div>
     </div>
   );
