@@ -67,19 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if (window._isReconcilingPendingOrder) return;
       window._isReconcilingPendingOrder = true;
 
-      const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderNumber: pendingOrder })
-      }, 8000);
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderNumber: pendingOrder })
+          }, 8000);
 
-      const data = await verifyRes.json();
-      if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
-        localStorage.removeItem('kamadhenu_pending_order');
-        localStorage.removeItem('kamadhenu_pending_order_time');
-        cart = [];
-        saveCart();
-        window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}`;
+          const data = await verifyRes.json();
+          if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
+            cart = [];
+            saveCart();
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}`;
+            return;
+          }
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1200));
+          }
+        } catch (attemptErr) {
+          if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
+        }
       }
     } catch (e) {
       // Background reconciliation error - ignore silently
