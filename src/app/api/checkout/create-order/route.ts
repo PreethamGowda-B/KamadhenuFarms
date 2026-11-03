@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
       appBaseUrl = 'https://www.kamadhenuhoneyfarms.in';
     }
 
-    const returnUrl = `${appBaseUrl}/order-confirmation?order_id={order_id}&orderNumber={order_id}`;
+    const returnUrl = `${appBaseUrl}/track-order?order_id={order_id}&orderNumber={order_id}&status=confirmed`;
     const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;
 
     // 6, 7 & 8: Concurrently create database record AND Cashfree order session

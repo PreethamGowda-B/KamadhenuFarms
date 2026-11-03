@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('kamadhenu_pending_order_time');
             cart = [];
             saveCart();
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}`;
+            window.location.href = `/track-order?orderNumber=${encodeURIComponent(pendingOrder)}&status=confirmed`;
             return;
           }
           if (attempt < 3) {
@@ -1535,8 +1535,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="btn-order-track" data-order-number="${order.orderNumber}" style="flex:1; min-width:130px; padding:7px 12px; background:#ebf8ff; color:#2b6cb0; border:1px solid #bee3f8; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
               🔍 Track Live Status
             </button>
-            <a href="/order-confirmation?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
-              📄 View Tax Invoice ↗
+            <a href="/track-order?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+              📄 Order Details & Invoice ↗
             </a>
           </div>
 
@@ -3119,7 +3119,7 @@ ${points}
 
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
-          returnUrl: `https://www.kamadhenuhoneyfarms.in/order-confirmation?order_id=${encodeURIComponent(createData.orderNumber)}&orderNumber=${encodeURIComponent(createData.orderNumber)}`,
+          returnUrl: `https://www.kamadhenuhoneyfarms.in/track-order?order_id=${encodeURIComponent(createData.orderNumber)}&orderNumber=${encodeURIComponent(createData.orderNumber)}&status=confirmed`,
           redirectTarget: '_modal'
         };
 
@@ -3181,13 +3181,13 @@ ${points}
             currentCoupon = null;
             closeCheckout();
             const targetOrder = verifyData.orderNumber || createData.orderNumber;
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}`;
+            window.location.href = `/track-order?orderNumber=${encodeURIComponent(targetOrder)}&status=confirmed`;
             return true;
           }
 
           if (verifyData && verifyData.pending) {
             closeCheckout();
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
+            window.location.href = `/track-order?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
             return true;
           }
 
