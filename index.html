@@ -45,7 +45,7 @@
   <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20261103_v58">
+  <link rel="stylesheet" href="styles.css?v=20261103_v59">
 
   <!-- Structured SEO Schema Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -181,7 +181,7 @@
       <!-- Right actions -->
       <div class="nav-right">
         <!-- Customer Memory My Orders & Live Tracking trigger -->
-        <button class="nav-icon-btn open-orders-btn open-tracker-btn" id="openOrdersBtn" title="My Orders & Live Tracking" aria-label="My Orders & Live Tracking" style="display:inline-flex;" onclick="window.openOrders && window.openOrders(event)">
+        <button class="nav-icon-btn open-tracker-btn" id="openOrdersBtn" title="Track Your Honey Order & Details" aria-label="Track Your Honey Order & Details" style="display:inline-flex;" onclick="window.openTracker && window.openTracker()">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -2034,8 +2034,8 @@
         </svg>
       </button>
       
-      <h3>Track Your Honey Order</h3>
-      <p style="font-size:0.85rem; color:#666;">Enter your Kamadhenu Honey order ID below to verify your shipment status.</p>
+      <h3>Track Your Honey Order & Details</h3>
+      <p style="font-size:0.85rem; color:#666;">Live shipment tracking, order summary & official tax invoice.</p>
       
       <div class="tracker-search-row">
         <input type="text" id="trackerInput" placeholder="Order ID (e.g. KM-1029)" autocomplete="off">
@@ -2183,6 +2183,6 @@
   <div id="socialProofToast" class="social-proof-toast" aria-live="polite" style="display: none;"></div>
 
   <!-- Application Script -->
-  <script src="script.js?v=20261103_v58" defer></script>
+  <script src="script.js?v=20261103_v59" defer></script>
 </body>
 </html>

@@ -339,7 +339,11 @@ function ConfirmationContent() {
             </button>
             <a
               href="/"
-              className="block w-full py-3 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-sm rounded-xl transition"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/';
+              }}
+              className="block w-full py-3 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-sm rounded-xl transition cursor-pointer"
             >
               Return to Store / Complete Order
             </a>
@@ -621,7 +625,11 @@ function ConfirmationContent() {
 
             <a
               href="/"
-              className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold py-3 px-6 rounded-xl flex items-center gap-2 transition active:scale-[0.98] text-sm"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/';
+              }}
+              className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold py-3 px-6 rounded-xl flex items-center gap-2 transition active:scale-[0.98] text-sm cursor-pointer"
             >
               <Home className="w-4 h-4" />
               <span>Return to Store</span>
@@ -920,7 +928,11 @@ function ConfirmationContent() {
           <div className="flex justify-center gap-4">
             <a
               href="/"
-              className="text-amber-800 hover:text-amber-900 font-bold text-sm underline underline-offset-4"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/';
+              }}
+              className="text-amber-800 hover:text-amber-900 font-bold text-sm underline underline-offset-4 cursor-pointer"
             >
               ← Return to Kamadhenu Honey Farms Home
             </a>

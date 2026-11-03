@@ -89,7 +89,8 @@ function initKamadhenuApp() {
             try {
               localStorage.setItem('kamadhenu_cart', '[]');
             } catch (cartErr) {}
-            window.location.href = `/track-order?orderNumber=${encodeURIComponent(pendingOrder)}&status=confirmed`;
+            localStorage.setItem('kamadhenu_last_order', pendingOrder);
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}&status=confirmed`;
             return;
           }
           if (attempt < 3) {
@@ -1543,8 +1544,8 @@ function initKamadhenuApp() {
             <button class="btn-order-track" data-order-number="${order.orderNumber}" style="flex:1; min-width:130px; padding:7px 12px; background:#ebf8ff; color:#2b6cb0; border:1px solid #bee3f8; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
               🔍 Track Live Status
             </button>
-            <a href="/track-order?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
-              📄 Order Details & Invoice ↗
+            <a href="/order-confirmation?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+              📄 Official Invoice ↗
             </a>
           </div>
 
@@ -3127,7 +3128,7 @@ ${points}
 
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
-          returnUrl: `https://www.kamadhenuhoneyfarms.in/track-order?order_id=${encodeURIComponent(createData.orderNumber)}&orderNumber=${encodeURIComponent(createData.orderNumber)}&status=confirmed`,
+          returnUrl: `https://www.kamadhenuhoneyfarms.in/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&order_id=${encodeURIComponent(createData.orderNumber)}&status=confirmed`,
           redirectTarget: '_modal'
         };
 
@@ -3189,13 +3190,15 @@ ${points}
             currentCoupon = null;
             closeCheckout();
             const targetOrder = verifyData.orderNumber || createData.orderNumber;
-            window.location.href = `/track-order?orderNumber=${encodeURIComponent(targetOrder)}&status=confirmed`;
+            localStorage.setItem('kamadhenu_last_order', targetOrder);
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}&status=confirmed`;
             return true;
           }
 
           if (verifyData && verifyData.pending) {
             closeCheckout();
-            window.location.href = `/track-order?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
+            localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
             return true;
           }
 
@@ -3281,8 +3284,8 @@ ${points}
       setTimeout(() => trackerInput.focus(), 150);
     }
 
-    if (idToUse && typeof prefillOrderId === 'string' && trackerSubmitBtn) {
-      setTimeout(() => trackerSubmitBtn.click(), 200);
+    if (idToUse && trackerSubmitBtn) {
+      setTimeout(() => trackerSubmitBtn.click(), 100);
     }
   };
 
@@ -3369,7 +3372,19 @@ ${points}
                 foundStatus = 'received';
                 foundSteps = ['received'];
               }
-              orderData = { steps: foundSteps, status: foundStatus, date: foundDate, items: o.items, total: o.total };
+              orderData = {
+                steps: foundSteps,
+                status: foundStatus,
+                date: foundDate,
+                items: o.items,
+                total: o.total,
+                paymentStatus: o.paymentStatus || 'PAID',
+                customerName: o.customerName || '',
+                shippingCity: o.shippingCity || '',
+                shippingState: o.shippingState || '',
+                shippingPincode: o.shippingPincode || '',
+                shipment: o.shipment || null
+              };
             }
           } catch (e) {
             console.warn('Live tracking API check error:', e);
@@ -3401,51 +3416,107 @@ ${points}
 
         const itemsContainer = document.getElementById('trackerItemsContainer');
         if (itemsContainer) {
-          if (orderData.items && orderData.items.length > 0) {
-            itemsContainer.innerHTML = `
-              <div style="margin-top:14px; padding-top:12px; border-top:1px dashed rgba(216,166,79,0.4);">
+          const hasItems = orderData.items && orderData.items.length > 0;
+          const invoiceUrl = `/order-confirmation?orderNumber=${encodeURIComponent(orderId)}`;
+          const waUrl = `https://wa.me/919980114675?text=${encodeURIComponent(`Hi Kamadhenu Honey Farms, I have an inquiry about my order ${orderId}`)}`;
+
+          let statusBadgeColor = '#2f855a';
+          let statusBadgeBg = '#c6f6d5';
+          if (foundStatus === 'out-for-delivery') {
+            statusBadgeColor = '#2b6cb0';
+            statusBadgeBg = '#bee3f8';
+          } else if (foundStatus === 'received') {
+            statusBadgeColor = '#b7791f';
+            statusBadgeBg = '#fefcbf';
+          }
+
+          itemsContainer.innerHTML = `
+            <div style="margin-top:16px; padding-top:14px; border-top:1px dashed rgba(216,166,79,0.45); text-align:left;">
+              
+              <!-- Order Details Overview Card -->
+              <div style="background:#FAF8F5; border:1px solid #ebdcc5; border-radius:12px; padding:12px 14px; margin-bottom:14px; font-size:0.82rem; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="color:#786c5e; font-weight:600;">Payment Status</span>
+                  <span style="font-weight:700; color:${statusBadgeColor}; background:${statusBadgeBg}; padding:2px 10px; border-radius:12px; font-size:0.75rem;">
+                    ● ${orderData.paymentStatus || 'CONFIRMED'}
+                  </span>
+                </div>
+                ${orderData.shippingCity ? `
+                  <div style="display:flex; justify-content:space-between; align-items:center; color:#4a5568;">
+                    <span style="color:#786c5e;">Delivery Location</span>
+                    <span style="font-weight:600; color:#2d3748;">${orderData.shippingCity}${orderData.shippingPincode ? ` (${orderData.shippingPincode})` : ''}</span>
+                  </div>
+                ` : ''}
+                ${orderData.shipment && orderData.shipment.courierProvider ? `
+                  <div style="margin-top:4px; padding:7px 10px; background:#ebf8ff; border:1px solid #bee3f8; border-radius:8px; font-size:0.76rem; color:#2b6cb0; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Courier: <b>${orderData.shipment.courierProvider}</b> (${orderData.shipment.trackingNumber || 'Active'})</span>
+                    ${orderData.shipment.trackingUrl ? `<a href="${orderData.shipment.trackingUrl}" target="_blank" rel="noopener noreferrer" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Courier ↗</a>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- Ordered Products List -->
+              ${hasItems ? `
                 <h5 style="font-size:0.85rem; font-weight:700; color:#3A2A18; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Ordered Products</h5>
                 ${orderData.items.map(it => `
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f0eae1; font-size:0.82rem;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f0eae1; font-size:0.82rem;">
                     <div>
                       <span style="font-weight:700; color:#2d3748;">${it.productNameSnapshot || 'Honey'}</span>
                       <span style="color:#718096; margin-left:4px;">(${it.weightVariant})</span>
                     </div>
-                    <span style="font-weight:700; color:#8C6219;">Qty: ${it.quantity}</span>
+                    <div style="text-align:right;">
+                      <span style="font-weight:700; color:#8C6219;">Qty: ${it.quantity}</span>
+                      ${it.totalPrice ? `<span style="color:#718096; font-size:0.78rem; margin-left:8px;">(₹${it.totalPrice})</span>` : ''}
+                    </div>
                   </div>
                 `).join('')}
-                ${orderData.total ? `
-                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:10px 0 6px; font-weight:700; font-size:0.92rem; color:#2d3748; border-top:1px dashed rgba(216,166,79,0.35);">
-                    <span>Total Paid</span>
-                    <span style="color:#8C6219; font-size:1.05rem; font-weight:800; white-space:nowrap; padding-left:12px;">₹${Number(orderData.total).toLocaleString('en-IN')}</span>
-                  </div>
-                ` : ''}
-                <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f0eae1; display:flex; flex-direction:column; gap:8px; align-items:stretch; padding-bottom:24px; margin-bottom:8px;">
-                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; padding:12px 18px; border-radius:12px; font-size:0.85rem; font-weight:700;">
+              ` : ''}
+
+              <!-- Total Paid -->
+              ${orderData.total ? `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:10px 0 6px; font-weight:700; font-size:0.92rem; color:#2d3748; border-top:1px dashed rgba(216,166,79,0.35);">
+                  <span>Total Paid</span>
+                  <span style="color:#8C6219; font-size:1.05rem; font-weight:800; white-space:nowrap; padding-left:12px;">₹${Number(orderData.total).toLocaleString('en-IN')}</span>
+                </div>
+              ` : ''}
+
+              <!-- Primary Action: Official Tax Invoice -->
+              <div style="margin-top:16px; display:flex; flex-direction:column; gap:9px; align-items:stretch;">
+                <a href="${invoiceUrl}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px 18px; background:linear-gradient(135deg, #2d3748, #1a202c); color:#ffffff; border-radius:12px; font-size:0.86rem; font-weight:700; text-decoration:none; box-shadow:0 3px 10px rgba(0,0,0,0.15); transition:all 0.2s ease;">
+                  <span>📄 View & Download Official Tax Invoice</span>
+                  <span style="font-size:0.8rem; opacity:0.85;">↗</span>
+                </a>
+
+                ${hasItems ? `
+                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; padding:11px 18px; border-radius:12px; font-size:0.84rem; font-weight:700; background:linear-gradient(135deg, #d8a64f, #c6923b); color:#ffffff; border:none;">
                     🔁 Reorder These Items
                   </button>
-                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="font-size:0.78rem; color:#8C6219; font-weight:700; text-decoration:underline; text-align:center; padding:6px 0;">
+                ` : ''}
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; font-size:0.78rem;">
+                  <a href="${waUrl}" target="_blank" rel="noopener noreferrer" style="color:#25d366; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                    <span>💬 WhatsApp Farm Help</span>
+                  </a>
+                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="color:#8C6219; font-weight:700; text-decoration:underline;">
                     Review on Google Maps ↗
                   </a>
                 </div>
               </div>
-            `;
+            </div>
+          `;
 
-            const btnTrackerReorder = document.getElementById('btnTrackerReorder');
-            if (btnTrackerReorder) {
-              btnTrackerReorder.addEventListener('click', () => {
-                orderData.items.forEach(it => {
-                  addItemToCart(it.productId, it.weightVariant, it.quantity, false);
-                });
-                renderCart();
-                updateBadges();
-                closeTracker();
-                openCart();
-                showToast(`Added ${orderData.items.length} product(s) to cart for instant reorder!`);
+          const btnTrackerReorder = document.getElementById('btnTrackerReorder');
+          if (btnTrackerReorder && hasItems) {
+            btnTrackerReorder.addEventListener('click', () => {
+              orderData.items.forEach(it => {
+                addItemToCart(it.productId, it.weightVariant, it.quantity, false);
               });
-            }
-          } else {
-            itemsContainer.innerHTML = '';
+              renderCart();
+              updateBadges();
+              closeTracker();
+              openCart();
+              showToast(`Added ${orderData.items.length} product(s) to cart for instant reorder!`);
+            });
           }
         }
 
