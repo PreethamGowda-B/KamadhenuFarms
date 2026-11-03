@@ -14,10 +14,17 @@
   }
 })();
 
-document.addEventListener('DOMContentLoaded', () => {
+function initKamadhenuApp() {
+  if (typeof document !== 'undefined') {
+    document.body.classList.add('loaded');
+    document.body.classList.remove('overflow-hidden');
+    document.body.style.overflow = 'auto';
+  }
+
   // Guard against duplicate script initialization & duplicate DOM event bindings
   if (typeof window !== 'undefined' && window.__KAMADHENU_INITIALIZED__) {
-    console.warn('⚠️ [Kamadhenu Farms] DOM listeners already initialized. Skipping duplicate execution.');
+    console.warn('⚠️ [Kamadhenu Farms] DOM listeners already initialized. Ensuring reveals active.');
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
     return;
   }
   if (typeof window !== 'undefined') {
@@ -79,8 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
           if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
             localStorage.removeItem('kamadhenu_pending_order');
             localStorage.removeItem('kamadhenu_pending_order_time');
-            cart = [];
-            saveCart();
+            try {
+              localStorage.setItem('kamadhenu_cart', '[]');
+            } catch (cartErr) {}
             window.location.href = `/track-order?orderNumber=${encodeURIComponent(pendingOrder)}&status=confirmed`;
             return;
           }
@@ -4483,11 +4491,34 @@ ${points}
       if (typeof initUpcoming3DTilt === 'function') initUpcoming3DTilt();
       if (typeof initUpcomingEntrance === 'function') initUpcomingEntrance();
 
-      setTimeout(() => { if (typeof triggerScrollReveal === 'function') triggerScrollReveal(); }, 400);
       setTimeout(() => { if (typeof addTiltEffect === 'function') addTiltEffect(); }, 800);
       setTimeout(() => { if (typeof addDynamicLighting === 'function') addDynamicLighting(); }, 850);
     }
+
+    // Trigger scroll reveal immediately for all viewports (both desktop and mobile)
+    if (typeof triggerScrollReveal === 'function') {
+      triggerScrollReveal();
+    }
+    setTimeout(() => {
+      if (typeof triggerScrollReveal === 'function') triggerScrollReveal();
+      document.querySelectorAll('.reveal:not(.active)').forEach(el => el.classList.add('active'));
+    }, 400);
   };
 
   initApp();
-});
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initKamadhenuApp);
+  } else {
+    initKamadhenuApp();
+  }
+
+  window.addEventListener('pageshow', () => {
+    document.body.classList.add('loaded');
+    document.body.classList.remove('overflow-hidden');
+    document.body.style.overflow = 'auto';
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
+  });
+}

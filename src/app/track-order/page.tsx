@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import CustomerNotificationBanner from '@/components/CustomerNotificationBanner';
 import {
   Search,
@@ -113,7 +112,11 @@ function TrackOrderContent() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const savedOrder = localStorage.getItem('kamadhenu_last_order') || localStorage.getItem('kamadhenu_pending_order') || '';
+        // Clear pending order flag so returning to home page never causes an unwanted loop
+        localStorage.removeItem('kamadhenu_pending_order');
+        localStorage.removeItem('kamadhenu_pending_order_time');
+
+        const savedOrder = localStorage.getItem('kamadhenu_last_order') || '';
         const savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || '';
         const targetOrd = urlOrderNumber || savedOrder;
         const targetMob = urlMobile || savedMobile;
@@ -309,7 +312,14 @@ function TrackOrderContent() {
              TOP HEADER BRANDING
              =================================================================== */}
         <div className="non-print-section flex flex-col sm:flex-row justify-between items-center pb-4 border-b border-amber-200/60 gap-3">
-          <Link href="/" className="inline-flex items-center gap-2 group">
+          <a
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/';
+            }}
+            className="inline-flex items-center gap-2 group cursor-pointer"
+          >
             <span className="text-2xl">🍯</span>
             <div>
               <span className="font-serif text-lg sm:text-xl font-bold tracking-tight text-amber-950 block">
@@ -319,15 +329,19 @@ function TrackOrderContent() {
                 Apiary & Farm Direct • Taverekere, Bangalore
               </span>
             </div>
-          </Link>
+          </a>
           <div className="flex items-center gap-2">
-            <Link
+            <a
               href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-700 hover:text-amber-800 bg-white border border-amber-200 px-3.5 py-1.5 rounded-full shadow-sm transition"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/';
+              }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-700 hover:text-amber-800 bg-white border border-amber-200 px-3.5 py-1.5 rounded-full shadow-sm transition cursor-pointer"
             >
               <Home className="w-3.5 h-3.5 text-amber-700" />
               <span>Back to Store</span>
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -911,13 +925,17 @@ function TrackOrderContent() {
              BOTTOM RETURN TO HOME LINK
              =================================================================== */}
         <div className="non-print-section text-center pt-4">
-          <Link
+          <a
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-bold text-stone-600 hover:text-amber-800 transition"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = '/';
+            }}
+            className="inline-flex items-center gap-2 text-xs font-bold text-stone-600 hover:text-amber-800 transition cursor-pointer"
           >
             <Home className="w-4 h-4" />
             <span>Return to Kamadhenu Honey Farms Store</span>
-          </Link>
+          </a>
         </div>
       </div>
     </div>

@@ -4162,6 +4162,15 @@ footer {
   transform: translate(0) scale(1);
 }
 
+/* Fail-safe: mobile viewport shows content immediately without waiting for intersection observers */
+@media (max-width: 768px) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+}
+
 /* Custom Animation Keyframes */
 @keyframes float {
   0% {
@@ -4669,7 +4678,8 @@ header.scrolled .logo-bee {
 }
 
 body:not(.loaded) {
-  overflow: hidden;
+  /* Scroll unlocked by default; no locking when preloader is absent */
+  overflow: auto;
 }
 
 /* ==========================================================================

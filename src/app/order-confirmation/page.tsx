@@ -111,6 +111,8 @@ function ConfirmationContent() {
             if (fastData.order.orderNumber) {
               localStorage.setItem('kamadhenu_last_order', fastData.order.orderNumber);
             }
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
           } catch (e) {}
         }
 
