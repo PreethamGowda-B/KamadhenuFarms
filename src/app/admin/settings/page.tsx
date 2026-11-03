@@ -22,6 +22,30 @@ export default function AdminSettingsPage() {
   const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [pushLoading, setPushLoading] = useState(false);
   const [pushStatusMessage, setPushStatusMessage] = useState('');
+  const [testingPush, setTestingPush] = useState(false);
+  const [testResultMessage, setTestResultMessage] = useState('');
+
+  const handleSendTestPush = async () => {
+    try {
+      setTestingPush(true);
+      setTestResultMessage('');
+      const res = await fetch('/api/admin/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'TEST_NOTIFICATION' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestResultMessage(data.message || 'Test notification sent!');
+      } else {
+        setTestResultMessage(data.message || 'Failed to send test alert');
+      }
+    } catch (e: any) {
+      setTestResultMessage(e.message || 'Error triggering test');
+    } finally {
+      setTestingPush(false);
+    }
+  };
 
   useEffect(() => {
     const isSupp = isPushNotificationSupported();
@@ -229,28 +253,54 @@ export default function AdminSettingsPage() {
                       {pushStatusMessage}
                     </p>
                   )}
+                  {testResultMessage && (
+                    <p className="text-[11px] text-amber-800 font-semibold pt-0.5">
+                      {testResultMessage}
+                    </p>
+                  )}
                 </div>
 
-                {pushSupported && pushPermission !== 'granted' && (
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={handleTogglePush}
-                    disabled={pushLoading}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                    onClick={handleSendTestPush}
+                    disabled={testingPush}
+                    className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold text-xs rounded-xl transition border border-stone-300 flex items-center gap-1.5 shrink-0 disabled:opacity-50"
                   >
-                    {pushLoading ? (
+                    {testingPush ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Connecting...</span>
+                        <span>Sending...</span>
                       </>
                     ) : (
                       <>
-                        <BellRing className="w-3.5 h-3.5" />
-                        <span>Enable Push on Device</span>
+                        <Bell className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Send Test Notification</span>
                       </>
                     )}
                   </button>
-                )}
+
+                  {pushSupported && pushPermission !== 'granted' && (
+                    <button
+                      type="button"
+                      onClick={handleTogglePush}
+                      disabled={pushLoading}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                    >
+                      {pushLoading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Connecting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <BellRing className="w-3.5 h-3.5" />
+                          <span>Enable Push on Device</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

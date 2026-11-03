@@ -66,6 +66,72 @@ export async function GET(req: NextRequest) {
 }
 
 /**
+ * POST /api/admin/notifications
+ * Triggers a test notification for the authenticated admin to verify in-portal alerts, audio chime, and Web Push.
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const admin = getAdminSessionFromRequest(req);
+    if (!admin || admin.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, message: '403 Forbidden: Administrator authorization required' },
+        { status: 403 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || 'TEST_NOTIFICATION';
+
+    if (action === 'TEST_NOTIFICATION') {
+      // 1. Create In-Portal Admin Notification
+      const notification = await prisma.adminNotification.create({
+        data: {
+          title: '🔔 Test Notification: Admin System Alert',
+          message: 'Sound and Push notifications are operating normally on Kamadhenu Honey Farms.',
+          type: 'NEW_ORDER',
+          link: '/admin/orders',
+          isRead: false,
+          dedupKey: `test_push_${Date.now()}`,
+        },
+      });
+
+      // 2. Fetch Active Admin FCM Tokens and dispatch Web Push
+      const adminTokens = await prisma.deviceToken.findMany({
+        where: { isAdmin: true, isActive: true },
+        select: { token: true },
+      });
+
+      let pushResult = null;
+      if (adminTokens.length > 0) {
+        const { sendMulticastPush } = await import('@/lib/firebaseAdmin');
+        pushResult = await sendMulticastPush({
+          tokens: adminTokens.map((t) => t.token),
+          title: '🍯 Kamadhenu Farms: Test Alert',
+          body: 'Your device is configured to receive instant real-time order alerts!',
+          clickAction: '/admin/orders',
+          tag: `admin_test_${Date.now()}`,
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Test notification generated. Dispatched to ${adminTokens.length} active admin device(s).`,
+        notification,
+        pushResult,
+      });
+    }
+
+    return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400 });
+  } catch (error: any) {
+    console.error('Failed to trigger test notification:', error);
+    return NextResponse.json(
+      { success: false, message: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * PATCH /api/admin/notifications
  * Marks individual or all notifications as read.
  */
