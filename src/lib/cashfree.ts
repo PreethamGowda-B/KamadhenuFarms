@@ -111,11 +111,11 @@ export async function createCashfreeOrder(params: CashfreeOrderParams): Promise<
 
   let appBaseUrl = (
     process.env.NEXT_PUBLIC_APP_URL ||
-    'https://kamadhenuhoneyfarms.in'
+    'https://www.kamadhenuhoneyfarms.in'
   ).replace(/\/$/, '');
 
-  if (appBaseUrl.includes('vercel.app')) {
-    appBaseUrl = 'https://kamadhenuhoneyfarms.in';
+  if (appBaseUrl.includes('vercel.app') || appBaseUrl === 'https://kamadhenuhoneyfarms.in') {
+    appBaseUrl = 'https://www.kamadhenuhoneyfarms.in';
   }
 
   const returnUrl = params.returnUrl || `${appBaseUrl}/order-confirmation?order_id={order_id}&orderNumber={order_id}`;

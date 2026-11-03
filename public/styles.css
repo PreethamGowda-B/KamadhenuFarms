@@ -3234,9 +3234,9 @@ footer {
   -webkit-backdrop-filter: blur(8px);
   z-index: 1050;
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   justify-content: center !important;
-  padding: 24px 16px !important;
+  padding: 32px 16px 40px !important;
   box-sizing: border-box !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
@@ -3261,7 +3261,7 @@ footer {
   max-height: calc(100dvh - 48px);
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  padding: 36px 28px 30px;
+  padding: 36px 28px 36px;
   text-align: center;
   position: relative;
   transform: translateY(16px);
@@ -5732,18 +5732,18 @@ body:not(.loaded) {
   }
   #trackerModalOverlay {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: center !important;
-    padding: 14px 10px !important;
+    padding: 20px 10px 32px !important;
     overflow-y: auto !important;
   }
   .tracker-modal {
     width: 96% !important;
     max-width: 440px !important;
-    max-height: calc(100dvh - 28px) !important;
+    max-height: calc(100dvh - 32px) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    padding: 26px 18px 22px !important;
+    padding: 26px 18px 30px !important;
     margin: auto !important;
     border-radius: 20px !important;
   }

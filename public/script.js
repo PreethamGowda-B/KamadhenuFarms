@@ -3063,10 +3063,9 @@ ${points}
         const mode = createData.environment === 'production' ? 'production' : 'sandbox';
         const cashfree = getCashfreeSDK(mode) || window.Cashfree({ mode });
 
-        const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent);
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
-          redirectTarget: isMobile ? '_self' : '_modal'
+          redirectTarget: '_modal'
         };
 
         cashfree.checkout(checkoutOptions).then(async (result) => {
@@ -3351,11 +3350,11 @@ ${points}
                     <span style="color:#8C6219; font-size:1.05rem; font-weight:800; white-space:nowrap; padding-left:12px;">₹${Number(orderData.total).toLocaleString('en-IN')}</span>
                   </div>
                 ` : ''}
-                <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f0eae1; display:flex; flex-direction:column; gap:8px; align-items:stretch; padding-bottom:8px;">
-                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; padding:11px 18px; border-radius:12px; font-size:0.85rem; font-weight:700;">
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f0eae1; display:flex; flex-direction:column; gap:8px; align-items:stretch; padding-bottom:24px; margin-bottom:8px;">
+                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; padding:12px 18px; border-radius:12px; font-size:0.85rem; font-weight:700;">
                     🔁 Reorder These Items
                   </button>
-                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="font-size:0.78rem; color:#8C6219; font-weight:700; text-decoration:underline; text-align:center; padding:4px 0;">
+                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="font-size:0.78rem; color:#8C6219; font-weight:700; text-decoration:underline; text-align:center; padding:6px 0;">
                     Review on Google Maps ↗
                   </a>
                 </div>

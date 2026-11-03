@@ -500,21 +500,16 @@ export async function POST(req: NextRequest) {
 
     console.log(`✅ [Cashfree Order Verified] Order ${updatedOrder.orderNumber} successfully marked PAID.`);
 
-    // 7. Send owner WhatsApp notification (fire-and-forget, never blocks customer response)
-    const orderWithDetails = await prisma.order.findUnique({
-      where: { id: updatedOrder.id },
-      include: {
-        customer: { select: { name: true, mobile: true } },
-        shippingAddress: { select: { city: true, pincode: true } },
-        items: { select: { productNameSnapshot: true, weightVariant: true, quantity: true } },
-      },
-    });
+    // 7. Dispatch notifications in background (fire-and-forget, never blocks customer response)
+    const orderWithDetails = {
+      ...updatedOrder,
+      customer: order.customer,
+      shippingAddress: order.shippingAddress,
+      items: order.items,
+    };
 
-    if (orderWithDetails) {
-      // Dispatch centralized real-time admin push + customer push + owner WhatsApp alert
-      notifyAdminNewOrder(orderWithDetails as any).catch((err) => console.warn('Admin push notice error:', err));
-      notifyCustomerOrderConfirmed(orderWithDetails as any).catch((err) => console.warn('Customer push notice error:', err));
-    }
+    notifyAdminNewOrder(orderWithDetails as any).catch((err) => console.warn('Admin push notice error:', err));
+    notifyCustomerOrderConfirmed(orderWithDetails as any).catch((err) => console.warn('Customer push notice error:', err));
 
     // 6. Generate secure customer session token and attach cookie
     const response = NextResponse.json({
