@@ -9,7 +9,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-comp
 
 // Parse configuration from service worker query parameters if passed during registration
 const urlParams = new URL(self.location.href).searchParams;
-const projectId = urlParams.get('projectId') || 'kamadhenu-honey-farms';
+const projectId = urlParams.get('projectId') || 'kmd-farms';
 const messagingSenderId = urlParams.get('messagingSenderId') || '';
 const apiKey = urlParams.get('apiKey') || '';
 const appId = urlParams.get('appId') || '';

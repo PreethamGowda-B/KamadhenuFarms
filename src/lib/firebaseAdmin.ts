@@ -28,7 +28,7 @@ export function getFirebaseAdmin(): Messaging | null {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
     if (serviceAccountJson) {
-      const parsed = JSON.parse(serviceAccountJson);
+      const parsed = typeof serviceAccountJson === 'string' ? JSON.parse(serviceAccountJson) : serviceAccountJson;
       firebaseApp = initializeApp({
         credential: cert(parsed),
       });
@@ -37,7 +37,25 @@ export function getFirebaseAdmin(): Messaging | null {
       return firebaseMessaging;
     }
 
+    if (privateKey && privateKey.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(privateKey.trim());
+        firebaseApp = initializeApp({
+          credential: cert(parsed),
+        });
+        firebaseMessaging = getMessaging(firebaseApp);
+        console.log('✅ [Firebase Admin] Initialized with parsed JSON in FIREBASE_PRIVATE_KEY');
+        return firebaseMessaging;
+      } catch (err) {
+        console.warn('Failed parsing JSON in FIREBASE_PRIVATE_KEY, falling back to string key.');
+      }
+    }
+
     if (projectId && clientEmail && privateKey) {
+      // Clean leading and trailing quotes if present
+      if ((privateKey.startsWith('"') && privateKey.endsWith('"')) || (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
+        privateKey = privateKey.slice(1, -1);
+      }
       // Handle escaped newline characters in Vercel environment variables
       if (privateKey.includes('\\n')) {
         privateKey = privateKey.replace(/\\n/g, '\n');
