@@ -81,17 +81,6 @@ export async function middleware(req: NextRequest) {
   const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.hostname || '').toLowerCase();
   const proto = req.headers.get('x-forwarded-proto') || 'https';
 
-  // 0. CANONICAL DOMAIN & HTTPS ENFORCEMENT:
-  // Redirect www and *.vercel.app aliases to the official canonical origin https://kamadhenuhoneyfarms.in
-  // Preserves dedicated subdomains (admin.* and form.*)
-  const isWww = host === 'www.kamadhenuhoneyfarms.in' || (host.startsWith('www.') && !host.includes('localhost'));
-  const isVercelAlias = host.includes('vercel.app');
-
-  if (isWww || isVercelAlias) {
-    const canonicalUrl = new URL(req.nextUrl.pathname + req.nextUrl.search, 'https://kamadhenuhoneyfarms.in');
-    return NextResponse.redirect(canonicalUrl, 308);
-  }
-
   // Handle CORS Preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
     const origin = req.headers.get('origin') || '*';
