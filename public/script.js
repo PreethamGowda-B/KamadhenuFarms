@@ -54,6 +54,48 @@ document.addEventListener('DOMContentLoaded', () => {
       throw err;
     }
   };
+
+  // Automatic reconciliation for mobile payments (e.g. after customer returns from PhonePe/GPay app)
+  const checkPendingOrderReconciliation = async () => {
+    try {
+      const pendingOrder = localStorage.getItem('kamadhenu_pending_order');
+      const pendingTime = parseInt(localStorage.getItem('kamadhenu_pending_order_time') || '0', 10);
+      if (!pendingOrder || !pendingTime || (Date.now() - pendingTime) > 15 * 60 * 1000) {
+        return;
+      }
+
+      if (window._isReconcilingPendingOrder) return;
+      window._isReconcilingPendingOrder = true;
+
+      const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber: pendingOrder })
+      }, 8000);
+
+      const data = await verifyRes.json();
+      if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+        localStorage.removeItem('kamadhenu_pending_order');
+        localStorage.removeItem('kamadhenu_pending_order_time');
+        cart = [];
+        saveCart();
+        window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}`;
+      }
+    } catch (e) {
+      // Background reconciliation error - ignore silently
+    } finally {
+      window._isReconcilingPendingOrder = false;
+    }
+  };
+
+  // Run auto-reconciliation on page load and whenever user returns from UPI app
+  checkPendingOrderReconciliation();
+  window.addEventListener('focus', checkPendingOrderReconciliation);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkPendingOrderReconciliation();
+    }
+  });
   
   // Brand Configuration
   const PRIMARY_WHATSAPP = '919980114675';
@@ -3058,6 +3100,8 @@ ${points}
         try {
           localStorage.setItem('kamadhenu_customer_mobile', cleanMobile);
           localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
+          localStorage.setItem('kamadhenu_pending_order', createData.orderNumber);
+          localStorage.setItem('kamadhenu_pending_order_time', String(Date.now()));
         } catch (e) {}
 
         const mode = createData.environment === 'production' ? 'production' : 'sandbox';
@@ -3065,28 +3109,11 @@ ${points}
 
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
+          returnUrl: `https://www.kamadhenuhoneyfarms.in/order-confirmation?order_id=${encodeURIComponent(createData.orderNumber)}&orderNumber=${encodeURIComponent(createData.orderNumber)}`,
           redirectTarget: '_modal'
         };
 
-        cashfree.checkout(checkoutOptions).then(async (result) => {
-          if (result.error) {
-            console.error('Cashfree checkout modal error:', result.error);
-            showCheckoutError(result.error.message || 'Payment was cancelled or encountered an error.');
-            isCheckoutSubmitting = false;
-            checkoutSubmitBtn.disabled = false;
-            const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
-            if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
-            renderCheckoutSummary();
-            return;
-          }
-
-          if (result.redirect) {
-            console.log('Cashfree SDK is handling redirection to payment gateway...');
-            // Cashfree handles navigation directly to the payment page. Do NOT manually navigate!
-            return;
-          }
-
-          // Payment completed in modal: Verify with backend
+        const verifyPaymentWithBackend = async () => {
           checkoutSubmitBtn.disabled = true;
           const mobileStickyPayBtnModal = document.getElementById('mobileStickyPayBtn');
           if (mobileStickyPayBtnModal) mobileStickyPayBtnModal.disabled = true;
@@ -3094,88 +3121,113 @@ ${points}
           const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
           if (mobileStickyPayBtnText) mobileStickyPayBtnText.textContent = 'Verifying...';
 
-          try {
-            let verifyData = null;
-            let verifySuccess = false;
+          let verifyData = null;
+          let verifySuccess = false;
 
-            // Retry verification up to 3 times to handle network/replication latency
-            for (let attempt = 1; attempt <= 3; attempt++) {
-              try {
-                if (checkoutSubmitBtnText) {
-                  checkoutSubmitBtnText.textContent = attempt === 1
-                    ? 'Verifying payment with bank...'
-                    : `Confirming payment (attempt ${attempt}/3)...`;
-                }
+          for (let attempt = 1; attempt <= 4; attempt++) {
+            try {
+              if (checkoutSubmitBtnText) {
+                checkoutSubmitBtnText.textContent = attempt === 1
+                  ? 'Verifying payment with bank...'
+                  : `Confirming payment (attempt ${attempt}/4)...`;
+              }
 
-                const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    orderNumber: createData.orderNumber,
-                    orderId: createData.orderId,
-                    cashfreeOrderId: createData.cashfreeOrderId
-                  })
-                }, 15000);
+              const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderNumber: createData.orderNumber,
+                  orderId: createData.orderId,
+                  cashfreeOrderId: createData.cashfreeOrderId
+                })
+              }, 12000);
 
-                const data = await verifyRes.json();
-                if (data.success || data.pending) {
-                  verifyData = data;
-                  verifySuccess = true;
-                  break;
-                } else if (attempt < 3 && (verifyRes.status === 404 || verifyRes.status === 202)) {
-                  await new Promise(r => setTimeout(r, 1000));
-                } else {
-                  verifyData = data;
-                  break;
-                }
-              } catch (retryErr) {
-                if (attempt < 3) {
-                  await new Promise(r => setTimeout(r, 1000));
-                } else {
-                  throw retryErr;
-                }
+              const data = await verifyRes.json();
+              if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+                verifyData = data;
+                verifySuccess = true;
+                break;
+              } else if (attempt < 4 && (verifyRes.status === 404 || verifyRes.status === 202 || data.pending)) {
+                await new Promise(r => setTimeout(r, 1200));
+              } else {
+                verifyData = data;
+                if (data.success) verifySuccess = true;
+                break;
+              }
+            } catch (retryErr) {
+              if (attempt < 4) {
+                await new Promise(r => setTimeout(r, 1000));
+              } else {
+                throw retryErr;
               }
             }
+          }
 
-            if (verifySuccess && verifyData && verifyData.success) {
-              cart = [];
-              saveCart();
-              currentCoupon = null;
-              closeCheckout();
-              const targetOrder = verifyData.orderNumber || createData.orderNumber;
-              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}`;
-              return;
+          if (verifySuccess && verifyData && verifyData.success) {
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
+            cart = [];
+            saveCart();
+            currentCoupon = null;
+            closeCheckout();
+            const targetOrder = verifyData.orderNumber || createData.orderNumber;
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}`;
+            return true;
+          }
+
+          if (verifyData && verifyData.pending) {
+            closeCheckout();
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
+            return true;
+          }
+
+          return false;
+        };
+
+        cashfree.checkout(checkoutOptions).then(async (result) => {
+          // If modal reported an error (or user switched/closed modal), FIRST verify if payment succeeded in bank
+          if (result && result.error) {
+            console.log('Cashfree modal event received, verifying payment state with backend...');
+            const isConfirmed = await verifyPaymentWithBackend();
+            if (!isConfirmed) {
+              localStorage.removeItem('kamadhenu_pending_order');
+              localStorage.removeItem('kamadhenu_pending_order_time');
+              showCheckoutError(result.error.message || 'Payment was cancelled or not completed.');
+              isCheckoutSubmitting = false;
+              checkoutSubmitBtn.disabled = false;
+              const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+              if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
+              renderCheckoutSummary();
             }
+            return;
+          }
 
-            // If verify reported explicit failure (e.g. card declined / cancelled)
-            if (verifyData && verifyData.failed) {
-              throw new Error(verifyData.message || 'Payment was declined or cancelled. Please try again.');
-            }
+          if (result && result.redirect) {
+            console.log('Cashfree SDK is handling redirection to payment gateway...');
+            // In case of app-switch on mobile, verify as soon as the user returns to this window
+            const onReturnFocus = async () => {
+              window.removeEventListener('focus', onReturnFocus);
+              await verifyPaymentWithBackend();
+            };
+            window.addEventListener('focus', onReturnFocus);
+            return;
+          }
 
-            if (verifyData && verifyData.pending) {
-              closeCheckout();
-              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
-              return;
-            }
-
-            throw new Error((verifyData && verifyData.message) || 'Payment verification could not be completed. Please check your bank.');
-          } catch (vErr) {
-            console.error('Payment verification error:', vErr);
-            showCheckoutError(vErr.message || `Payment completed on Cashfree but verification timed out. If money was deducted, your order will be confirmed shortly.`);
+          // Modal completed payment
+          await verifyPaymentWithBackend();
+        }).catch(async (cfErr) => {
+          console.error('Cashfree checkout exception, checking payment status:', cfErr);
+          const isConfirmed = await verifyPaymentWithBackend();
+          if (!isConfirmed) {
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
+            showCheckoutError(cfErr?.message || 'Payment window closed.');
             isCheckoutSubmitting = false;
             checkoutSubmitBtn.disabled = false;
             const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
             if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
             renderCheckoutSummary();
           }
-        }).catch((cfErr) => {
-          console.error('Cashfree checkout exception:', cfErr);
-          showCheckoutError(cfErr.message || 'Payment window closed or encountered an error.');
-          isCheckoutSubmitting = false;
-          checkoutSubmitBtn.disabled = false;
-          const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
-          if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
-          renderCheckoutSummary();
         });
 
       } catch (err) {
