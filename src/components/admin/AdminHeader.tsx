@@ -74,8 +74,10 @@ export default function AdminHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [pushRegistering, setPushRegistering] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isPushNotificationSupported()) {
       setPushPermission('unsupported');
     } else {
@@ -191,7 +193,7 @@ export default function AdminHeader() {
                 <Volume2 className="w-4 h-4 text-amber-600" />
               )}
               <span className="text-[11px] font-bold hidden md:inline">
-                {soundMuted ? 'Muted' : 'Sound On'}
+                {mounted ? (soundMuted ? 'Muted' : 'Sound On') : 'Sound'}
               </span>
             </button>
 
@@ -202,17 +204,17 @@ export default function AdminHeader() {
                 className={`relative p-2 rounded-xl border transition-all ${
                   dropdownOpen
                     ? 'bg-amber-500 text-amber-950 border-amber-600 shadow-md'
-                    : unreadCount > 0
+                    : mounted && unreadCount > 0
                     ? 'bg-white text-stone-800 border-amber-300 hover:bg-amber-50 shadow-sm'
                     : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-50'
                 }`}
                 title={`Admin Notifications (${unreadCount} unread)`}
                 aria-label="Toggle notifications menu"
               >
-                <Bell className={`w-4 h-4 ${unreadCount > 0 ? 'text-amber-700 animate-bounce' : 'text-stone-600'}`} />
+                <Bell className={`w-4 h-4 ${mounted && unreadCount > 0 ? 'text-amber-700 animate-bounce' : 'text-stone-600'}`} />
 
                 {/* Animated Unread Badge */}
-                {unreadCount > 0 && (
+                {mounted && unreadCount > 0 && (
                   <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-amber-600 text-white font-mono font-bold text-[10px] rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-pulse">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>

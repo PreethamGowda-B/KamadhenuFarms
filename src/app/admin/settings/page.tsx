@@ -24,6 +24,7 @@ export default function AdminSettingsPage() {
   const [pushStatusMessage, setPushStatusMessage] = useState('');
   const [testingPush, setTestingPush] = useState(false);
   const [testResultMessage, setTestResultMessage] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   const handleSendTestPush = async () => {
     try {
@@ -48,6 +49,7 @@ export default function AdminSettingsPage() {
   };
 
   useEffect(() => {
+    setMounted(true);
     const isSupp = isPushNotificationSupported();
     setPushSupported(isSupp);
     if (isSupp) {
@@ -230,18 +232,24 @@ export default function AdminSettingsPage() {
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-stone-900">Browser Web Push (FCM Background Alerts)</span>
-                    {pushPermission === 'granted' ? (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Active on this device
-                      </span>
-                    ) : pushPermission === 'denied' ? (
-                      <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">
-                        Blocked by Browser
-                      </span>
+                    {mounted ? (
+                      pushPermission === 'granted' ? (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Active on this device
+                        </span>
+                      ) : pushPermission === 'denied' ? (
+                        <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">
+                          Blocked by Browser
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                          Not Enabled
+                        </span>
+                      )
                     ) : (
-                      <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full">
-                        Not Enabled
+                      <span className="text-[10px] bg-stone-100 text-stone-600 font-bold px-2 py-0.5 rounded-full">
+                        Checking...
                       </span>
                     )}
                   </div>

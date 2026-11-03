@@ -78,6 +78,12 @@ async function verifyJwtEdge(token: string | undefined, expectedRole: string): P
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // 0. Static Service Worker Bypass: Never redirect or intercept Web Push service worker on any domain/subdomain
+  if (pathname === '/firebase-messaging-sw.js' || pathname.startsWith('/firebase-messaging-sw.js')) {
+    return NextResponse.next();
+  }
+
   const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.hostname || '').toLowerCase();
   const proto = req.headers.get('x-forwarded-proto') || 'https';
 
@@ -292,8 +298,8 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except static assets
+     * Match all request paths except static assets and service workers
      */
-    '/((?!_next/static|_next/image|favicon|apple-touch-icon|android-chrome|icon|apple-icon|site\\.webmanifest|robots\\.txt|sitemap\\.xml|assets/|styles\\.css|script\\.js).*)',
+    '/((?!_next/static|_next/image|favicon|apple-touch-icon|android-chrome|icon|apple-icon|site\\.webmanifest|robots\\.txt|sitemap\\.xml|assets/|styles\\.css|script\\.js|firebase-messaging-sw\\.js).*)',
   ],
 };
