@@ -92,7 +92,41 @@ function ConfirmationContent() {
 
   const verifyAndLoadInvoice = async () => {
     setLoading(true);
-    let orderLoaded = false;
+
+    // 1. Instant Direct Load: Fetch official invoice directly from DB (instant ~40ms if already confirmed)
+    try {
+      const fastRes = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`, {
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      const fastData = await fastRes.json();
+      if (fastData.success && fastData.order) {
+        setOrder(fastData.order);
+        setLoading(false);
+
+        if (typeof window !== 'undefined') {
+          try {
+            if (fastData.order.customer?.mobile) {
+              localStorage.setItem('kamadhenu_customer_mobile', fastData.order.customer.mobile);
+            }
+            if (fastData.order.orderNumber) {
+              localStorage.setItem('kamadhenu_last_order', fastData.order.orderNumber);
+            }
+          } catch (e) {}
+        }
+
+        // Fire verify in background to ensure customer session cookie is attached
+        fetch('/api/checkout/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderNumber }),
+        }).catch(() => {});
+        return;
+      }
+    } catch (e) {
+      // Fallback to active verification
+    }
+
+    // 2. If order status is pending or not yet verified in DB, trigger payment verification
     try {
       const verifyRes = await fetch('/api/checkout/verify', {
         method: 'POST',
@@ -113,45 +147,44 @@ function ConfirmationContent() {
             }
           } catch (e) {}
         }
-        orderLoaded = true;
+        return;
       }
     } catch (e) {
       console.warn('Verify call on confirmation page:', e);
     }
 
-    if (!orderLoaded) {
-      try {
-        let attempts = 0;
-        let invoiceData = null;
-        while (attempts < 2) {
-          attempts++;
-          const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
-          const data = await res.json();
-          if (data.success && data.order) {
-            invoiceData = data.order;
-            break;
-          }
-          if (attempts < 2) await new Promise((r) => setTimeout(r, 600));
+    // 3. Polling retry loop if payment is still settling with bank
+    try {
+      let attempts = 0;
+      let invoiceData = null;
+      while (attempts < 3) {
+        attempts++;
+        await new Promise((r) => setTimeout(r, 600));
+        const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
+        const data = await res.json();
+        if (data.success && data.order) {
+          invoiceData = data.order;
+          break;
         }
-
-        if (invoiceData) {
-          setOrder(invoiceData);
-          if (typeof window !== 'undefined') {
-            try {
-              if (invoiceData.customer?.mobile) {
-                localStorage.setItem('kamadhenu_customer_mobile', invoiceData.customer.mobile);
-              }
-              if (invoiceData.orderNumber) {
-                localStorage.setItem('kamadhenu_last_order', invoiceData.orderNumber);
-              }
-            } catch (e) {}
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load order invoice details', err);
-      } finally {
-        setLoading(false);
       }
+
+      if (invoiceData) {
+        setOrder(invoiceData);
+        if (typeof window !== 'undefined') {
+          try {
+            if (invoiceData.customer?.mobile) {
+              localStorage.setItem('kamadhenu_customer_mobile', invoiceData.customer.mobile);
+            }
+            if (invoiceData.orderNumber) {
+              localStorage.setItem('kamadhenu_last_order', invoiceData.orderNumber);
+            }
+          } catch (e) {}
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load order invoice details', err);
+    } finally {
+      setLoading(false);
     }
   };
 

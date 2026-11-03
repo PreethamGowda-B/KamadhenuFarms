@@ -3346,16 +3346,16 @@ ${points}
                   </div>
                 `).join('')}
                 ${orderData.total ? `
-                  <div style="display:flex; justify-content:space-between; margin-top:8px; font-weight:700; font-size:0.88rem; color:#2d3748;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:10px 0 6px; font-weight:700; font-size:0.92rem; color:#2d3748; border-top:1px dashed rgba(216,166,79,0.35);">
                     <span>Total Paid</span>
-                    <span style="color:#8C6219;">₹${orderData.total}</span>
+                    <span style="color:#8C6219; font-size:1.05rem; font-weight:800; white-space:nowrap; padding-left:12px;">₹${Number(orderData.total).toLocaleString('en-IN')}</span>
                   </div>
                 ` : ''}
-                <div style="margin-top:12px; padding-top:10px; border-top:1px solid #f0eae1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer;">
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid #f0eae1; display:flex; flex-direction:column; gap:8px; align-items:stretch; padding-bottom:8px;">
+                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; padding:11px 18px; border-radius:12px; font-size:0.85rem; font-weight:700;">
                     🔁 Reorder These Items
                   </button>
-                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem; color:#8C6219; font-weight:700; text-decoration:underline;">
+                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="font-size:0.78rem; color:#8C6219; font-weight:700; text-decoration:underline; text-align:center; padding:4px 0;">
                     Review on Google Maps ↗
                   </a>
                 </div>
