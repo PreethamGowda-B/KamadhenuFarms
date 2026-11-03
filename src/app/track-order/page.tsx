@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import CustomerNotificationBanner from '@/components/CustomerNotificationBanner';
 import {
   Search,
   Package,
@@ -307,6 +308,11 @@ function TrackOrderContent() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Live Delivery Push Notification Permission Banner */}
+        {orderData && (
+          <CustomerNotificationBanner orderNumber={orderData.orderNumber} />
         )}
 
         {/* Back Link */}

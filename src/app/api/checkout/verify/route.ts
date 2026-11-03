@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { getCashfreeOrder, getCashfreeOrderPayments, CashfreePaymentEntity } from '@/lib/cashfree';
 import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
 import { sendOwnerOrderNotification } from '@/lib/ownerNotification';
+import {
+  notifyAdminNewOrder,
+  notifyCustomerOrderConfirmed,
+  notifyCustomerPaymentFailed,
+} from '@/lib/notifications';
 
 function formatOrderResponse(order: any, paymentDetails?: any) {
   const latestPayment = paymentDetails || (order.payments && order.payments[0]) || null;
@@ -275,7 +280,7 @@ export async function POST(req: NextRequest) {
           data: { paymentStatus: 'FAILED' },
         });
 
-        // Log failed payment alert for admin (idempotent)
+        // Log failed payment alert for admin & customer (idempotent)
         const firstName = order.customer?.name ? String(order.customer.name).trim().split(' ')[0] : 'Customer';
         await prisma.adminNotification.upsert({
           where: { dedupKey: `PAYMENT_FAILED:${order.orderNumber}` },
@@ -288,6 +293,8 @@ export async function POST(req: NextRequest) {
             dedupKey: `PAYMENT_FAILED:${order.orderNumber}`,
           },
         }).catch((e) => console.warn('Failed to record admin payment failed notification:', e));
+
+        notifyCustomerPaymentFailed(order).catch((e) => console.warn('Customer failed payment notice error:', e));
 
         return NextResponse.json(
           {
@@ -504,20 +511,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (orderWithDetails) {
-      sendOwnerOrderNotification({
-        orderNumber: orderWithDetails.orderNumber,
-        customerName: orderWithDetails.customer.name,
-        customerMobile: orderWithDetails.customer.mobile,
-        total: orderWithDetails.total,
-        paymentMethod: orderWithDetails.paymentMethod,
-        items: orderWithDetails.items.map((i) => ({
-          productName: i.productNameSnapshot,
-          weightVariant: i.weightVariant,
-          quantity: i.quantity,
-        })),
-        city: orderWithDetails.shippingAddress.city,
-        pincode: orderWithDetails.shippingAddress.pincode,
-      }).catch(() => {}); // explicit fire-and-forget
+      // Dispatch centralized real-time admin push + customer push + owner WhatsApp alert
+      notifyAdminNewOrder(orderWithDetails as any).catch((err) => console.warn('Admin push notice error:', err));
+      notifyCustomerOrderConfirmed(orderWithDetails as any).catch((err) => console.warn('Customer push notice error:', err));
     }
 
     // 6. Generate secure customer session token and attach cookie

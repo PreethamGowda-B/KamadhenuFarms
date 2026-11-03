@@ -19,8 +19,16 @@ import {
   Clock,
   Sparkles,
   Shield,
+  BellRing,
+  Loader2,
 } from 'lucide-react';
 import { useAdminNotifications, AdminNotificationItem } from '@/lib/useAdminNotifications';
+import {
+  isPushNotificationSupported,
+  getNotificationPermissionState,
+  requestPushToken,
+  getClientDeviceInfo,
+} from '@/lib/firebaseClient';
 
 function formatTimeAgo(dateString: string): string {
   try {
@@ -64,6 +72,40 @@ export default function AdminHeader() {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [pushRegistering, setPushRegistering] = useState(false);
+
+  useEffect(() => {
+    if (!isPushNotificationSupported()) {
+      setPushPermission('unsupported');
+    } else {
+      setPushPermission(getNotificationPermissionState());
+    }
+  }, []);
+
+  const handleEnablePush = async () => {
+    try {
+      setPushRegistering(true);
+      const res = await requestPushToken();
+      setPushPermission(res.permission);
+      if (res.token) {
+        const deviceInfo = getClientDeviceInfo();
+        await fetch('/api/admin/notifications/register-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: res.token,
+            deviceType: deviceInfo.deviceType,
+            browser: deviceInfo.browser,
+          }),
+        });
+      }
+    } catch (e) {
+      console.warn('Admin push activation error:', e);
+    } finally {
+      setPushRegistering(false);
+    }
+  };
 
   const {
     notifications,
@@ -191,16 +233,44 @@ export default function AdminHeader() {
                       )}
                     </div>
 
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllAsRead}
-                        className="text-[11px] font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 hover:underline transition"
-                        title="Mark all notifications as read"
-                      >
-                        <CheckCheck className="w-3.5 h-3.5" />
-                        <span>Mark all read</span>
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {pushPermission === 'granted' ? (
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Push Active
+                        </span>
+                      ) : pushPermission !== 'unsupported' ? (
+                        <button
+                          onClick={handleEnablePush}
+                          disabled={pushRegistering}
+                          className="text-[10px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1 transition shadow-2xs disabled:opacity-50"
+                          title="Receive background order alerts even when tab is closed"
+                        >
+                          {pushRegistering ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin text-amber-700" />
+                              <span>Enabling...</span>
+                            </>
+                          ) : (
+                            <>
+                              <BellRing className="w-3 h-3 text-amber-700" />
+                              <span>Enable Push</span>
+                            </>
+                          )}
+                        </button>
+                      ) : null}
+
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="text-[11px] font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 hover:underline transition"
+                          title="Mark all notifications as read"
+                        >
+                          <CheckCheck className="w-3.5 h-3.5" />
+                          <span>Mark all read</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Notification List */}

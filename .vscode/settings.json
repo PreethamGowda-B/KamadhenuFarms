@@ -97,5 +97,6 @@
     "pgbouncer",
     "Lenskart",
     "Namaste"
-  ]
+  ],
+  "python.terminal.useEnvFile": true
 }

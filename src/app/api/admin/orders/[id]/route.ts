@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAdminSessionFromRequest } from '@/lib/auth';
+import {
+  notifyCustomerOrderProcessing,
+  notifyCustomerOrderPacked,
+  notifyCustomerOrderDelivered,
+} from '@/lib/notifications';
 
 export async function GET(
   req: NextRequest,
@@ -130,6 +135,18 @@ export async function PATCH(
         }),
       },
     });
+
+    // Customer Lifecycle Push Notification triggers on status changes
+    const newEffectiveStatus = updateData.orderStatus || orderStatus;
+    if (newEffectiveStatus && newEffectiveStatus !== currentOrder.orderStatus) {
+      if (newEffectiveStatus === 'PROCESSING') {
+        notifyCustomerOrderProcessing(updatedOrder as any).catch((e) => console.warn('Customer push notice:', e));
+      } else if (newEffectiveStatus === 'PACKED') {
+        notifyCustomerOrderPacked(updatedOrder as any).catch((e) => console.warn('Customer push notice:', e));
+      } else if (newEffectiveStatus === 'DELIVERED') {
+        notifyCustomerOrderDelivered(updatedOrder as any).catch((e) => console.warn('Customer push notice:', e));
+      }
+    }
 
     return NextResponse.json({ success: true, order: updatedOrder });
   } catch (error: any) {

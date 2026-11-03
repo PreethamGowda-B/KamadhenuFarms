@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAdminSessionFromRequest } from '@/lib/auth';
+import { notifyCustomerOrderShipped } from '@/lib/notifications';
 
 export async function POST(
   req: NextRequest,
@@ -72,6 +73,10 @@ export async function POST(
         },
       }),
     ]);
+
+    // Dispatch Customer Push Notification for order shipment
+    notifyCustomerOrderShipped(updatedOrder as any, courierProvider, trackingNumber)
+      .catch((err) => console.warn('Customer shipment push error:', err));
 
     return NextResponse.json({
       success: true,

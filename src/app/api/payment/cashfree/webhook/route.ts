@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyCashfreeWebhookSignature } from '@/lib/cashfree';
+import {
+  notifyAdminNewOrder,
+  notifyCustomerOrderConfirmed,
+  notifyCustomerPaymentFailed,
+} from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   return NextResponse.json(
@@ -239,6 +244,22 @@ export async function POST(req: NextRequest) {
       });
 
       console.log(`✅ [Cashfree Webhook] Order ${order.orderNumber} successfully marked PAID.`);
+
+      // Fire centralized push notifications (Admin FCM + Customer FCM)
+      const orderWithDetails = await prisma.order.findUnique({
+        where: { id: order.id },
+        include: {
+          customer: { select: { name: true, mobile: true, email: true } },
+          shippingAddress: { select: { city: true, pincode: true } },
+          items: { select: { productNameSnapshot: true, weightVariant: true, quantity: true } },
+        },
+      });
+
+      if (orderWithDetails) {
+        notifyAdminNewOrder(orderWithDetails as any).catch((e) => console.warn('Webhook admin push notice:', e));
+        notifyCustomerOrderConfirmed(orderWithDetails as any).catch((e) => console.warn('Webhook customer push notice:', e));
+      }
+
       return NextResponse.json({ success: true, status: 'processed' });
     }
 
@@ -269,6 +290,7 @@ export async function POST(req: NextRequest) {
         }).catch((e) => console.warn('Failed to record webhook admin notification for failed payment:', e));
 
         console.warn(`⚠️ [Cashfree Webhook] Payment failed marked for order ${order.orderNumber}`);
+        notifyCustomerPaymentFailed(order as any).catch((e) => console.warn('Webhook customer failed payment push notice:', e));
       }
       return NextResponse.json({ success: true, status: 'marked_failed' });
     }

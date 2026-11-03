@@ -486,6 +486,7 @@ model Customer {
   referralUsagesAsReferred ReferralUsage[]   @relation("ReferredCustomerUsages")
   referralOffers           ReferralOffer[]   @relation("ReferrerCustomerOffers")
   sessions                 CustomerSession[]
+  deviceTokens             DeviceToken[]
   createdAt                DateTime   @default(now())
   updatedAt                DateTime   @updatedAt
 
@@ -724,6 +725,53 @@ model ProductInventory {
   createdAt             DateTime          @default(now())
 
   @@index([stockStatus])
+}
+
+// ============================================================================
+// FIREBASE CLOUD MESSAGING (FCM) TOKENS & NOTIFICATION DELIVERY LOGS
+// ============================================================================
+
+model DeviceToken {
+  id           String    @id @default(cuid())
+  token        String    @unique
+  deviceType   String?   // 'desktop', 'mobile', 'tablet'
+  browser      String?   // 'chrome', 'safari', 'firefox', 'edge'
+  userAgent    String?
+  
+  // Polymorphic owner: Customer OR Admin
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  isAdmin      Boolean   @default(false)
+  adminEmail   String?
+
+  isActive     Boolean   @default(true)
+  lastUsedAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([isAdmin])
+  @@index([token])
+  @@index([adminEmail])
+}
+
+model NotificationDeliveryLog {
+  id           String    @id @default(cuid())
+  orderId      String?
+  orderNumber  String?
+  eventType    String    // ORDER_CONFIRMED, ORDER_PROCESSING, ORDER_PACKED, ORDER_SHIPPED, ORDER_DELIVERED, PAYMENT_FAILED
+  recipient    String    // customerId or adminEmail
+  channel      String    @default("FCM") // FCM, WHATSAPP, EMAIL
+  status       String    @default("SENT") // SENT, FAILED, SKIPPED
+  errorMessage String?
+  sentAt       DateTime  @default(now())
+
+  @@unique([orderId, eventType, recipient, channel])
+  @@index([orderId])
+  @@index([recipient])
+  @@index([eventType])
+  @@index([sentAt])
 }
 
 

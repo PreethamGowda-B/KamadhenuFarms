@@ -1,8 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Key, Mail, Bell, Lock, Save, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Key, Mail, Bell, Lock, Save, CheckCircle2, BellRing, Loader2 } from 'lucide-react';
+import {
+  isPushNotificationSupported,
+  getNotificationPermissionState,
+  requestPushToken,
+  getClientDeviceInfo,
+} from '@/lib/firebaseClient';
 
 export default function AdminSettingsPage() {
   const [email, setEmail] = useState('admin@kamadhenuhoneyfarms.in');
@@ -12,6 +18,51 @@ export default function AdminSettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [whatsAppNotifications, setWhatsAppNotifications] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushStatusMessage, setPushStatusMessage] = useState('');
+
+  useEffect(() => {
+    const isSupp = isPushNotificationSupported();
+    setPushSupported(isSupp);
+    if (isSupp) {
+      setPushPermission(getNotificationPermissionState());
+    } else {
+      setPushPermission('unsupported');
+    }
+  }, []);
+
+  const handleTogglePush = async () => {
+    try {
+      setPushLoading(true);
+      setPushStatusMessage('');
+      const res = await requestPushToken();
+      setPushPermission(res.permission);
+      if (res.token) {
+        const deviceInfo = getClientDeviceInfo();
+        const apiRes = await fetch('/api/admin/notifications/register-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: res.token,
+            deviceType: deviceInfo.deviceType,
+            browser: deviceInfo.browser,
+          }),
+        });
+        const data = await apiRes.json();
+        if (data.success) {
+          setPushStatusMessage('Device registered successfully for instant order push alerts!');
+        }
+      } else if (res.error) {
+        setPushStatusMessage(res.error);
+      }
+    } catch (e: any) {
+      setPushStatusMessage(e.message || 'Failed to enable push');
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +200,58 @@ export default function AdminSettingsPage() {
                 />
                 <span>Send automated WhatsApp confirmation to candidates on status changes.</span>
               </label>
+
+              {/* Browser Push Notifications (FCM) */}
+              <div className="pt-3 border-t border-gold-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-stone-900">Browser Web Push (FCM Background Alerts)</span>
+                    {pushPermission === 'granted' ? (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Active on this device
+                      </span>
+                    ) : pushPermission === 'denied' ? (
+                      <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">
+                        Blocked by Browser
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                        Not Enabled
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Receive instant alerts on your desktop or mobile whenever an online customer places an order, even if the admin tab is closed.
+                  </p>
+                  {pushStatusMessage && (
+                    <p className="text-[11px] text-emerald-700 font-semibold pt-0.5">
+                      {pushStatusMessage}
+                    </p>
+                  )}
+                </div>
+
+                {pushSupported && pushPermission !== 'granted' && (
+                  <button
+                    type="button"
+                    onClick={handleTogglePush}
+                    disabled={pushLoading}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                  >
+                    {pushLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Connecting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <BellRing className="w-3.5 h-3.5" />
+                        <span>Enable Push on Device</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

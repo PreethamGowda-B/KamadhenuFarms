@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import CustomerNotificationBanner from '@/components/CustomerNotificationBanner';
 import {
   CheckCircle2,
   Download,
@@ -592,6 +593,9 @@ function ConfirmationContent() {
             </a>
           </div>
         </div>
+
+        {/* Live Delivery Push Notification Permission Banner */}
+        <CustomerNotificationBanner orderNumber={displayOrderNum} />
 
         {/* ==============================================================
              OFFICIAL SCROLLING TAX INVOICE & RECEIPT (DOWNLOADABLE / PRINTABLE)
