@@ -444,34 +444,36 @@ function initKamadhenuApp() {
   const heroContent = document.querySelector('.hero-content');
 
   let isScrollScheduled = false;
+  let lastScrolledState = null;
+  let lastBackToTopState = null;
   const handleScrollThrottled = () => {
     if (!isScrollScheduled) {
       window.requestAnimationFrame(() => {
         const scrollY = window.scrollY;
-        // 1. Header scrolled state
+        // 1. Header scrolled state (only touch DOM on threshold state changes)
         if (header) {
-          if (scrollY > 50) {
-            header.classList.add('scrolled');
-          } else {
-            header.classList.remove('scrolled');
+          const isScrolled = scrollY > 40;
+          if (isScrolled !== lastScrolledState) {
+            header.classList.toggle('scrolled', isScrolled);
+            lastScrolledState = isScrolled;
           }
         }
-        // 2. Back to top button visibility
+        // 2. Back to top button visibility (only touch DOM on threshold state changes)
         if (backToTopBtn) {
-          if (scrollY > 600) {
-            backToTopBtn.classList.add('visible');
-          } else {
-            backToTopBtn.classList.remove('visible');
+          const isTopVisible = scrollY > 600;
+          if (isTopVisible !== lastBackToTopState) {
+            backToTopBtn.classList.toggle('visible', isTopVisible);
+            lastBackToTopState = isTopVisible;
           }
         }
-        // 3. Hero parallax using translate3d for GPU compositor execution
-        if (window.innerWidth >= 768 && scrollY < window.innerHeight) {
+        // 3. Hero subtle parallax using translate3d for GPU compositor execution on desktop
+        if (window.innerWidth >= 992 && scrollY < window.innerHeight) {
           if (heroMedia) {
-            heroMedia.style.transform = `translate3d(0, ${scrollY * 0.15}px, 0)`;
+            heroMedia.style.transform = `translate3d(0, ${(scrollY * 0.12).toFixed(1)}px, 0)`;
           }
           if (heroContent) {
-            heroContent.style.transform = `translate3d(0, ${scrollY * 0.05}px, 0)`;
-            heroContent.style.opacity = Math.max(0, 1 - (scrollY / (window.innerHeight * 0.8)));
+            heroContent.style.transform = `translate3d(0, ${(scrollY * 0.04).toFixed(1)}px, 0)`;
+            heroContent.style.opacity = Math.max(0, 1 - (scrollY / (window.innerHeight * 0.85))).toFixed(2);
           }
         }
         isScrollScheduled = false;

@@ -85,9 +85,26 @@ body {
   }
 }
 
-/* Disable backdrop-filter on mobile to prevent GPU lag */
+/* Optimize backdrop-filter on mobile to eliminate GPU lag without universal selector overhead */
 @media (max-width: 768px) {
-  * {
+  header,
+  header.scrolled,
+  .cart-drawer,
+  .orders-drawer,
+  .modal-overlay,
+  .tracker-modal,
+  .checkout-modal,
+  .glass-card,
+  .stat-item,
+  .purity-card,
+  .pincode-estimator-card,
+  .mobile-bottom-bar,
+  .social-proof-toast,
+  .benefit-card,
+  .why-card,
+  .why-special-box,
+  .hero-float-card,
+  .badge-luxury {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
@@ -253,17 +270,22 @@ header {
   width: 100%;
   height: var(--header-height);
   z-index: 999;
-  transition: var(--transition-smooth);
-  will-change: transform, height;
+  transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
   transform: translateZ(0);
 }
 
 header.scrolled {
-  background: rgba(248, 245, 239, 0.85);
-  backdrop-filter: blur(20px);
-  height: 75px;
+  background: rgba(248, 245, 239, 0.92);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--glass-border);
-  box-shadow: var(--soft-shadow);
+  box-shadow: 0 4px 20px rgba(46, 46, 46, 0.05);
+}
+
+@media (max-width: 768px) {
+  header,
+  header.scrolled {
+    height: var(--header-height, 80px) !important;
+  }
 }
 
 .nav-container {
@@ -628,6 +650,20 @@ header nav {
   align-items: center;
 }
 
+.hero-media::before {
+  content: '';
+  position: absolute;
+  top: 8%;
+  left: 8%;
+  width: 84%;
+  height: 84%;
+  background: radial-gradient(ellipse at center, rgba(216, 166, 79, 0.22) 0%, rgba(216, 166, 79, 0) 70%);
+  filter: blur(26px);
+  z-index: 0;
+  pointer-events: none;
+  animation: honeyAuraBreathe 6s ease-in-out infinite alternate;
+}
+
 .hero-img-wrapper {
   width: 100%;
   max-width: 480px;
@@ -664,7 +700,7 @@ header nav {
 
 .hero-float-card {
   position: absolute;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
@@ -674,18 +710,42 @@ header nav {
   gap: 12px;
   box-shadow: var(--glass-shadow);
   z-index: 2;
-  animation: float 6s ease-in-out infinite;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.3s ease;
+  will-change: transform;
+}
+
+.hero-float-card:hover {
+  transform: translateY(-4px) scale(1.03) !important;
+  box-shadow: 0 14px 32px rgba(216, 166, 79, 0.22), 0 4px 12px rgba(0, 0, 0, 0.04);
+  border-color: rgba(216, 166, 79, 0.5);
 }
 
 .hero-float-card-1 {
   bottom: 40px;
   left: -30px;
+  animation: floatGentle1 5.6s ease-in-out infinite;
 }
 
 .hero-float-card-2 {
   top: 60px;
   right: -30px;
-  animation-delay: -3s;
+  animation: floatGentle2 6.8s ease-in-out infinite;
+  animation-delay: -2.5s;
+}
+
+@keyframes floatGentle1 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -9px, 0) rotate(-0.8deg); }
+}
+
+@keyframes floatGentle2 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(0, -11px, 0) rotate(1deg); }
+}
+
+@keyframes honeyAuraBreathe {
+  0% { transform: scale(0.96); opacity: 0.55; }
+  100% { transform: scale(1.06); opacity: 0.95; }
 }
 
 .float-icon-circle {
@@ -8556,5 +8616,244 @@ body.overflow-hidden {
   .price-pop {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   Luxury Honey Animations & Mobile Butter-Smooth Lag-Free Engine
+   ========================================================================== */
+
+/* 1. Offscreen Rendering Optimization (content-visibility for 60-120fps mobile scrolling) */
+.why-section,
+.benefits,
+.stats-showcase,
+.testimonials,
+.gallery,
+.faq-section,
+.final-cta {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 650px;
+}
+
+/* 2. Hero Luxury Badge Glow & Subtle Border Pulse */
+.badge-luxury {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(216, 166, 79, 0.22);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.badge-luxury:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 20px rgba(216, 166, 79, 0.4);
+}
+
+.badge-luxury::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  animation: badgeLightSweep 5s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes badgeLightSweep {
+  0%, 65% { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* 3. Hero CTA Buttons Magnetic Elevation & Honey Glow */
+.hero-buttons .btn-gold {
+  box-shadow: 0 6px 20px rgba(216, 166, 79, 0.35);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, background 0.2s ease !important;
+}
+
+.hero-buttons .btn-gold:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 10px 28px rgba(216, 166, 79, 0.5) !important;
+}
+
+.hero-buttons .btn-glass {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.hero-buttons .btn-glass:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  border-color: var(--primary-gold) !important;
+  box-shadow: 0 8px 24px rgba(216, 166, 79, 0.2) !important;
+}
+
+/* 4. Product Cards - Luxury Honey Elevation & Shimmer */
+.product-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease !important;
+  will-change: transform;
+}
+
+@media (hover: hover) {
+  .product-card:hover {
+    transform: translateY(-6px) scale(1.008) !important;
+    box-shadow: 0 18px 40px rgba(216, 166, 79, 0.18), 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+    border-color: rgba(216, 166, 79, 0.5) !important;
+  }
+}
+
+.product-media {
+  overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  position: relative;
+}
+
+.product-media img {
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform;
+}
+
+.product-card:hover .product-media img {
+  transform: scale(1.045) translateZ(0) !important;
+}
+
+/* 5. Wishlist Button Heart Pop Animation */
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35) rotate(-10deg); }
+  70% { transform: scale(0.92) rotate(6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.wishlist-btn {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
+}
+
+.wishlist-btn:hover {
+  transform: scale(1.12) !important;
+}
+
+.wishlist-btn.active {
+  animation: heartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.wishlist-btn.active svg {
+  fill: #e53e3e !important;
+  stroke: #e53e3e !important;
+}
+
+/* 6. Share Product Button Smooth Pop */
+.share-product-btn {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
+}
+
+.share-product-btn:hover {
+  transform: scale(1.12) !important;
+  color: var(--primary-gold) !important;
+}
+
+/* 7. Why Kamadhenu Honey Cards & Icons */
+.why-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease, background 0.3s ease !important;
+  will-change: transform;
+}
+
+.why-card:hover {
+  transform: translateY(-6px) !important;
+  border-color: rgba(216, 166, 79, 0.5) !important;
+  box-shadow: 0 14px 34px rgba(216, 166, 79, 0.16), 0 4px 10px rgba(0, 0, 0, 0.03) !important;
+}
+
+.why-card-icon {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.why-card:hover .why-card-icon {
+  transform: translateY(-4px) scale(1.1) rotate(5deg) !important;
+  box-shadow: 0 6px 18px rgba(216, 166, 79, 0.35) !important;
+}
+
+/* 8. Benefits Section Cards & Circles */
+.benefit-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.35s ease !important;
+  will-change: transform;
+}
+
+.benefit-card:hover {
+  transform: translateY(-6px) !important;
+  border-color: var(--primary-gold) !important;
+  box-shadow: 0 14px 32px rgba(216, 166, 79, 0.18) !important;
+}
+
+.benefit-circle {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.benefit-card:hover .benefit-circle {
+  transform: scale(1.12) rotate(-4deg) !important;
+  box-shadow: 0 0 22px rgba(216, 166, 79, 0.45) !important;
+}
+
+/* 9. Stats Showcase Cards */
+.stat-item {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease, box-shadow 0.35s ease !important;
+  will-change: transform;
+}
+
+.stat-item:hover {
+  transform: translateY(-6px) !important;
+  border-color: var(--primary-gold) !important;
+  box-shadow: 0 12px 30px rgba(216, 166, 79, 0.22) !important;
+}
+
+.stat-icon {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease !important;
+}
+
+.stat-item:hover .stat-icon {
+  transform: scale(1.12) translateY(-2px) !important;
+  box-shadow: 0 0 22px rgba(216, 166, 79, 0.4) !important;
+}
+
+/* 10. Star Rating Twinkle */
+@keyframes starTwinkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.18); opacity: 0.9; text-shadow: 0 0 8px rgba(245, 158, 11, 0.6); }
+}
+
+.product-rating-badge:hover .star-icon {
+  animation: starTwinkle 0.8s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* 11. Pincode Speed Estimator & Truck Entrance */
+@keyframes truckDeliverEntrance {
+  0% { transform: translateX(-8px); opacity: 0; }
+  60% { transform: translateX(3px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.estimator-output-wrap {
+  animation: truckDeliverEntrance 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 12. Ultra-Smooth Mobile Touch Performance */
+@media (max-width: 768px) {
+  /* Prevent touch-callout delay and eliminate tap delay */
+  a, button, input, .product-card, .weight-pill {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* GPU Composite hardware layers for fixed floating bars */
+  .mobile-bottom-bar,
+  .mobile-floating-cart-bar {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  /* Smooth GPU scrolling container */
+  body {
+    -webkit-overflow-scrolling: touch;
   }
 }
