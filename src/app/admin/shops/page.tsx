@@ -306,8 +306,8 @@ export default function AdminShopsPage() {
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pb-20">
-      {/* Admin CRM Top Navigation */}
-      <header className="bg-gradient-to-r from-amber-900 via-yellow-900 to-amber-950 text-white shadow-lg sticky top-0 z-30">
+      {/* Admin CRM Top Navigation Sub-Bar */}
+      <div className="bg-gradient-to-r from-amber-900 via-yellow-900 to-amber-950 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Link
@@ -350,7 +350,7 @@ export default function AdminShopsPage() {
             </Link>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main CRM Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 space-y-6">

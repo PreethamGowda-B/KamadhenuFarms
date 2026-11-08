@@ -254,8 +254,8 @@ export default function AdminReferralsPage() {
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2C2416]">
-      {/* Top Header */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-20 shadow-sm">
+      {/* Top Details Sub-Bar */}
+      <div className="bg-white border-b border-stone-200 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500 text-amber-950 flex items-center justify-center font-bold shadow">
@@ -311,7 +311,7 @@ export default function AdminReferralsPage() {
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">

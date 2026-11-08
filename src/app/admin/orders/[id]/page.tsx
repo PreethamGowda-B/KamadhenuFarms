@@ -188,8 +188,8 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2C2416] pb-12">
-      {/* Top Header */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-20 shadow-sm">
+      {/* Top Details Sub-Bar */}
+      <div className="bg-white border-b border-stone-200 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex items-center gap-3">
             <Link
@@ -309,7 +309,7 @@ export default function AdminOrderDetailPage({ params }: { params: { id: string 
             </select>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Grid */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">

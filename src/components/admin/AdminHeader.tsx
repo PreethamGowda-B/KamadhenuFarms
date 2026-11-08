@@ -15,6 +15,7 @@ import {
   CheckCheck,
   ExternalLink,
   ChevronRight,
+  Menu,
   X,
   Clock,
   Sparkles,
@@ -67,7 +68,15 @@ function getNotificationIcon(type: string) {
   }
 }
 
-export default function AdminHeader() {
+interface AdminHeaderProps {
+  onToggleMobileSidebar?: () => void;
+  mobileSidebarOpen?: boolean;
+}
+
+export default function AdminHeader({
+  onToggleMobileSidebar,
+  mobileSidebarOpen = false,
+}: AdminHeaderProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -162,10 +171,20 @@ export default function AdminHeader() {
 
   return (
     <>
-      <header className="sticky top-[57px] lg:top-0 z-30 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-stone-200/80 px-4 sm:px-6 py-2.5 transition-all">
-        <div className="flex items-center justify-between gap-3 max-w-7xl mx-auto">
-          {/* Breadcrumb / Location Header */}
-          <div className="flex items-center gap-2.5 min-w-0">
+      <header className="sticky top-0 z-30 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-stone-200/80 px-3 sm:px-6 py-2.5 transition-all shadow-xs">
+        <div className="flex items-center justify-between gap-2 sm:gap-3 max-w-7xl mx-auto">
+          {/* Breadcrumb / Location Header + Mobile Hamburger */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            {onToggleMobileSidebar && (
+              <button
+                type="button"
+                onClick={onToggleMobileSidebar}
+                className="lg:hidden p-2 -ml-1 rounded-xl bg-stone-100 text-stone-700 hover:bg-amber-100 hover:text-amber-900 transition-colors shrink-0 cursor-pointer"
+                aria-label="Toggle admin sidebar navigation"
+              >
+                {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            )}
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="Live Database Connected" />
             <div className="flex items-center gap-1.5 text-xs text-stone-500 font-medium truncate">
               <span className="hidden sm:inline">Admin</span>

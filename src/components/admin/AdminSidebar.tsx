@@ -19,11 +19,22 @@ import {
   ChevronRight,
 } from 'lucide-react';
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function AdminSidebar({ mobileOpen = false, onClose }: AdminSidebarProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
+
+  const isMobileOpen = mobileOpen !== undefined ? mobileOpen : internalMobileOpen;
+  const handleClose = () => {
+    if (onClose) onClose();
+    setInternalMobileOpen(false);
+  };
 
   // Never render sidebar on any login page (/admin/login, /login on admin subdomain, etc.)
   if (!pathname || pathname === '/login' || pathname.startsWith('/login') || pathname.startsWith('/admin/login') || pathname.includes('login')) {
@@ -112,52 +123,42 @@ export default function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile Top Bar */}
-      <div className="lg:hidden bg-charcoal text-cream-bg px-4 py-3 border-b border-gold-900 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gold-500 text-charcoal flex items-center justify-center text-lg shadow-sm">
-            🛡️
-          </div>
-          <div>
-            <h2 className="font-serif font-bold text-sm text-gold-400">Admin Portal</h2>
-            <p className="text-[10px] text-gray-400">Kamadhenu Honey Farms</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg bg-charcoal-light text-cream-bg hover:bg-gold-500 hover:text-charcoal transition-colors"
-          aria-label="Toggle Menu"
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
-
-      {/* Backdrop for mobile */}
-      {mobileOpen && (
+      {/* Backdrop for mobile drawer */}
+      {isMobileOpen && (
         <div
-          onClick={() => setMobileOpen(false)}
+          onClick={handleClose}
           className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-xs"
         />
       )}
 
-      {/* Persistent Sidebar */}
+      {/* Persistent Sidebar (Desktop) / Slide-over Drawer (Mobile) */}
       <aside
         className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-charcoal text-cream-bg p-5 shrink-0 border-r border-gold-900 flex flex-col justify-between space-y-6 z-50 transition-transform duration-300 ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="space-y-6 overflow-y-auto">
           {/* Header */}
-          <div className="flex items-center gap-3 pb-2 border-b border-gray-800">
-            <div className="w-10 h-10 rounded-xl bg-gold-500 text-charcoal flex items-center justify-center text-xl font-bold shadow-md shrink-0">
-              🛡️
+          <div className="flex items-center justify-between gap-3 pb-2 border-b border-gray-800">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-gold-500 text-charcoal flex items-center justify-center text-xl font-bold shadow-md shrink-0">
+                🛡️
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-serif font-bold text-base text-gold-400 leading-tight truncate">
+                  Admin Portal
+                </h2>
+                <p className="text-[11px] text-gray-400 truncate">admin@kamadhenuhoneyfarms.in</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h2 className="font-serif font-bold text-base text-gold-400 leading-tight truncate">
-                Admin Portal
-              </h2>
-              <p className="text-[11px] text-gray-400 truncate">admin@kamadhenuhoneyfarms.in</p>
-            </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="lg:hidden p-2 rounded-lg bg-charcoal-light text-gray-400 hover:text-white hover:bg-gold-500 hover:text-charcoal transition-colors shrink-0 cursor-pointer"
+              aria-label="Close sidebar"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           {/* Navigation Links */}
@@ -171,7 +172,7 @@ export default function AdminSidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileOpen(false)}
+                  onClick={handleClose}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
                     item.active
                       ? 'bg-gold-500 text-charcoal-dark font-bold shadow-md shadow-gold-500/20'
