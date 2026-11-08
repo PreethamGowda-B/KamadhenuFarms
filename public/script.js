@@ -4403,6 +4403,10 @@ ${points}
     let cycleInterval = null;
     let isDismissed = false;
     let isPaused = false;
+    let isUserTouching = false;
+
+    window.addEventListener('touchstart', () => { isUserTouching = true; }, { passive: true });
+    window.addEventListener('touchend', () => { setTimeout(() => { isUserTouching = false; }, 1000); }, { passive: true });
 
     if (sessionStorage.getItem('kamadhenu_social_proof_dismissed') === 'true') {
       return;
@@ -4423,7 +4427,7 @@ ${points}
       const isMobile = window.innerWidth <= 768;
       const hasCartItems = cart && cart.length > 0;
 
-      if (isCartOpen || isOrdersOpen || isCheckoutOpen || isAdOpen || (isMobile && hasCartItems)) {
+      if (isCartOpen || isOrdersOpen || isCheckoutOpen || isAdOpen || (isMobile && (hasCartItems || isUserTouching))) {
         return;
       }
 

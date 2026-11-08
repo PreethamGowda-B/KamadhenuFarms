@@ -8623,16 +8623,18 @@ body.overflow-hidden {
    Luxury Honey Animations & Mobile Butter-Smooth Lag-Free Engine
    ========================================================================== */
 
-/* 1. Offscreen Rendering Optimization (content-visibility for 60-120fps mobile scrolling) */
-.why-section,
-.benefits,
-.stats-showcase,
-.testimonials,
-.gallery,
-.faq-section,
-.final-cta {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 650px;
+/* 1. Offscreen Rendering Optimization (content-visibility only for high-powered desktop screens; disabled on mobile to eliminate scroll stutter and layout recalculation) */
+@media (min-width: 769px) {
+  .why-section,
+  .benefits,
+  .stats-showcase,
+  .testimonials,
+  .gallery,
+  .faq-section,
+  .final-cta {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 650px;
+  }
 }
 
 /* 2. Hero Luxury Badge Glow & Subtle Border Pulse */
@@ -8836,7 +8838,7 @@ body.overflow-hidden {
   animation: truckDeliverEntrance 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* 12. Ultra-Smooth Mobile Touch Performance */
+/* 12. Ultra-Smooth Mobile Touch Performance & Zero-Lag Engine */
 @media (max-width: 768px) {
   /* Prevent touch-callout delay and eliminate tap delay */
   a, button, input, .product-card, .weight-pill {
@@ -8855,5 +8857,66 @@ body.overflow-hidden {
   /* Smooth GPU scrolling container */
   body {
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* 1. Eliminate heavy Gaussian blur filters & 60fps continuous breathing on mobile */
+  .hero-media::before {
+    filter: none !important;
+    animation: none !important;
+    background: radial-gradient(ellipse at center, rgba(216, 166, 79, 0.22) 0%, rgba(216, 166, 79, 0.08) 45%, transparent 70%) !important;
+  }
+
+  .product-media::after {
+    filter: none !important;
+    animation: none !important;
+    background: radial-gradient(circle, rgba(255, 208, 127, 0.28) 0%, rgba(255, 208, 127, 0.10) 45%, transparent 70%) !important;
+  }
+
+  .upcoming-products::after,
+  .upcoming-glow-blob2 {
+    filter: none !important;
+    animation: none !important;
+    background: radial-gradient(circle, rgba(216, 166, 79, 0.14) 0%, transparent 65%) !important;
+  }
+
+  .upcoming-products::before,
+  .upcoming-scan-line {
+    animation: none !important;
+  }
+
+  /* 2. Turn off background infinite sheen loops on mobile buttons to stop thermal throttling */
+  .badge-luxury::after,
+  .buy-now-trigger::after,
+  .cart-checkout-btn::after,
+  .checkout-submit-btn::after,
+  .floating-cart-checkout-btn::after,
+  .sticky-bar-pay-btn::after,
+  .upcoming-buy-now-btn::after {
+    animation: none !important;
+    display: none !important;
+  }
+
+  /* 3. Static positioning for hero float cards on mobile */
+  .hero-float-card-1,
+  .hero-float-card-2 {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* 4. Release heavy GPU VRAM surfaces (will-change) on mobile elements */
+  .product-card,
+  .why-card,
+  .benefit-card,
+  .stat-item,
+  .hero-float-card {
+    will-change: auto !important;
+  }
+
+  /* 5. Streamline complex multi-layer shadows during touch scroll */
+  .product-card,
+  .why-card,
+  .benefit-card,
+  .stat-item {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
   }
 }

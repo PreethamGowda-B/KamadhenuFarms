@@ -14,10 +14,17 @@
   }
 })();
 
-document.addEventListener('DOMContentLoaded', () => {
+function initKamadhenuApp() {
+  if (typeof document !== 'undefined') {
+    document.body.classList.add('loaded');
+    document.body.classList.remove('overflow-hidden');
+    document.body.style.overflow = 'auto';
+  }
+
   // Guard against duplicate script initialization & duplicate DOM event bindings
   if (typeof window !== 'undefined' && window.__KAMADHENU_INITIALIZED__) {
-    console.warn('⚠️ [Kamadhenu Farms] DOM listeners already initialized. Skipping duplicate execution.');
+    console.warn('⚠️ [Kamadhenu Farms] DOM listeners already initialized. Ensuring reveals active.');
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
     return;
   }
   if (typeof window !== 'undefined') {
@@ -54,6 +61,60 @@ document.addEventListener('DOMContentLoaded', () => {
       throw err;
     }
   };
+
+  // Automatic reconciliation for mobile payments (e.g. after customer returns from PhonePe/GPay app)
+  const checkPendingOrderReconciliation = async () => {
+    try {
+      const pendingOrder = localStorage.getItem('kamadhenu_pending_order');
+      const pendingTime = parseInt(localStorage.getItem('kamadhenu_pending_order_time') || '0', 10);
+      if (!pendingOrder || !pendingTime || (Date.now() - pendingTime) > 15 * 60 * 1000) {
+        return;
+      }
+
+      if (window._isReconcilingPendingOrder) return;
+      window._isReconcilingPendingOrder = true;
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderNumber: pendingOrder })
+          }, 8000);
+
+          const data = await verifyRes.json();
+          if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
+            try {
+              localStorage.setItem('kamadhenu_cart', '[]');
+            } catch (cartErr) {}
+            localStorage.setItem('kamadhenu_last_order', pendingOrder);
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}&status=confirmed`;
+            return;
+          }
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 1200));
+          }
+        } catch (attemptErr) {
+          if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    } catch (e) {
+      // Background reconciliation error - ignore silently
+    } finally {
+      window._isReconcilingPendingOrder = false;
+    }
+  };
+
+  // Run auto-reconciliation on page load and whenever user returns from UPI app
+  checkPendingOrderReconciliation();
+  window.addEventListener('focus', checkPendingOrderReconciliation);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkPendingOrderReconciliation();
+    }
+  });
   
   // Brand Configuration
   const PRIMARY_WHATSAPP = '919980114675';
@@ -383,34 +444,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const heroContent = document.querySelector('.hero-content');
 
   let isScrollScheduled = false;
+  let lastScrolledState = null;
+  let lastBackToTopState = null;
   const handleScrollThrottled = () => {
     if (!isScrollScheduled) {
       window.requestAnimationFrame(() => {
         const scrollY = window.scrollY;
-        // 1. Header scrolled state
+        // 1. Header scrolled state (only touch DOM on threshold state changes)
         if (header) {
-          if (scrollY > 50) {
-            header.classList.add('scrolled');
-          } else {
-            header.classList.remove('scrolled');
+          const isScrolled = scrollY > 40;
+          if (isScrolled !== lastScrolledState) {
+            header.classList.toggle('scrolled', isScrolled);
+            lastScrolledState = isScrolled;
           }
         }
-        // 2. Back to top button visibility
+        // 2. Back to top button visibility (only touch DOM on threshold state changes)
         if (backToTopBtn) {
-          if (scrollY > 600) {
-            backToTopBtn.classList.add('visible');
-          } else {
-            backToTopBtn.classList.remove('visible');
+          const isTopVisible = scrollY > 600;
+          if (isTopVisible !== lastBackToTopState) {
+            backToTopBtn.classList.toggle('visible', isTopVisible);
+            lastBackToTopState = isTopVisible;
           }
         }
-        // 3. Hero parallax using translate3d for GPU compositor execution
-        if (window.innerWidth >= 768 && scrollY < window.innerHeight) {
+        // 3. Hero subtle parallax using translate3d for GPU compositor execution on desktop
+        if (window.innerWidth >= 992 && scrollY < window.innerHeight) {
           if (heroMedia) {
-            heroMedia.style.transform = `translate3d(0, ${scrollY * 0.15}px, 0)`;
+            heroMedia.style.transform = `translate3d(0, ${(scrollY * 0.12).toFixed(1)}px, 0)`;
           }
           if (heroContent) {
-            heroContent.style.transform = `translate3d(0, ${scrollY * 0.05}px, 0)`;
-            heroContent.style.opacity = Math.max(0, 1 - (scrollY / (window.innerHeight * 0.8)));
+            heroContent.style.transform = `translate3d(0, ${(scrollY * 0.04).toFixed(1)}px, 0)`;
+            heroContent.style.opacity = Math.max(0, 1 - (scrollY / (window.innerHeight * 0.85))).toFixed(2);
           }
         }
         isScrollScheduled = false;
@@ -1484,7 +1547,7 @@ document.addEventListener('DOMContentLoaded', () => {
               🔍 Track Live Status
             </button>
             <a href="/order-confirmation?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
-              📄 View Tax Invoice ↗
+              📄 Official Invoice ↗
             </a>
           </div>
 
@@ -3058,36 +3121,20 @@ ${points}
         try {
           localStorage.setItem('kamadhenu_customer_mobile', cleanMobile);
           localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
+          localStorage.setItem('kamadhenu_pending_order', createData.orderNumber);
+          localStorage.setItem('kamadhenu_pending_order_time', String(Date.now()));
         } catch (e) {}
 
         const mode = createData.environment === 'production' ? 'production' : 'sandbox';
         const cashfree = getCashfreeSDK(mode) || window.Cashfree({ mode });
 
-        const isMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|Mobile/i.test(navigator.userAgent);
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
-          redirectTarget: isMobile ? '_self' : '_modal'
+          returnUrl: `https://www.kamadhenuhoneyfarms.in/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&order_id=${encodeURIComponent(createData.orderNumber)}&status=confirmed`,
+          redirectTarget: '_modal'
         };
 
-        cashfree.checkout(checkoutOptions).then(async (result) => {
-          if (result.error) {
-            console.error('Cashfree checkout modal error:', result.error);
-            showCheckoutError(result.error.message || 'Payment was cancelled or encountered an error.');
-            isCheckoutSubmitting = false;
-            checkoutSubmitBtn.disabled = false;
-            const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
-            if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
-            renderCheckoutSummary();
-            return;
-          }
-
-          if (result.redirect) {
-            console.log('Cashfree SDK is handling redirection to payment gateway...');
-            // Cashfree handles navigation directly to the payment page. Do NOT manually navigate!
-            return;
-          }
-
-          // Payment completed in modal: Verify with backend
+        const verifyPaymentWithBackend = async () => {
           checkoutSubmitBtn.disabled = true;
           const mobileStickyPayBtnModal = document.getElementById('mobileStickyPayBtn');
           if (mobileStickyPayBtnModal) mobileStickyPayBtnModal.disabled = true;
@@ -3095,88 +3142,115 @@ ${points}
           const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
           if (mobileStickyPayBtnText) mobileStickyPayBtnText.textContent = 'Verifying...';
 
-          try {
-            let verifyData = null;
-            let verifySuccess = false;
+          let verifyData = null;
+          let verifySuccess = false;
 
-            // Retry verification up to 3 times to handle network/replication latency
-            for (let attempt = 1; attempt <= 3; attempt++) {
-              try {
-                if (checkoutSubmitBtnText) {
-                  checkoutSubmitBtnText.textContent = attempt === 1
-                    ? 'Verifying payment with bank...'
-                    : `Confirming payment (attempt ${attempt}/3)...`;
-                }
+          for (let attempt = 1; attempt <= 4; attempt++) {
+            try {
+              if (checkoutSubmitBtnText) {
+                checkoutSubmitBtnText.textContent = attempt === 1
+                  ? 'Verifying payment with bank...'
+                  : `Confirming payment (attempt ${attempt}/4)...`;
+              }
 
-                const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    orderNumber: createData.orderNumber,
-                    orderId: createData.orderId,
-                    cashfreeOrderId: createData.cashfreeOrderId
-                  })
-                }, 15000);
+              const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderNumber: createData.orderNumber,
+                  orderId: createData.orderId,
+                  cashfreeOrderId: createData.cashfreeOrderId
+                })
+              }, 12000);
 
-                const data = await verifyRes.json();
-                if (data.success || data.pending) {
-                  verifyData = data;
-                  verifySuccess = true;
-                  break;
-                } else if (attempt < 3 && (verifyRes.status === 404 || verifyRes.status === 202)) {
-                  await new Promise(r => setTimeout(r, 1000));
-                } else {
-                  verifyData = data;
-                  break;
-                }
-              } catch (retryErr) {
-                if (attempt < 3) {
-                  await new Promise(r => setTimeout(r, 1000));
-                } else {
-                  throw retryErr;
-                }
+              const data = await verifyRes.json();
+              if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+                verifyData = data;
+                verifySuccess = true;
+                break;
+              } else if (attempt < 4 && (verifyRes.status === 404 || verifyRes.status === 202 || data.pending)) {
+                await new Promise(r => setTimeout(r, 1200));
+              } else {
+                verifyData = data;
+                if (data.success) verifySuccess = true;
+                break;
+              }
+            } catch (retryErr) {
+              if (attempt < 4) {
+                await new Promise(r => setTimeout(r, 1000));
+              } else {
+                throw retryErr;
               }
             }
+          }
 
-            if (verifySuccess && verifyData && verifyData.success) {
-              cart = [];
-              saveCart();
-              currentCoupon = null;
-              closeCheckout();
-              const targetOrder = verifyData.orderNumber || createData.orderNumber;
-              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}`;
-              return;
+          if (verifySuccess && verifyData && verifyData.success) {
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
+            cart = [];
+            saveCart();
+            currentCoupon = null;
+            closeCheckout();
+            const targetOrder = verifyData.orderNumber || createData.orderNumber;
+            localStorage.setItem('kamadhenu_last_order', targetOrder);
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}&status=confirmed`;
+            return true;
+          }
+
+          if (verifyData && verifyData.pending) {
+            closeCheckout();
+            localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
+            return true;
+          }
+
+          return false;
+        };
+
+        cashfree.checkout(checkoutOptions).then(async (result) => {
+          // If modal reported an error (or user switched/closed modal), FIRST verify if payment succeeded in bank
+          if (result && result.error) {
+            console.log('Cashfree modal event received, verifying payment state with backend...');
+            const isConfirmed = await verifyPaymentWithBackend();
+            if (!isConfirmed) {
+              localStorage.removeItem('kamadhenu_pending_order');
+              localStorage.removeItem('kamadhenu_pending_order_time');
+              showCheckoutError(result.error.message || 'Payment was cancelled or not completed.');
+              isCheckoutSubmitting = false;
+              checkoutSubmitBtn.disabled = false;
+              const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+              if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
+              renderCheckoutSummary();
             }
+            return;
+          }
 
-            // If verify reported explicit failure (e.g. card declined / cancelled)
-            if (verifyData && verifyData.failed) {
-              throw new Error(verifyData.message || 'Payment was declined or cancelled. Please try again.');
-            }
+          if (result && result.redirect) {
+            console.log('Cashfree SDK is handling redirection to payment gateway...');
+            // In case of app-switch on mobile, verify as soon as the user returns to this window
+            const onReturnFocus = async () => {
+              window.removeEventListener('focus', onReturnFocus);
+              await verifyPaymentWithBackend();
+            };
+            window.addEventListener('focus', onReturnFocus);
+            return;
+          }
 
-            if (verifyData && verifyData.pending) {
-              closeCheckout();
-              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
-              return;
-            }
-
-            throw new Error((verifyData && verifyData.message) || 'Payment verification could not be completed. Please check your bank.');
-          } catch (vErr) {
-            console.error('Payment verification error:', vErr);
-            showCheckoutError(vErr.message || `Payment completed on Cashfree but verification timed out. If money was deducted, your order will be confirmed shortly.`);
+          // Modal completed payment
+          await verifyPaymentWithBackend();
+        }).catch(async (cfErr) => {
+          console.error('Cashfree checkout exception, checking payment status:', cfErr);
+          const isConfirmed = await verifyPaymentWithBackend();
+          if (!isConfirmed) {
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
+            showCheckoutError(cfErr?.message || 'Payment window closed.');
             isCheckoutSubmitting = false;
             checkoutSubmitBtn.disabled = false;
             const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
             if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
             renderCheckoutSummary();
           }
-        }).catch((cfErr) => {
-          console.error('Cashfree checkout exception:', cfErr);
-          showCheckoutError(cfErr.message || 'Payment window closed or encountered an error.');
-          isCheckoutSubmitting = false;
-          checkoutSubmitBtn.disabled = false;
-          const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
-          if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
-          renderCheckoutSummary();
         });
 
       } catch (err) {
@@ -3212,8 +3286,8 @@ ${points}
       setTimeout(() => trackerInput.focus(), 150);
     }
 
-    if (idToUse && typeof prefillOrderId === 'string' && trackerSubmitBtn) {
-      setTimeout(() => trackerSubmitBtn.click(), 200);
+    if (idToUse && trackerSubmitBtn) {
+      setTimeout(() => trackerSubmitBtn.click(), 100);
     }
   };
 
@@ -3300,7 +3374,19 @@ ${points}
                 foundStatus = 'received';
                 foundSteps = ['received'];
               }
-              orderData = { steps: foundSteps, status: foundStatus, date: foundDate, items: o.items, total: o.total };
+              orderData = {
+                steps: foundSteps,
+                status: foundStatus,
+                date: foundDate,
+                items: o.items,
+                total: o.total,
+                paymentStatus: o.paymentStatus || 'PAID',
+                customerName: o.customerName || '',
+                shippingCity: o.shippingCity || '',
+                shippingState: o.shippingState || '',
+                shippingPincode: o.shippingPincode || '',
+                shipment: o.shipment || null
+              };
             }
           } catch (e) {
             console.warn('Live tracking API check error:', e);
@@ -3332,51 +3418,107 @@ ${points}
 
         const itemsContainer = document.getElementById('trackerItemsContainer');
         if (itemsContainer) {
-          if (orderData.items && orderData.items.length > 0) {
-            itemsContainer.innerHTML = `
-              <div style="margin-top:14px; padding-top:12px; border-top:1px dashed rgba(216,166,79,0.4);">
+          const hasItems = orderData.items && orderData.items.length > 0;
+          const invoiceUrl = `/order-confirmation?orderNumber=${encodeURIComponent(orderId)}`;
+          const waUrl = `https://wa.me/919980114675?text=${encodeURIComponent(`Hi Kamadhenu Honey Farms, I have an inquiry about my order ${orderId}`)}`;
+
+          let statusBadgeColor = '#2f855a';
+          let statusBadgeBg = '#c6f6d5';
+          if (foundStatus === 'out-for-delivery') {
+            statusBadgeColor = '#2b6cb0';
+            statusBadgeBg = '#bee3f8';
+          } else if (foundStatus === 'received') {
+            statusBadgeColor = '#b7791f';
+            statusBadgeBg = '#fefcbf';
+          }
+
+          itemsContainer.innerHTML = `
+            <div style="margin-top:16px; padding-top:14px; border-top:1px dashed rgba(216,166,79,0.45); text-align:left;">
+              
+              <!-- Order Details Overview Card -->
+              <div style="background:#FAF8F5; border:1px solid #ebdcc5; border-radius:12px; padding:12px 14px; margin-bottom:14px; font-size:0.82rem; display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="color:#786c5e; font-weight:600;">Payment Status</span>
+                  <span style="font-weight:700; color:${statusBadgeColor}; background:${statusBadgeBg}; padding:2px 10px; border-radius:12px; font-size:0.75rem;">
+                    ● ${orderData.paymentStatus || 'CONFIRMED'}
+                  </span>
+                </div>
+                ${orderData.shippingCity ? `
+                  <div style="display:flex; justify-content:space-between; align-items:center; color:#4a5568;">
+                    <span style="color:#786c5e;">Delivery Location</span>
+                    <span style="font-weight:600; color:#2d3748;">${orderData.shippingCity}${orderData.shippingPincode ? ` (${orderData.shippingPincode})` : ''}</span>
+                  </div>
+                ` : ''}
+                ${orderData.shipment && orderData.shipment.courierProvider ? `
+                  <div style="margin-top:4px; padding:7px 10px; background:#ebf8ff; border:1px solid #bee3f8; border-radius:8px; font-size:0.76rem; color:#2b6cb0; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Courier: <b>${orderData.shipment.courierProvider}</b> (${orderData.shipment.trackingNumber || 'Active'})</span>
+                    ${orderData.shipment.trackingUrl ? `<a href="${orderData.shipment.trackingUrl}" target="_blank" rel="noopener noreferrer" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Courier ↗</a>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- Ordered Products List -->
+              ${hasItems ? `
                 <h5 style="font-size:0.85rem; font-weight:700; color:#3A2A18; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Ordered Products</h5>
                 ${orderData.items.map(it => `
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #f0eae1; font-size:0.82rem;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f0eae1; font-size:0.82rem;">
                     <div>
                       <span style="font-weight:700; color:#2d3748;">${it.productNameSnapshot || 'Honey'}</span>
                       <span style="color:#718096; margin-left:4px;">(${it.weightVariant})</span>
                     </div>
-                    <span style="font-weight:700; color:#8C6219;">Qty: ${it.quantity}</span>
+                    <div style="text-align:right;">
+                      <span style="font-weight:700; color:#8C6219;">Qty: ${it.quantity}</span>
+                      ${it.totalPrice ? `<span style="color:#718096; font-size:0.78rem; margin-left:8px;">(₹${it.totalPrice})</span>` : ''}
+                    </div>
                   </div>
                 `).join('')}
-                ${orderData.total ? `
-                  <div style="display:flex; justify-content:space-between; margin-top:8px; font-weight:700; font-size:0.88rem; color:#2d3748;">
-                    <span>Total Paid</span>
-                    <span style="color:#8C6219;">₹${orderData.total}</span>
-                  </div>
-                ` : ''}
-                <div style="margin-top:12px; padding-top:10px; border-top:1px solid #f0eae1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer;">
+              ` : ''}
+
+              <!-- Total Paid -->
+              ${orderData.total ? `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:10px 0 6px; font-weight:700; font-size:0.92rem; color:#2d3748; border-top:1px dashed rgba(216,166,79,0.35);">
+                  <span>Total Paid</span>
+                  <span style="color:#8C6219; font-size:1.05rem; font-weight:800; white-space:nowrap; padding-left:12px;">₹${Number(orderData.total).toLocaleString('en-IN')}</span>
+                </div>
+              ` : ''}
+
+              <!-- Primary Action: Official Tax Invoice -->
+              <div style="margin-top:16px; display:flex; flex-direction:column; gap:9px; align-items:stretch;">
+                <a href="${invoiceUrl}" target="_blank" rel="noopener noreferrer" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px 18px; background:linear-gradient(135deg, #2d3748, #1a202c); color:#ffffff; border-radius:12px; font-size:0.86rem; font-weight:700; text-decoration:none; box-shadow:0 3px 10px rgba(0,0,0,0.15); transition:all 0.2s ease;">
+                  <span>📄 View & Download Official Tax Invoice</span>
+                  <span style="font-size:0.8rem; opacity:0.85;">↗</span>
+                </a>
+
+                ${hasItems ? `
+                  <button type="button" class="btn-reorder-all" id="btnTrackerReorder" style="cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; padding:11px 18px; border-radius:12px; font-size:0.84rem; font-weight:700; background:linear-gradient(135deg, #d8a64f, #c6923b); color:#ffffff; border:none;">
                     🔁 Reorder These Items
                   </button>
-                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem; color:#8C6219; font-weight:700; text-decoration:underline;">
+                ` : ''}
+
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; font-size:0.78rem;">
+                  <a href="${waUrl}" target="_blank" rel="noopener noreferrer" style="color:#25d366; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                    <span>💬 WhatsApp Farm Help</span>
+                  </a>
+                  <a href="https://maps.app.goo.gl/g4B3om1YWpkZFgjU9" target="_blank" rel="noopener noreferrer" style="color:#8C6219; font-weight:700; text-decoration:underline;">
                     Review on Google Maps ↗
                   </a>
                 </div>
               </div>
-            `;
+            </div>
+          `;
 
-            const btnTrackerReorder = document.getElementById('btnTrackerReorder');
-            if (btnTrackerReorder) {
-              btnTrackerReorder.addEventListener('click', () => {
-                orderData.items.forEach(it => {
-                  addItemToCart(it.productId, it.weightVariant, it.quantity, false);
-                });
-                renderCart();
-                updateBadges();
-                closeTracker();
-                openCart();
-                showToast(`Added ${orderData.items.length} product(s) to cart for instant reorder!`);
+          const btnTrackerReorder = document.getElementById('btnTrackerReorder');
+          if (btnTrackerReorder && hasItems) {
+            btnTrackerReorder.addEventListener('click', () => {
+              orderData.items.forEach(it => {
+                addItemToCart(it.productId, it.weightVariant, it.quantity, false);
               });
-            }
-          } else {
-            itemsContainer.innerHTML = '';
+              renderCart();
+              updateBadges();
+              closeTracker();
+              openCart();
+              showToast(`Added ${orderData.items.length} product(s) to cart for instant reorder!`);
+            });
           }
         }
 
@@ -4261,6 +4403,10 @@ ${points}
     let cycleInterval = null;
     let isDismissed = false;
     let isPaused = false;
+    let isUserTouching = false;
+
+    window.addEventListener('touchstart', () => { isUserTouching = true; }, { passive: true });
+    window.addEventListener('touchend', () => { setTimeout(() => { isUserTouching = false; }, 1000); }, { passive: true });
 
     if (sessionStorage.getItem('kamadhenu_social_proof_dismissed') === 'true') {
       return;
@@ -4281,7 +4427,7 @@ ${points}
       const isMobile = window.innerWidth <= 768;
       const hasCartItems = cart && cart.length > 0;
 
-      if (isCartOpen || isOrdersOpen || isCheckoutOpen || isAdOpen || (isMobile && hasCartItems)) {
+      if (isCartOpen || isOrdersOpen || isCheckoutOpen || isAdOpen || (isMobile && (hasCartItems || isUserTouching))) {
         return;
       }
 
@@ -4422,11 +4568,34 @@ ${points}
       if (typeof initUpcoming3DTilt === 'function') initUpcoming3DTilt();
       if (typeof initUpcomingEntrance === 'function') initUpcomingEntrance();
 
-      setTimeout(() => { if (typeof triggerScrollReveal === 'function') triggerScrollReveal(); }, 400);
       setTimeout(() => { if (typeof addTiltEffect === 'function') addTiltEffect(); }, 800);
       setTimeout(() => { if (typeof addDynamicLighting === 'function') addDynamicLighting(); }, 850);
     }
+
+    // Trigger scroll reveal immediately for all viewports (both desktop and mobile)
+    if (typeof triggerScrollReveal === 'function') {
+      triggerScrollReveal();
+    }
+    setTimeout(() => {
+      if (typeof triggerScrollReveal === 'function') triggerScrollReveal();
+      document.querySelectorAll('.reveal:not(.active)').forEach(el => el.classList.add('active'));
+    }, 400);
   };
 
   initApp();
-});
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initKamadhenuApp);
+  } else {
+    initKamadhenuApp();
+  }
+
+  window.addEventListener('pageshow', () => {
+    document.body.classList.add('loaded');
+    document.body.classList.remove('overflow-hidden');
+    document.body.style.overflow = 'auto';
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
+  });
+}
