@@ -1987,24 +1987,26 @@ function initKamadhenuApp() {
           }
         };
 
-        // Pause on user hover to inspect, resume when mouse leaves
-        productCard.addEventListener('mouseenter', stopAutoSlide);
-        productCard.addEventListener('mouseleave', () => {
-          if (cardIsVisible) startAutoSlide();
-        });
-
+        // Slideshow intersection observer and hover pause only on desktop
         let cardIsVisible = false;
-        const cardObserver = new IntersectionObserver((entries) => {
-          entries.forEach(entry => {
-            cardIsVisible = entry.isIntersecting;
-            if (cardIsVisible) {
-              startAutoSlide();
-            } else {
-              stopAutoSlide();
-            }
+        if (!isTouchOrMobile) {
+          productCard.addEventListener('mouseenter', stopAutoSlide);
+          productCard.addEventListener('mouseleave', () => {
+            if (cardIsVisible) startAutoSlide();
           });
-        }, { threshold: 0.15 });
-        cardObserver.observe(productCard);
+
+          const cardObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              cardIsVisible = entry.isIntersecting;
+              if (cardIsVisible) {
+                startAutoSlide();
+              } else {
+                stopAutoSlide();
+              }
+            });
+          }, { threshold: 0.15 });
+          cardObserver.observe(productCard);
+        }
 
         thumbBtns.forEach((btn, idx) => {
           btn.addEventListener('click', (e) => {

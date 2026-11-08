@@ -8091,26 +8091,32 @@ body.overflow-hidden {
   }
 }
 
-/* Modern Rendering Containment: Browser skips layout & paint of deep offscreen sections */
-@supports (content-visibility: auto) {
-  .gallery,
-  .journey,
-  .benefits,
-  .testimonials,
-  .faq,
-  .contact,
-  .final-cta {
-    content-visibility: auto;
-    contain-intrinsic-size: 1px 750px;
+/* Modern Rendering Containment: Browser skips layout & paint of deep offscreen sections on desktop screens only */
+@media (min-width: 769px) {
+  @supports (content-visibility: auto) {
+    .gallery,
+    .journey,
+    .benefits,
+    .testimonials,
+    .faq,
+    .contact,
+    .final-cta {
+      content-visibility: auto;
+      contain-intrinsic-size: 1px 750px;
+    }
   }
 }
 
-/* Mobile responsive sizing */
+/* Mobile responsive sizing & GPU lag elimination */
 @media (max-width: 768px) {
   .announcement-marquee-wrapper.heavy-premium-launch {
     height: 58px;
     margin: 0 0 24px 0;
     border-radius: 12px;
+  }
+  .announcement-marquee-wrapper.heavy-premium-launch::before {
+    display: none !important;
+    animation: none !important;
   }
   .announcement-marquee-wrapper.heavy-premium-launch::after {
     display: none;
@@ -8118,6 +8124,9 @@ body.overflow-hidden {
   .launch-sticky-tag {
     padding: 0 10px 0 10px;
     gap: 6px;
+  }
+  .launch-sticky-tag .pulsing-gold-dot {
+    animation: none !important;
   }
   .launch-tag-icon {
     font-size: 0.95rem;
@@ -8133,6 +8142,9 @@ body.overflow-hidden {
     gap: 8px;
     margin: 0 4px;
     border-radius: 9px;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.08) !important;
   }
   .launch-item-icon {
     font-size: 1.1rem;
@@ -8918,5 +8930,72 @@ body.overflow-hidden {
   .benefit-card,
   .stat-item {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* 6. Premium Honey Collection: Zero-lag mobile card rendering */
+  .products-grid {
+    gap: 20px !important;
+  }
+
+  .product-card {
+    perspective: none !important;
+    transform-style: flat !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .product-card:hover {
+    transform: none !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .product-media > img {
+    filter: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  .product-card:hover .product-media > img {
+    transform: none !important;
+  }
+
+  /* Remove backdrop-filter from card utility elements on mobile */
+  .shop-controls,
+  .product-badge,
+  .wishlist-btn,
+  .share-product-btn,
+  .card-thumb-nav {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .shop-controls {
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .wishlist-btn,
+  .share-product-btn {
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .product-badge {
+    background: rgba(18, 16, 12, 0.95) !important;
+  }
+
+  .card-thumb-nav {
+    background: rgba(30, 30, 30, 0.75) !important;
+  }
+
+  /* Neutralize reveal transition and will-change lag on product cards */
+  .product-card.reveal,
+  .product-card.reveal-fade-up {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
   }
 }
