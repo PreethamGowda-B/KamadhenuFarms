@@ -9206,56 +9206,95 @@ body.overflow-hidden {
   }
 }
 
+@keyframes decadeBeeFloatL {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(3px, -5px, 0) rotate(4deg);
+  }
+}
+
+@keyframes decadeBeeFloatR {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(-3px, -5px, 0) rotate(-4deg);
+  }
+}
+
 .decade-trust-crest {
-  padding: 24px 5% 10px;
+  padding: 20px 3% 14px;
   background: var(--cream-bg);
   max-width: 1440px;
   margin: 0 auto;
   contain: layout style;
 }
 
-.decade-crest-stage {
-  perspective: 1100px;
-  max-width: 780px;
+.decade-trust-container {
+  max-width: 1320px;
   margin: 0 auto;
+}
+
+.decade-crest-stage {
+  perspective: 1200px;
 }
 
 .decade-crest-card {
   position: relative;
   overflow: hidden;
-  padding: 22px 26px 20px;
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 240, 198, 0.55) 0%, rgba(255, 253, 247, 0) 62%),
-    linear-gradient(145deg, #FFFDF8 0%, #FAF0DA 50%, #FFFDF7 100%);
-  border: 1px solid rgba(206, 152, 54, 0.48);
+  padding: 24px clamp(195px, 24%, 315px) 34px;
+  border-radius: 22px;
+  background: radial-gradient(circle at 50% 42%, #FFFDF7 0%, #FAF0D8 65%, #F4E3C1 100%);
+  border: 1px solid rgba(206, 152, 54, 0.45);
   box-shadow:
-    0 14px 28px -8px rgba(122, 81, 16, 0.16),
+    0 18px 38px -12px rgba(122, 81, 16, 0.2),
     0 4px 0 0 #E5C687,
-    0 8px 18px rgba(154, 107, 25, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.96),
-    inset 0 -2px 0 rgba(196, 141, 44, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
   text-align: center;
-  transform-style: preserve-3d;
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
 }
 
-.decade-crest-card::before {
-  content: '';
+.decade-scenic-bg {
   position: absolute;
-  inset: 7px;
-  border-radius: 12px;
-  border: 1px solid rgba(212, 154, 52, 0.28);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
   pointer-events: none;
+  z-index: 0;
+}
+
+.decade-scenic-mist {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 42% 76% at 50% 48%, rgba(255, 252, 244, 0.84) 0%, rgba(255, 250, 238, 0.45) 68%, rgba(255, 250, 238, 0) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.decade-crest-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.decade-mobile-scene {
+  display: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .decade-crest-stage:hover .decade-crest-card {
-    transform: translate3d(0, -3px, 12px) rotateX(2deg);
+    transform: translate3d(0, -3px, 0);
     box-shadow:
-      0 20px 36px -8px rgba(122, 81, 16, 0.22),
+      0 24px 44px -12px rgba(122, 81, 16, 0.24),
       0 6px 0 0 #DFB96E,
-      inset 0 1px 0 rgba(255, 255, 255, 1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.96);
   }
 }
 
@@ -9263,68 +9302,118 @@ body.overflow-hidden {
   position: absolute;
   top: 0;
   left: 0;
-  width: 38%;
+  width: 34%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   pointer-events: none;
-  animation: decadeSheenSweep 6.2s ease-in-out infinite;
+  z-index: 2;
+  animation: decadeSheenSweep 7s ease-in-out infinite;
 }
 
-.decade-corner {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: rgba(189, 130, 33, 0.65);
-  border-style: solid;
-  pointer-events: none;
+.decade-brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-.decade-corner-tl { top: 12px; left: 12px; border-width: 2px 0 0 2px; border-top-left-radius: 4px; }
-.decade-corner-tr { top: 12px; right: 12px; border-width: 2px 2px 0 0; border-top-right-radius: 4px; }
-.decade-corner-bl { bottom: 12px; left: 12px; border-width: 0 0 2px 2px; border-bottom-left-radius: 4px; }
-.decade-corner-br { bottom: 12px; right: 12px; border-width: 0 2px 2px 0; border-bottom-right-radius: 4px; }
+.decade-top-bee {
+  width: 36px;
+  height: 24px;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 2px 3px rgba(138, 92, 16, 0.25));
+}
+
+.decade-brand-title {
+  font-family: var(--font-headings);
+  font-size: clamp(1rem, 1.45vw, 1.32rem);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #36200B;
+  line-height: 1.1;
+}
+
+.decade-brand-sub {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-family: var(--font-body);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  color: #7D5211;
+}
+
+.decade-brand-sub::before,
+.decade-brand-sub::after {
+  content: '';
+  width: 18px;
+  height: 1px;
+  background: rgba(166, 114, 28, 0.65);
+}
 
 .decade-crest-kicker {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 12px;
+  gap: 6px;
+  padding: 5px 14px;
   border-radius: 999px;
-  background: rgba(255, 252, 242, 0.92);
-  border: 1px solid rgba(208, 154, 56, 0.38);
-  box-shadow: 0 2px 6px rgba(154, 107, 25, 0.08), inset 0 1px 0 #fff;
+  background: rgba(255, 251, 240, 0.94);
+  border: 1px solid rgba(196, 141, 44, 0.45);
+  box-shadow: 0 3px 8px rgba(138, 92, 16, 0.08), inset 0 1px 0 #fff;
   font-family: var(--font-body);
   font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #7D5211;
-  margin-bottom: 10px;
+  color: #6B440C;
+  margin-bottom: 6px;
 }
 
-.decade-seal-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #FFE28A, #C9861A);
-  box-shadow: 0 0 0 2px rgba(212, 154, 52, 0.22);
-  animation: decadeSealPulse 2.8s ease-in-out infinite;
+.decade-pin-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .decade-crest-emblem {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  margin: 0 auto 10px;
-  transform-style: preserve-3d;
+  gap: 6px;
+  margin: 0 auto 4px;
+  max-width: 100%;
+}
+
+.decade-wing-left,
+.decade-wing-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.decade-bee-trail {
+  width: 62px;
+  height: 44px;
+  overflow: visible;
+}
+
+.decade-bee-fly {
+  animation: decadeBeeFloatL 3.8s ease-in-out infinite;
+}
+
+.decade-bee-fly-r {
+  animation: decadeBeeFloatR 3.8s ease-in-out infinite;
 }
 
 .decade-laurel-svg {
-  width: 56px;
-  height: 74px;
+  width: 58px;
+  height: 84px;
   flex-shrink: 0;
-  filter: drop-shadow(0 3px 4px rgba(138, 92, 16, 0.22));
+  filter: drop-shadow(0 3px 4px rgba(138, 92, 16, 0.24));
 }
 
 .decade-laurel-left {
@@ -9337,38 +9426,42 @@ body.overflow-hidden {
   animation: decadeLaurelRight 4.8s ease-in-out infinite;
 }
 
-.decade-crest-core {
-  display: flex;
-  flex-direction: column;
+.decade-ten-lockup {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  min-width: 0;
-  transform-style: preserve-3d;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 2px;
 }
 
-.decade-crown-3d {
-  animation: decadeCrownFloat3d 4.2s ease-in-out infinite;
-  margin-bottom: 2px;
+.decade-ten-svg {
+  width: clamp(205px, 24vw, 295px);
+  height: auto;
+  display: block;
 }
 
-.decade-crown-svg {
-  width: 40px;
-  height: 27px;
-  filter: drop-shadow(0 3px 4px rgba(138, 92, 16, 0.28));
+.decade-ten-sheen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 251, 224, 0.55), transparent);
+  pointer-events: none;
+  animation: decadeSheenSweep 4.6s ease-in-out infinite;
 }
 
 .decade-crest-headline {
   font-family: var(--font-headings);
-  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  font-size: clamp(1.18rem, 2.05vw, 1.68rem);
   font-weight: 800;
-  letter-spacing: 0.1em;
-  line-height: 1.05;
-  margin: 0 0 8px 0;
+  letter-spacing: 0.12em;
+  line-height: 1.15;
+  margin: 0 0 8px 0 !important;
+  color: #2B1A09;
   text-align: center;
-  background: linear-gradient(180deg, #4B2E12 0%, #241407 62%, #6D4514 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 2px 0 rgba(247, 217, 146, 0.72));
+  text-shadow: 0 1px 0 rgba(255, 248, 224, 0.9);
 }
 
 .decade-crest-headline::after {
@@ -9376,97 +9469,70 @@ body.overflow-hidden {
   content: none !important;
 }
 
-.decade-ribbon-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  max-width: 100%;
-}
-
-.decade-ribbon-3d {
-  position: relative;
-  display: inline-block;
-  overflow: hidden;
-  padding: 6px 22px;
-  background: linear-gradient(180deg, #F8D681 0%, #DF9F32 52%, #B97B18 100%);
-  color: #241406;
-  font-family: var(--font-body);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  border-radius: 5px;
-  border-top: 1px solid rgba(255, 246, 214, 0.9);
-  border-bottom: 1px solid #8A580D;
-  box-shadow:
-    0 3px 0 0 #946110,
-    0 7px 14px rgba(148, 97, 16, 0.28),
-    inset 0 1px 0 rgba(255, 250, 229, 0.85);
-}
-
-.decade-ribbon-text {
-  position: relative;
-  z-index: 1;
-}
-
-.decade-ribbon-shine {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 45%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 252, 236, 0.65), transparent);
-  pointer-events: none;
-  animation: decadeSheenSweep 4.6s ease-in-out infinite;
-}
-
 .decade-crest-copy {
-  max-width: 590px;
-  margin: 0 auto 12px;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  color: #4D3D2D;
+  max-width: 560px;
+  margin: 0 auto 14px;
+  font-family: var(--font-headings);
+  font-style: italic;
+  font-size: clamp(0.84rem, 1.05vw, 0.95rem);
+  line-height: 1.48;
+  color: #46321D;
 }
 
 .decade-proof-grid {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-wrap: nowrap;
+  align-items: stretch;
   justify-content: center;
-  gap: 8px 10px;
+  gap: 10px;
+  max-width: 100%;
 }
 
 .decade-proof-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  gap: 9px;
+  padding: 7px 14px 7px 9px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FAF0DB 100%);
-  border: 1px solid rgba(208, 154, 56, 0.42);
-  box-shadow: 0 2px 0 rgba(196, 141, 44, 0.25), 0 4px 8px rgba(122, 81, 16, 0.07);
-  font-size: 0.74rem;
-  color: #46321D;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FBF1DB 100%);
+  border: 1px solid rgba(208, 154, 56, 0.45);
+  box-shadow: 0 4px 10px rgba(122, 81, 16, 0.11), 0 2px 0 rgba(196, 141, 44, 0.32), inset 0 1px 0 #fff;
+  text-align: left;
   transition: transform 0.25s ease;
-}
-
-.decade-proof-pill strong {
-  color: #8A580D;
-  font-weight: 700;
 }
 
 .decade-proof-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px;
-  height: 15px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #F0C464, #C2821B);
+  background: linear-gradient(135deg, #F6CF6D, #C7871F);
   color: #FFFFFF;
-  font-size: 0.62rem;
-  font-weight: 800;
   flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(154, 98, 12, 0.28), inset 0 1px 0 rgba(255, 249, 220, 0.7);
+}
+
+.decade-proof-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.18;
+}
+
+.decade-proof-copy strong {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #2B1A09;
+  white-space: nowrap;
+}
+
+.decade-proof-copy span {
+  font-size: 0.67rem;
+  font-weight: 500;
+  color: #6B5237;
+  white-space: nowrap;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -9475,88 +9541,139 @@ body.overflow-hidden {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 1120px) and (min-width: 900px) {
+  .decade-crest-card {
+    padding: 20px clamp(150px, 21%, 230px) 26px;
+  }
+  .decade-bee-trail {
+    display: none;
+  }
+  .decade-proof-grid {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (max-width: 900px), (hover: none) and (pointer: coarse) {
   .decade-card-glint,
-  .decade-seal-dot,
+  .decade-bee-fly,
+  .decade-bee-fly-r,
   .decade-laurel-left,
   .decade-laurel-right,
-  .decade-crown-3d,
-  .decade-ribbon-shine {
+  .decade-ten-sheen {
     animation: none !important;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 899px) {
   .decade-trust-crest {
-    padding: 16px 4% 6px !important;
+    padding: 16px 3.5% 8px !important;
   }
   .decade-crest-card {
-    padding: 18px 12px 16px !important;
-    border-radius: 15px !important;
+    padding: 18px 14px 0 !important;
+    border-radius: 18px !important;
+    background: linear-gradient(180deg, #FFFDF7 0%, #FAF0DA 75%, #F5E7C9 100%) !important;
     box-shadow:
-      0 8px 18px -6px rgba(122, 81, 16, 0.14),
+      0 10px 22px -8px rgba(122, 81, 16, 0.16),
       0 3px 0 0 #E5C687,
       inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
   }
-  .decade-crest-card::before {
-    inset: 5px;
-    border-radius: 10px;
+  .decade-scenic-bg,
+  .decade-scenic-mist,
+  .decade-card-glint,
+  .decade-ten-sheen {
+    display: none !important;
   }
-  .decade-corner {
-    width: 10px;
-    height: 10px;
+  .decade-brand-lockup {
+    margin-bottom: 6px;
   }
-  .decade-corner-tl { top: 9px; left: 9px; }
-  .decade-corner-tr { top: 9px; right: 9px; }
-  .decade-corner-bl { bottom: 9px; left: 9px; }
-  .decade-corner-br { bottom: 9px; right: 9px; }
-  .decade-crest-kicker {
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-    padding: 3px 9px;
-    margin-bottom: 8px;
-  }
-  .decade-crest-emblem {
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-  .decade-laurel-svg {
-    width: 36px;
-    height: 48px;
-    filter: none;
-  }
-  .decade-crown-svg {
+  .decade-top-bee {
     width: 30px;
     height: 20px;
+  }
+  .decade-brand-title {
+    font-size: 0.96rem;
+    letter-spacing: 0.14em;
+  }
+  .decade-brand-sub {
+    font-size: 0.56rem;
+    letter-spacing: 0.2em;
+  }
+  .decade-crest-kicker {
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    margin-bottom: 6px;
+    max-width: 100%;
+  }
+  .decade-bee-trail {
+    width: 34px;
+    height: 26px;
+  }
+  .decade-laurel-svg {
+    width: 34px;
+    height: 50px;
     filter: none;
+  }
+  .decade-ten-svg {
+    width: 175px;
   }
   .decade-crest-headline {
-    font-size: 1.48rem !important;
-    letter-spacing: 0.06em;
-    margin-bottom: 6px !important;
-    filter: none;
-  }
-  .decade-ribbon-3d {
-    padding: 5px 12px;
-    font-size: 0.64rem;
+    font-size: 1.08rem !important;
     letter-spacing: 0.08em;
-    box-shadow: 0 2px 0 0 #946110;
+    margin-bottom: 6px !important;
   }
   .decade-crest-copy {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     line-height: 1.45;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
   .decade-proof-grid {
-    gap: 6px;
+    flex-wrap: wrap;
+    gap: 7px;
   }
   .decade-proof-pill {
-    padding: 4px 9px;
-    font-size: 0.67rem;
-    box-shadow: 0 1px 0 rgba(196, 141, 44, 0.22);
+    padding: 5px 11px 5px 7px;
+    gap: 7px;
+    box-shadow: 0 2px 5px rgba(122, 81, 16, 0.08), 0 1px 0 rgba(196, 141, 44, 0.24);
   }
-  .decade-card-glint {
-    display: none;
+  .decade-proof-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .decade-proof-icon svg {
+    width: 13px;
+    height: 13px;
+  }
+  .decade-proof-copy strong {
+    font-size: 0.7rem;
+  }
+  .decade-proof-copy span {
+    font-size: 0.61rem;
+  }
+  .decade-mobile-scene {
+    display: block;
+    position: relative;
+    margin: 12px -14px 0;
+    width: calc(100% + 28px);
+    aspect-ratio: 16 / 6.8;
+    overflow: hidden;
+  }
+  .decade-mobile-scene::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 36%;
+    background: linear-gradient(180deg, #F5E7C9 0%, rgba(245, 231, 201, 0) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .decade-mobile-scene img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center bottom;
   }
 }
 
