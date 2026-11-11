@@ -18,7 +18,7 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://*.tile.openstreetmap.org https://maps.gstatic.com https://maps.googleapis.com",
-      "connect-src 'self' https://api.cashfree.com https://sandbox.cashfree.com https://sdk.cashfree.com https://payments.cashfree.com https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com https://*.googleapis.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://res.cloudinary.com",
+      "connect-src 'self' https://api.cashfree.com https://sandbox.cashfree.com https://sdk.cashfree.com https://payments.cashfree.com https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com https://*.googleapis.com https://www.gstatic.com https://vitals.vercel-insights.com https://va.vercel-scripts.com https://res.cloudinary.com",
       "frame-src 'self' https://www.google.com https://sdk.cashfree.com https://payments.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com https://api.razorpay.com",
       "form-action 'self' https://payments.cashfree.com https://sandbox.cashfree.com https://api.cashfree.com",
       ...(isProd ? ["upgrade-insecure-requests"] : []),
