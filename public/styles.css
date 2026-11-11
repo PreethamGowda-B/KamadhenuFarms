@@ -8932,7 +8932,34 @@ body.overflow-hidden {
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
   }
 
-  /* 6. Premium Honey Collection: Zero-lag mobile card rendering */
+  /* 6. Premium Honey Collection: Zero-lag mobile card & marquee rendering */
+  .announcement-marquee-wrapper.heavy-premium-launch {
+    box-shadow: 0 4px 12px rgba(22, 17, 10, 0.18) !important;
+  }
+
+  .announcement-marquee-wrapper.heavy-premium-launch::before {
+    display: none !important;
+    animation: none !important;
+  }
+
+  .launch-item-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    transition: none !important;
+  }
+
+  .launch-item-icon,
+  .marquee-diamond {
+    filter: none !important;
+  }
+
+  .pulsing-gold-dot,
+  .pulsing-green-dot {
+    animation: none !important;
+    box-shadow: none !important;
+  }
+
   .products-grid {
     gap: 20px !important;
   }
@@ -8943,7 +8970,14 @@ body.overflow-hidden {
     transform: none !important;
     transition: none !important;
     will-change: auto !important;
+    contain: layout style paint !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .product-card::after,
+  .glass-card::after {
+    display: none !important;
+    content: none !important;
   }
 
   .product-card:hover {
@@ -8951,14 +8985,34 @@ body.overflow-hidden {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
   }
 
+  .product-media img,
   .product-media > img {
     filter: none !important;
     transition: none !important;
     will-change: auto !important;
+    transform: none !important;
   }
 
+  .product-card:hover .product-media img,
   .product-card:hover .product-media > img {
     transform: none !important;
+  }
+
+  .weight-pill,
+  .thumb-nav-btn,
+  .wishlist-btn,
+  .share-product-btn {
+    transition: none !important;
+  }
+
+  .weight-pill:hover,
+  .wishlist-btn:hover,
+  .share-product-btn:hover {
+    transform: none !important;
+  }
+
+  .product-rating-badge:hover .star-icon {
+    animation: none !important;
   }
 
   /* Remove backdrop-filter from card utility elements on mobile */

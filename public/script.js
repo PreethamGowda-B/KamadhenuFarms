@@ -1733,6 +1733,15 @@ function initKamadhenuApp() {
   /* ==========================================================================
      Product Display Generation & Search-Filters
      ========================================================================== */
+  const getOptimizedProductMedia = (imgPath, isThumb = false) => {
+    if (!imgPath || typeof imgPath !== 'string') return imgPath;
+    if (!/^assets\/[^/]+\.(png|jpe?g)$/i.test(imgPath)) return imgPath;
+    const fileName = imgPath.slice('assets/'.length);
+    const stem = fileName.replace(/\.[^.]+$/, '');
+    const slug = stem.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase();
+    return isThumb ? `assets/opt/thumb/${slug}.webp` : `assets/opt/${slug}.webp`;
+  };
+
   const renderProductCards = () => {
     if (!productGrid) return;
     productGrid.innerHTML = '';
@@ -1763,8 +1772,8 @@ function initKamadhenuApp() {
       const galleryHtml = hasGallery ? `
         <div class="card-thumb-nav">
           ${product.images.map((img, idx) => `
-            <button class="thumb-nav-btn ${idx === 0 ? 'active' : ''}" data-img-src="${img}" data-index="${idx}">
-              <img src="${img}" alt="thumbnail ${idx}" loading="lazy" decoding="async">
+            <button class="thumb-nav-btn ${idx === 0 ? 'active' : ''}" data-img-src="${getOptimizedProductMedia(img, false)}" data-fallback-src="${img}" data-index="${idx}" aria-label="View image ${idx + 1}">
+              <img src="${getOptimizedProductMedia(img, true)}" data-fallback="${img}" alt="thumbnail ${idx + 1}" width="32" height="32" loading="lazy" decoding="async" fetchpriority="low" onerror="if(this.dataset.fallback){this.onerror=null;this.src=this.dataset.fallback;}">
             </button>
           `).join('')}
         </div>
@@ -1894,7 +1903,7 @@ function initKamadhenuApp() {
           </svg>
         </button>
         <div class="product-media">
-          <img src="${product.image}" alt="${product.name}" loading="lazy" decoding="async" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <img src="${getOptimizedProductMedia(product.image, false)}" data-fallback="${product.image}" alt="${product.name}" width="500" height="500" loading="lazy" decoding="async" onerror="if(!this.dataset.retried && this.dataset.fallback){this.dataset.retried='1';this.src=this.dataset.fallback;}else{this.style.display='none'; this.nextElementSibling.style.display='flex';}">
           <div class="media-placeholder" style="display:none;">
             ${product.placeholderIcon}
             <span>${product.name}</span>
@@ -1953,8 +1962,9 @@ function initKamadhenuApp() {
       // Wire up card thumbnail gallery clicks & automatic slideshow
       if (hasGallery && product.images.length > 1) {
         const thumbBtns = productCard.querySelectorAll('.thumb-nav-btn');
-        const mainImg = productCard.querySelector('.product-media img');
+        const mainImg = productCard.querySelector('.product-media > img');
         let currentImgIdx = 0;
+        const isTouchOrMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 768;
         
         const switchImage = (index) => {
           currentImgIdx = (index + product.images.length) % product.images.length;
@@ -1962,18 +1972,23 @@ function initKamadhenuApp() {
           const btn = thumbBtns[currentImgIdx];
           if (btn && mainImg) {
             btn.classList.add('active');
-            mainImg.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            mainImg.style.opacity = '0.7';
-            setTimeout(() => {
+            mainImg.dataset.fallback = btn.dataset.fallbackSrc || '';
+            mainImg.dataset.retried = '';
+            if (isTouchOrMobile) {
               mainImg.src = btn.dataset.imgSrc;
-              mainImg.style.opacity = '1';
-            }, 150);
+            } else {
+              mainImg.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+              mainImg.style.opacity = '0.7';
+              setTimeout(() => {
+                mainImg.src = btn.dataset.imgSrc;
+                mainImg.style.opacity = '1';
+              }, 150);
+            }
           }
         };
 
         // Automatically cycle images only on desktop (skip on touch/mobile to guarantee 60fps buttery scrolling)
         let autoSlideTimer = null;
-        const isTouchOrMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 768;
         const startAutoSlide = () => {
           if (isTouchOrMobile || autoSlideTimer || document.hidden) return;
           autoSlideTimer = setInterval(() => {
