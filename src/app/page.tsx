@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { GalleryLightboxSection } from '@/components/home/GalleryLightboxSection';
 
 export default function RootHomePage() {
   const htmlPath = path.join(process.cwd(), 'index.html');
@@ -18,10 +19,26 @@ export default function RootHomePage() {
     console.error('Failed to read index.html', e);
   }
 
+  const galleryStartToken = '<section class="gallery" id="gallery">';
+  const galleryStartIdx = htmlContent.indexOf(galleryStartToken);
+  const galleryEndIdx =
+    galleryStartIdx !== -1 ? htmlContent.indexOf('</section>', galleryStartIdx) : -1;
+
+  const beforeGalleryHtml =
+    galleryStartIdx !== -1 && galleryEndIdx !== -1
+      ? htmlContent.slice(0, galleryStartIdx)
+      : htmlContent;
+  const afterGalleryHtml =
+    galleryStartIdx !== -1 && galleryEndIdx !== -1
+      ? htmlContent.slice(galleryEndIdx + '</section>'.length)
+      : '';
+
   return (
     <>
       <link rel="stylesheet" href="/styles.css?v=20261111_v70" />
-      <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+      <div dangerouslySetInnerHTML={{ __html: beforeGalleryHtml }} />
+      {galleryStartIdx !== -1 && galleryEndIdx !== -1 && <GalleryLightboxSection />}
+      {afterGalleryHtml && <div dangerouslySetInnerHTML={{ __html: afterGalleryHtml }} />}
       <script src="https://sdk.cashfree.com/js/v3/cashfree.js" async />
       <script src="/script.js?v=20261111_v70" defer />
     </>
