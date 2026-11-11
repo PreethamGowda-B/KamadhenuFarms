@@ -60,6 +60,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 section[id],
@@ -72,7 +73,8 @@ body {
   font-family: var(--font-body);
   background-color: var(--cream-bg);
   color: var(--luxury-charcoal);
-  overflow-x: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   line-height: 1.6;
 }
 
@@ -4783,8 +4785,9 @@ header.scrolled .logo-bee {
 }
 
 body:not(.loaded) {
-  /* Scroll unlocked by default; no locking when preloader is absent */
-  overflow: auto;
+  /* Scroll unlocked by default; never create an inner body scroll container */
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 /* ==========================================================================
@@ -7513,10 +7516,10 @@ body.overflow-hidden {
     touch-action: manipulation;
   }
 
-  /* Clean touch scrolling on iOS and Android */
+  /* Clean native viewport touch scrolling on iOS and Android */
   html, body {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: none;
+    overflow-x: clip;
+    overflow-y: visible;
   }
 }
 
@@ -8925,9 +8928,9 @@ body.overflow-hidden {
     backface-visibility: hidden;
   }
 
-  /* Smooth GPU scrolling container */
+  /* Smooth native touch scrolling without nested body scroll container */
   body {
-    -webkit-overflow-scrolling: touch;
+    overflow-y: visible;
   }
 
   /* 1. Eliminate heavy Gaussian blur filters & 60fps continuous breathing on mobile */
@@ -9847,6 +9850,7 @@ body.overflow-hidden {
   body {
     max-width: 100%;
     overflow-x: clip;
+    overflow-y: visible;
   }
 
   input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),

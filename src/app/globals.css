@@ -13,7 +13,7 @@ body {
   background-color: #F8F5EF;
   color: #2E2E2E;
   font-family: var(--font-inter);
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 .gold-gradient-text {

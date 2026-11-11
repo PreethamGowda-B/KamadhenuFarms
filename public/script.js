@@ -1,8 +1,9 @@
 /* Instant Preloader Removal and body scroll unlock to guarantee immediate scrolling */
 (function removePreloaderFast() {
   if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('overflow-hidden');
     document.body.classList.remove('overflow-hidden');
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = '';
   }
   const p = document.getElementById('preloader') || document.querySelector('.preloader');
   if (p) {
@@ -40,8 +41,9 @@ function initKamadhenuApp() {
 
   if (typeof document !== 'undefined') {
     document.body.classList.add('loaded');
+    document.documentElement.classList.remove('overflow-hidden');
     document.body.classList.remove('overflow-hidden');
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = '';
   }
 
   // Guard against duplicate script initialization & duplicate DOM event bindings
@@ -4726,8 +4728,9 @@ if (typeof document !== 'undefined') {
 
   window.addEventListener('pageshow', () => {
     document.body.classList.add('loaded');
+    document.documentElement.classList.remove('overflow-hidden');
     document.body.classList.remove('overflow-hidden');
-    document.body.style.overflow = 'auto';
+    document.body.style.overflow = '';
     document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
   });
 }
