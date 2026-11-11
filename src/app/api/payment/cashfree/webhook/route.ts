@@ -1,20 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyCashfreeWebhookSignature } from '@/lib/cashfree';
+import { verifyCashfreeWebhookSignature, isFreshWebhookTimestamp } from '@/lib/cashfree';
+import {
+  markGatewayPaymentFailedAtomic,
+  settleCashfreePaymentAtomic,
+} from '@/lib/orderPaymentSettlement';
+import { isOrderPaymentConfirmed } from '@/lib/orderStateMachine';
 import {
   notifyAdminNewOrder,
   notifyCustomerOrderConfirmed,
   notifyCustomerPaymentFailed,
 } from '@/lib/notifications';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   return NextResponse.json(
     { status: 'active', message: 'Cashfree webhook endpoint is active and reachable' },
     { status: 200 }
   );
 }
 
-export async function HEAD(req: NextRequest) {
+export async function HEAD() {
   return new NextResponse(null, { status: 200 });
 }
 
@@ -23,53 +28,60 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get('x-webhook-signature');
     const timestamp = req.headers.get('x-webhook-timestamp');
 
-    // Dashboard Test Ping check: Return 200 so Cashfree dashboard Test button passes
+    const rawBody = await req.text();
+
+    // Dashboard Test Ping check: Only allow unauthenticated 200 when payload is empty reachability ping
     if (!signature || !timestamp) {
-      console.log('ℹ️ [Cashfree Webhook] Dashboard test ping / reachability probe received.');
+      if (!rawBody || rawBody.trim() === '' || rawBody.trim() === '{}') {
+        return NextResponse.json(
+          { status: 'active', message: 'Webhook endpoint reachable. Full signature verification active for events.' },
+          { status: 200 }
+        );
+      }
       return NextResponse.json(
-        { status: 'active', message: 'Webhook endpoint reachable. Full signature verification active for events.' },
-        { status: 200 }
+        { success: false, message: 'Missing webhook signature or timestamp headers' },
+        { status: 401 }
       );
     }
 
-    // Read raw request text for cryptographic verification
-    const rawBody = await req.text();
-    const isValid = verifyCashfreeWebhookSignature(rawBody, signature, timestamp);
+    // 1. Replay Window Verification (±5 minutes)
+    if (!isFreshWebhookTimestamp(timestamp, 300)) {
+      console.error('❌ [Cashfree Webhook] Stale or invalid webhook timestamp');
+      return NextResponse.json(
+        { success: false, message: 'Stale webhook timestamp' },
+        { status: 401 }
+      );
+    }
 
+    // 2. Cryptographic Signature Verification
+    const isValid = verifyCashfreeWebhookSignature(rawBody, signature, timestamp);
     if (!isValid) {
       console.error('❌ [Cashfree Webhook] Cryptographic signature verification failed');
       return NextResponse.json(
         { success: false, message: 'Invalid webhook signature' },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
     let payload: any;
     try {
       payload = JSON.parse(rawBody);
-    } catch (parseErr) {
+    } catch {
       return NextResponse.json({ success: false, message: 'Invalid JSON payload' }, { status: 400 });
     }
 
     const eventType = payload.type || payload.event;
-    console.log(`ℹ️ [Cashfree Webhook] Verified event received: ${eventType}`);
-
     const orderData = payload.data?.order || payload.order;
     const paymentData = payload.data?.payment || payload.payment;
     const cashfreeOrderId = orderData?.order_id || payload.order_id;
 
     if (!cashfreeOrderId) {
-      console.warn('⚠️ [Cashfree Webhook] No order_id found in webhook payload');
       return NextResponse.json({ success: true, message: 'No order_id present, skipped' });
     }
 
-    // Lookup order in database
     const order = await prisma.order.findFirst({
       where: {
-        OR: [
-          { cashfreeOrderId },
-          { orderNumber: cashfreeOrderId },
-        ],
+        OR: [{ cashfreeOrderId }, { orderNumber: cashfreeOrderId }],
       },
       include: {
         customer: true,
@@ -78,41 +90,27 @@ export async function POST(req: NextRequest) {
     });
 
     if (!order) {
-      console.warn(`⚠️ [Cashfree Webhook] Order ${cashfreeOrderId} not found in database`);
       return NextResponse.json({ success: true, message: 'Order not found in database, skipped' });
     }
 
     const isCod = order.paymentMethod === 'COD';
     const normalizedType = String(eventType || '').toUpperCase().replace(/[\s-]+/g, '_');
 
-    // 1. Handle Successful Payment
+    // 3. Handle Strictly Verified Successful Payment
+    const hasExplicitPaymentSuccess = paymentData?.payment_status === 'SUCCESS';
     const isSuccessEvent =
-      normalizedType.includes('SUCCESS') ||
-      normalizedType.includes('ORDER_PAID') ||
-      paymentData?.payment_status === 'SUCCESS';
+      normalizedType === 'PAYMENT_SUCCESS_WEBHOOK' ||
+      normalizedType === 'ORDER_PAID' ||
+      hasExplicitPaymentSuccess;
 
-    if (isSuccessEvent) {
-      const paymentStatus = paymentData?.payment_status || 'SUCCESS';
-      const paymentAmount = Number(paymentData?.payment_amount || orderData?.order_amount || 0);
-      const cfPaymentId = String(paymentData?.cf_payment_id || `cf_${Date.now()}`);
-
-      // Idempotency: If already marked PAID or COD_ADVANCE_PAID, skip to avoid duplicate processing
-      if (order.paymentStatus === 'PAID' || order.paymentStatus === 'COD_ADVANCE_PAID' || order.paymentStatus === 'FULLY_PAID') {
-        console.log(`ℹ️ [Cashfree Webhook] Order ${order.orderNumber} already marked ${order.paymentStatus}. Idempotent return.`);
+    if (isSuccessEvent && (!paymentData?.payment_status || paymentData.payment_status === 'SUCCESS')) {
+      if (isOrderPaymentConfirmed(order.paymentStatus)) {
         return NextResponse.json({ success: true, message: 'Order already confirmed' });
       }
 
-      // Security check: Payment amount must cover required amount
+      const paymentAmount = Number(paymentData?.payment_amount ?? orderData?.order_amount ?? 0);
       const expectedAmount = isCod ? order.advanceAmount : order.total;
-      if (paymentAmount < expectedAmount) {
-        console.error(
-          `🚨 [Cashfree Webhook Tamper Risk] Order ${order.orderNumber}: Expected ₹${expectedAmount}, Webhook reported ₹${paymentAmount}`
-        );
-        return NextResponse.json(
-          { success: false, message: 'Payment amount mismatch' },
-          { status: 400 }
-        );
-      }
+      const cfPaymentId = String(paymentData?.cf_payment_id || `cf_${order.orderNumber}_${timestamp}`);
 
       let methodDescription = 'ONLINE';
       if (typeof paymentData?.payment_method === 'object' && paymentData?.payment_method !== null) {
@@ -120,184 +118,90 @@ export async function POST(req: NextRequest) {
         if (keys.length > 0) methodDescription = keys[0].toUpperCase();
       }
 
-      await prisma.$transaction(async (tx) => {
-        // Mark Order as Confirmed & Paid
-        await tx.order.update({
+      const settlement = await settleCashfreePaymentAtomic({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        customerId: order.customerId,
+        customerName: order.customer?.name,
+        orderTotal: order.total,
+        expectedAmount,
+        expectedCurrency: order.currency || 'INR',
+        isCod,
+        referralCode: order.referralCode,
+        discount: order.discount,
+        currentOrderStatus: order.orderStatus,
+        cashfreeOrderId,
+        cfPaymentId,
+        paidAmount: paymentAmount,
+        paidCurrency: paymentData?.payment_currency || 'INR',
+        paymentMethodDescription: methodDescription,
+        paidAt: paymentData?.payment_time ? new Date(paymentData.payment_time) : new Date(),
+        rawPayload: paymentData || payload,
+        source: 'cashfree_webhook',
+      });
+
+      if (settlement.currencyMismatch || settlement.amountMismatch) {
+        console.error(
+          `🚨 [Cashfree Webhook Tamper Risk] Order ${order.orderNumber}: Expected ₹${expectedAmount} ${order.currency}, Webhook reported ${paymentAmount} ${paymentData?.payment_currency}`
+        );
+        return NextResponse.json(
+          { success: false, message: 'Payment amount or currency mismatch' },
+          { status: 400 }
+        );
+      }
+
+      if (!settlement.alreadyPaid) {
+        const orderWithDetails = await prisma.order.findUnique({
           where: { id: order.id },
-          data: {
-            paymentStatus: isCod ? 'COD_ADVANCE_PAID' : 'PAID',
-            orderStatus: order.orderStatus === 'NEW' ? 'CONFIRMED' : order.orderStatus,
-            cashfreeOrderId,
-            cashfreePaymentId: cfPaymentId,
-            advancePaidAmount: paymentAmount,
+          include: {
+            customer: { select: { name: true, mobile: true, email: true } },
+            shippingAddress: { select: { city: true, pincode: true } },
+            items: { select: { productNameSnapshot: true, weightVariant: true, quantity: true } },
           },
         });
 
-        // Upsert Payment Record (Idempotent by payment ID)
-        const hasPayment = order.payments.some((p) => p.cashfreePaymentId === cfPaymentId);
-        if (!hasPayment) {
-          await tx.payment.create({
-            data: {
-              orderId: order.id,
-              provider: 'CASHFREE',
-              cashfreeOrderId,
-              cashfreePaymentId: cfPaymentId,
-              amount: paymentAmount,
-              currency: paymentData?.payment_currency || 'INR',
-              paymentMethod: isCod ? 'COD_ADVANCE' : methodDescription,
-              status: 'PAID',
-              paidAt: paymentData?.payment_time ? new Date(paymentData.payment_time) : new Date(),
-              rawResponse: JSON.stringify(paymentData || payload),
-            },
-          });
+        if (orderWithDetails) {
+          notifyAdminNewOrder(orderWithDetails as any).catch((e) =>
+            console.warn('Webhook admin push notice:', e)
+          );
+          notifyCustomerOrderConfirmed(orderWithDetails as any).catch((e) =>
+            console.warn('Webhook customer push notice:', e)
+          );
         }
-
-        // Referral qualification logic
-        if (order.referralCode) {
-          const offer = await tx.referralOffer.findFirst({
-            where: { code: order.referralCode, isActive: true },
-          });
-
-          if (offer) {
-            await tx.referralOffer.update({
-              where: { id: offer.id },
-              data: { timesUsed: { increment: 1 } },
-            });
-
-            const priorOrders = await tx.order.count({
-              where: {
-                customerId: order.customerId,
-                id: { not: order.id },
-                paymentStatus: { in: ['PAID', 'COD_ADVANCE_PAID', 'FULLY_PAID'] },
-              },
-            });
-            const isGenuinelyNew = priorOrders === 0;
-            const hasReferrer = Boolean(offer.referrerCustomerId && offer.referrerCustomerId !== order.customerId);
-            const qualifies = isGenuinelyNew && hasReferrer;
-
-            const existingUsage = await tx.referralUsage.findFirst({
-              where: { orderId: order.id },
-            });
-
-            if (!existingUsage) {
-              await tx.referralUsage.create({
-                data: {
-                  offerId: offer.id,
-                  orderId: order.id,
-                  referrerCustomerId: offer.referrerCustomerId || null,
-                  referredCustomerId: order.customerId,
-                  discountApplied: order.discount,
-                  status: qualifies ? 'QUALIFIED' : isGenuinelyNew ? 'QUALIFIED_GLOBAL' : 'DISCOUNT_ONLY',
-                  qualifiesReward: qualifies,
-                },
-              });
-            }
-
-            if (qualifies && offer.referrerCustomerId) {
-              const rewardCode = `REWARD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-              await tx.referralReward.create({
-                data: {
-                  offerId: offer.id,
-                  customerId: offer.referrerCustomerId,
-                  rewardCode,
-                  discountPercent: 5.0,
-                  minPurchaseKg: 1.0,
-                  sourceOrderId: order.id,
-                  status: 'ACTIVE',
-                },
-              });
-
-              await tx.adminNotification.upsert({
-                where: { dedupKey: `REF_REWARD:${order.orderNumber}:${rewardCode}` },
-                update: {},
-                create: {
-                  title: `Referral Reward Earned (5%)`,
-                  message: `Referrer earned reward code ${rewardCode} from new customer order ${order.orderNumber}.`,
-                  type: 'REFERRAL_REWARD',
-                  link: `/admin/referrals`,
-                  dedupKey: `REF_REWARD:${order.orderNumber}:${rewardCode}`,
-                },
-              });
-            }
-          }
-        }
-
-        // Admin Notification (idempotent with dedupKey matching verify endpoint)
-        const firstName = order.customer?.name ? String(order.customer.name).trim().split(' ')[0] : 'Customer';
-        await tx.adminNotification.upsert({
-          where: { dedupKey: `ORDER_PAID:${order.orderNumber}` },
-          update: {},
-          create: {
-            title: `New Order: ${order.orderNumber}`,
-            message: `${firstName} completed payment of ₹${order.total} (${order.orderNumber}) via Cashfree webhook.`,
-            type: 'HIGH_VALUE_ORDER',
-            link: `/admin/orders/${order.id}`,
-            dedupKey: `ORDER_PAID:${order.orderNumber}`,
-            metadata: JSON.stringify({
-              orderId: order.id,
-              orderNumber: order.orderNumber,
-              total: order.total,
-              source: 'cashfree_webhook',
-            }),
-          },
-        });
-      });
-
-      console.log(`✅ [Cashfree Webhook] Order ${order.orderNumber} successfully marked PAID.`);
-
-      // Fire centralized push notifications (Admin FCM + Customer FCM)
-      const orderWithDetails = await prisma.order.findUnique({
-        where: { id: order.id },
-        include: {
-          customer: { select: { name: true, mobile: true, email: true } },
-          shippingAddress: { select: { city: true, pincode: true } },
-          items: { select: { productNameSnapshot: true, weightVariant: true, quantity: true } },
-        },
-      });
-
-      if (orderWithDetails) {
-        notifyAdminNewOrder(orderWithDetails as any).catch((e) => console.warn('Webhook admin push notice:', e));
-        notifyCustomerOrderConfirmed(orderWithDetails as any).catch((e) => console.warn('Webhook customer push notice:', e));
       }
 
       return NextResponse.json({ success: true, status: 'processed' });
     }
 
-    // 2. Handle Failed Payment
+    // 4. Handle Failed Payment Atomically
     const isFailedEvent =
       normalizedType.includes('FAIL') ||
       normalizedType.includes('USER_DROPPED') ||
-      paymentData?.payment_status === 'FAILED';
+      paymentData?.payment_status === 'FAILED' ||
+      paymentData?.payment_status === 'USER_DROPPED' ||
+      paymentData?.payment_status === 'CANCELLED';
 
     if (isFailedEvent) {
-      if (order.paymentStatus === 'PAYMENT_PENDING' || order.paymentStatus === 'COD_ADVANCE_PENDING') {
-        await prisma.order.update({
-          where: { id: order.id },
-          data: { paymentStatus: 'FAILED' },
-        });
+      const markedFailed = await markGatewayPaymentFailedAtomic({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        orderTotal: order.total,
+        customerName: order.customer?.name,
+        providerLabel: 'Cashfree',
+      });
 
-        const firstName = order.customer?.name ? String(order.customer.name).trim().split(' ')[0] : 'Customer';
-        await prisma.adminNotification.upsert({
-          where: { dedupKey: `PAYMENT_FAILED:${order.orderNumber}` },
-          update: {},
-          create: {
-            title: `Payment Failed: ${order.orderNumber}`,
-            message: `${firstName}'s payment attempt of ₹${order.total} (${order.orderNumber}) failed via Cashfree webhook.`,
-            type: 'PAYMENT_FAILED',
-            link: `/admin/orders/${order.id}`,
-            dedupKey: `PAYMENT_FAILED:${order.orderNumber}`,
-          },
-        }).catch((e) => console.warn('Failed to record webhook admin notification for failed payment:', e));
-
-        console.warn(`⚠️ [Cashfree Webhook] Payment failed marked for order ${order.orderNumber}`);
-        notifyCustomerPaymentFailed(order as any).catch((e) => console.warn('Webhook customer failed payment push notice:', e));
+      if (markedFailed) {
+        notifyCustomerPaymentFailed(order as any).catch((e) =>
+          console.warn('Webhook customer failed payment push notice:', e)
+        );
       }
+
       return NextResponse.json({ success: true, status: 'marked_failed' });
     }
 
     return NextResponse.json({ success: true, message: `Event ${eventType} received and ignored` });
   } catch (error: any) {
     console.error('Cashfree webhook processing error:', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Webhook processing error' }, { status: 500 });
   }
 }

@@ -6,6 +6,10 @@ build/
 *.tsbuildinfo
 .env
 .env.local
+.env.*.local
+*.pem
+*.key
+serviceAccountKey*.json
 
 # Windows thumbnail cache
 Thumbs.db

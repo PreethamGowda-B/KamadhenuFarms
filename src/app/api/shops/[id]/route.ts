@@ -57,7 +57,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     // Role check: sales executive can only view their own shops
-    if (salesSession && !adminSession && shop.salespersonId && shop.salespersonId !== salesSession.id) {
+    if (salesSession && !adminSession && shop.salespersonId !== salesSession.id) {
       return NextResponse.json({ success: false, message: 'Access denied to this shop' }, { status: 403 });
     }
 

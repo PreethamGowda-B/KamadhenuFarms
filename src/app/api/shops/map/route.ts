@@ -41,13 +41,22 @@ const CITY_COORDS: Record<string, [number, number]> = {
 
 export async function GET(req: NextRequest) {
   try {
+    const salesSession = await getSalesSessionFromRequest(req);
+    const adminSession = getAdminSessionFromRequest(req);
+
+    if (!salesSession && !adminSession) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const salespersonId = searchParams.get('salespersonId') || 'ALL';
     const status = searchParams.get('status') || 'ALL';
     const city = searchParams.get('city') || 'ALL';
 
     const where: any = {};
-    if (salespersonId !== 'ALL') {
+    if (salesSession && !adminSession) {
+      where.salespersonId = salesSession.id;
+    } else if (salespersonId !== 'ALL') {
       where.salespersonId = salespersonId;
     }
     if (status !== 'ALL') {

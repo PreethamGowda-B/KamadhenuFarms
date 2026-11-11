@@ -39,8 +39,13 @@ export function verifySalesJwt(token: string): SalespersonPayload | null {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
 
-    const [header, body, signature] = parts;
-    const signatureInput = `${header}.${body}`;
+    const [headerB64, bodyB64, signature] = parts;
+    const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8'));
+    if (header.alg !== 'HS256' || header.typ !== 'JWT') {
+      return null;
+    }
+
+    const signatureInput = `${headerB64}.${bodyB64}`;
     const secret = getJwtSecret();
     const expectedSignature = crypto.createHmac('sha256', secret).update(signatureInput).digest('base64url');
 
@@ -51,7 +56,7 @@ export function verifySalesJwt(token: string): SalespersonPayload | null {
       return null;
     }
 
-    const payload: SalespersonPayload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    const payload: SalespersonPayload = JSON.parse(Buffer.from(bodyB64, 'base64url').toString('utf8'));
     const now = Math.floor(Date.now() / 1000);
 
     if (payload.exp && now > payload.exp) {
@@ -74,7 +79,7 @@ export async function getSalesSessionFromRequest(req: NextRequest): Promise<Sale
   const verified = verifySalesJwt(token);
   if (!verified) return null;
 
-  // Optional: Verify salesperson is still active in database
+  // Verify salesperson is still active and hired in database (fail closed)
   try {
     const agent = await prisma.application.findUnique({
       where: { id: verified.id },
@@ -84,7 +89,8 @@ export async function getSalesSessionFromRequest(req: NextRequest): Promise<Sale
       return null;
     }
   } catch (e) {
-    // If DB check fails, fallback to valid verified JWT
+    console.error('Failed verifying salesperson status in database:', e);
+    return null;
   }
 
   return verified;

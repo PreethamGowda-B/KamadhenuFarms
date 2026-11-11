@@ -2910,19 +2910,27 @@ footer {
 /* Cart Footer Drawer Panel */
 .cart-footer {
   flex-shrink: 0;
-  padding: 30px;
+  padding: 24px 30px;
   background: var(--warm-white);
   border-top: 1px solid var(--glass-border);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .coupon-row {
   display: flex;
   gap: 10px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .coupon-row input {
   flex: 1;
+  min-width: 0;
   padding: 10px 16px;
   border-radius: 30px;
   border: 1px solid rgba(216, 166, 79, 0.3);
@@ -2943,33 +2951,66 @@ footer {
 }
 
 .coupon-row .btn {
+  flex-shrink: 0;
   padding: 8px 18px;
   font-size: 0.8rem;
 }
 
 .coupon-feedback {
+  display: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 12px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
   font-size: 0.78rem;
   font-weight: 600;
-  margin-top: -1rem;
-  margin-bottom: 1rem;
-  display: none;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .coupon-feedback.success {
-  color: #27ae60;
   display: block;
+  color: #1e7e44;
+  background: rgba(39, 174, 96, 0.1);
+  border: 1px solid rgba(39, 174, 96, 0.28);
 }
 
 .coupon-feedback.error {
-  color: #c0392b;
   display: block;
+  color: #c0392b;
+  background: rgba(192, 57, 43, 0.08);
+  border: 1px solid rgba(192, 57, 43, 0.25);
+}
+
+.coupon-feedback.verifying {
+  display: block;
+  color: #8c6219;
+  background: rgba(216, 166, 79, 0.12);
+  border: 1px solid rgba(216, 166, 79, 0.32);
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
   font-size: 0.95rem;
   margin-bottom: 8px;
+  min-width: 0;
+}
+
+.summary-row > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.summary-row > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .summary-row.total-row {
@@ -4939,24 +4980,20 @@ body:not(.loaded) {
     text-align: center !important;
     background: linear-gradient(
       115deg,
-      #91641b 0%,
-      #b88628 18%,
-      #d8aa46 32%,
-      #fff4b8 44%,
-      #ffffff 50%,
-      #fff4b8 56%,
-      #d8aa46 68%,
-      #b88628 82%,
-      #91641b 100%
+      #8b5c14 0%,
+      #b88628 28%,
+      #e2b24e 50%,
+      #b88628 72%,
+      #8b5c14 100%
     ) !important;
-    background-size: 240% auto !important;
+    background-size: 100% auto !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     color: transparent !important;
-    animation: foil-shimmer 4.5s ease-in-out infinite alternate !important;
-    filter: drop-shadow(0 2px 10px rgba(184, 134, 40, 0.32)) !important;
-    will-change: background-position !important;
+    animation: none !important;
+    filter: none !important;
+    will-change: auto !important;
   }
   .gold-foil-text span,
   .hero-content h1.gold-foil-text span {
@@ -5095,12 +5132,14 @@ body:not(.loaded) {
     min-height: 36px !important;
   }
 
-  /* Cart Drawer on Mobile */
+  /* Cart Drawer on Mobile — Hardware-composited translate3d open/close */
   .cart-drawer,
   .orders-drawer {
     width: 100% !important;
     max-width: 100vw !important;
-    right: -100% !important;
+    right: 0 !important;
+    transform: translate3d(100%, 0, 0) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
     height: 100vh !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
@@ -5113,7 +5152,7 @@ body:not(.loaded) {
   .cart-drawer.active,
   .orders-drawer.active {
     right: 0 !important;
-    transform: none !important;
+    transform: translate3d(0, 0, 0) !important;
   }
   .cart-header {
     flex-shrink: 0 !important;
@@ -5296,11 +5335,28 @@ body:not(.loaded) {
     background: var(--warm-white) !important;
     box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.06) !important;
     box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
   }
   .coupon-row {
     display: flex !important;
     gap: 8px !important;
     margin-bottom: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .coupon-feedback {
+    margin: 0 0 8px 0 !important;
+    padding: 7px 10px !important;
+    font-size: 0.76rem !important;
+    line-height: 1.38 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
   }
   .coupon-row input {
     flex: 1 !important;
@@ -7938,8 +7994,9 @@ body.overflow-hidden {
   will-change: transform;
 }
 
-.announcement-marquee-wrapper.heavy-premium-launch:hover .marquee-group {
-  animation-play-state: paused;
+.announcement-marquee-wrapper.heavy-premium-launch:hover .marquee-group,
+.announcement-marquee-wrapper.heavy-premium-launch.marquee-paused .marquee-group {
+  animation-play-state: paused !important;
 }
 
 /* Individual Launch Item Card */
@@ -8091,19 +8148,19 @@ body.overflow-hidden {
   }
 }
 
-/* Modern Rendering Containment: Browser skips layout & paint of deep offscreen sections on desktop screens only */
-@media (min-width: 769px) {
-  @supports (content-visibility: auto) {
-    .gallery,
-    .journey,
-    .benefits,
-    .testimonials,
-    .faq,
-    .contact,
-    .final-cta {
-      content-visibility: auto;
-      contain-intrinsic-size: 1px 750px;
-    }
+/* Modern Rendering Containment: Browser skips layout & paint of offscreen lower sections across all viewports */
+@supports (content-visibility: auto) {
+  .buy-choices,
+  .why-us,
+  .gallery,
+  .journey,
+  .benefits,
+  .testimonials,
+  .faq,
+  .contact,
+  .final-cta {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 700px;
   }
 }
 
@@ -8985,6 +9042,11 @@ body.overflow-hidden {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
   }
 
+  .product-media::before {
+    display: none !important;
+    content: none !important;
+  }
+
   .product-media img,
   .product-media > img {
     filter: none !important;
@@ -9001,7 +9063,10 @@ body.overflow-hidden {
   .weight-pill,
   .thumb-nav-btn,
   .wishlist-btn,
-  .share-product-btn {
+  .share-product-btn,
+  .product-features-panel,
+  .bulk-order-banner,
+  .pincode-estimator-card {
     transition: none !important;
   }
 
@@ -9044,12 +9109,232 @@ body.overflow-hidden {
     background: rgba(30, 30, 30, 0.75) !important;
   }
 
-  /* Neutralize reveal transition and will-change lag on product cards */
+  .launch-tag-title {
+    -webkit-text-fill-color: #F5CF7A !important;
+    color: #F5CF7A !important;
+    background: none !important;
+  }
+
+  .products,
+  .buy-choices,
+  .why-us,
+  .gallery,
+  .journey,
+  .benefits,
+  .testimonials,
+  .faq {
+    contain: layout style;
+  }
+
+  /* Release all GPU layer allocations & transitions from reveal elements on mobile */
+  .reveal,
+  .reveal-fade-up,
+  .reveal-fade-left,
+  .reveal-fade-right,
   .product-card.reveal,
-  .product-card.reveal-fade-up {
+  .product-card.reveal-fade-up,
+  .choice-card,
+  .journey-card,
+  .faq-item,
+  .gallery-item,
+  .testimonial-card,
+  .products-header,
+  .pincode-estimator-card,
+  .bulk-order-banner {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
     will-change: auto !important;
+  }
+
+  .bulk-order-banner {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04) !important;
+  }
+}
+
+/* ==========================================================================
+   13. Decade of Customer Trust Heritage Crest (Front Page Only)
+   ========================================================================== */
+.decade-trust-crest {
+  padding: 44px 5% 18px;
+  background: var(--cream-bg);
+  max-width: 1440px;
+  margin: 0 auto;
+  contain: layout style;
+}
+
+.decade-crest-card {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 36px 32px 32px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #FFFDF8 0%, #FBF3E4 52%, #FFFDF9 100%);
+  border: 1px solid rgba(216, 166, 79, 0.42);
+  box-shadow: 0 12px 34px rgba(154, 107, 25, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  text-align: center;
+  position: relative;
+}
+
+.decade-crest-kicker {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--dark-gold);
+  margin-bottom: 12px;
+}
+
+.decade-crest-emblem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 0 auto 14px;
+}
+
+.decade-laurel-svg {
+  width: 70px;
+  height: 92px;
+  flex-shrink: 0;
+}
+
+.decade-crest-core {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.decade-crown-svg {
+  width: 48px;
+  height: 32px;
+  margin-bottom: 4px;
+}
+
+.decade-crest-headline {
+  font-family: var(--font-headings);
+  font-size: clamp(1.9rem, 4.2vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.08;
+  color: #2A1D12;
+  margin: 0 0 10px 0;
+  text-align: center;
+}
+
+.decade-crest-headline::after {
+  display: none !important;
+  content: none !important;
+}
+
+.decade-ribbon-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 100%;
+}
+
+.decade-ribbon-pin {
+  width: 34px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #C8922E);
+  flex-shrink: 0;
+}
+
+.decade-ribbon-row .decade-ribbon-pin:last-child {
+  background: linear-gradient(90deg, #C8922E, transparent);
+}
+
+.decade-ribbon-banner {
+  display: inline-block;
+  padding: 7px 22px;
+  background: linear-gradient(135deg, #F0C66B 0%, #D49A34 55%, #BD8221 100%);
+  color: #24160A;
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(189, 130, 33, 0.26);
+  position: relative;
+}
+
+.decade-crest-copy {
+  max-width: 650px;
+  margin: 0 auto 16px;
+  font-size: 0.96rem;
+  line-height: 1.65;
+  color: #534638;
+}
+
+.decade-crest-pillars {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7D581D;
+  letter-spacing: 0.04em;
+}
+
+.decade-crest-pillars .pillar-dot {
+  color: var(--primary-gold);
+}
+
+@media (max-width: 768px) {
+  .decade-trust-crest {
+    padding: 24px 4% 8px !important;
+  }
+  .decade-crest-card {
+    padding: 24px 16px 22px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 16px rgba(154, 107, 25, 0.06) !important;
+  }
+  .decade-crest-kicker {
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    margin-bottom: 8px;
+  }
+  .decade-crest-emblem {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .decade-laurel-svg {
+    width: 44px;
+    height: 60px;
+  }
+  .decade-crown-svg {
+    width: 36px;
+    height: 24px;
+  }
+  .decade-crest-headline {
+    font-size: 1.65rem !important;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px !important;
+  }
+  .decade-ribbon-pin {
+    display: none;
+  }
+  .decade-ribbon-banner {
+    padding: 6px 14px;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    box-shadow: none;
+  }
+  .decade-crest-copy {
+    font-size: 0.86rem;
+    line-height: 1.55;
+    margin-bottom: 12px;
+  }
+  .decade-crest-pillars {
+    font-size: 0.72rem;
+    gap: 6px 10px;
   }
 }

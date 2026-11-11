@@ -62,6 +62,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const result = await prisma.$transaction(async (tx) => {
       const shop = await tx.shop.findUnique({ where: { id } });
       if (!shop) throw new Error('Shop not found');
+      if (salesSession && !adminSession && shop.salespersonId !== salesSession.id) {
+        throw new Error('FORBIDDEN_SHOP');
+      }
 
       // Generate atomic Order Number
       const seq = await tx.shopSequence.upsert({
@@ -191,7 +194,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       actualAvgInterval: result.actualAvgInterval,
     });
   } catch (error: any) {
+    if (error?.message === 'FORBIDDEN_SHOP') {
+      return NextResponse.json({ success: false, message: 'Access denied to this shop' }, { status: 403 });
+    }
+    if (error?.message === 'Shop not found') {
+      return NextResponse.json({ success: false, message: 'Shop not found' }, { status: 404 });
+    }
     console.error('Order creation error:', error);
-    return NextResponse.json({ success: false, message: error.message || 'Failed to create order' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Failed to create order' }, { status: 500 });
   }
 }

@@ -95,6 +95,7 @@ function TrackOrderContent() {
   const searchParams = useSearchParams();
   const urlOrderNumber = searchParams.get('orderNumber') || searchParams.get('order_id') || searchParams.get('order') || '';
   const urlMobile = searchParams.get('mobile') || searchParams.get('phone') || '';
+  const urlOrderToken = searchParams.get('token') || '';
   const isJustConfirmed = searchParams.get('status') === 'confirmed';
 
   const [orderNumber, setOrderNumber] = useState(urlOrderNumber);
@@ -144,8 +145,9 @@ function TrackOrderContent() {
 
       // 1. First attempt: fetch full invoice & order management details
       let fetchedOrder: OrderData | null = null;
+      const tokenQuery = urlOrderToken ? `&token=${encodeURIComponent(urlOrderToken)}` : '';
       try {
-        const invoiceRes = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(cleanOrd)}${targetMobile ? `&mobile=${encodeURIComponent(targetMobile)}` : ''}`, {
+        const invoiceRes = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(cleanOrd)}${targetMobile ? `&mobile=${encodeURIComponent(targetMobile)}` : ''}${tokenQuery}`, {
           headers: { 'Cache-Control': 'no-cache' },
         });
         const invoiceData = await invoiceRes.json();
@@ -159,7 +161,7 @@ function TrackOrderContent() {
       // 2. Fallback: query tracking endpoint if invoice endpoint required additional auth
       if (!fetchedOrder) {
         const mobileQuery = targetMobile.trim() ? `&mobile=${encodeURIComponent(targetMobile.trim())}` : '';
-        const trackRes = await fetch(`/api/orders/track?orderNumber=${encodeURIComponent(cleanOrd)}${mobileQuery}`);
+        const trackRes = await fetch(`/api/orders/track?orderNumber=${encodeURIComponent(cleanOrd)}${mobileQuery}${tokenQuery}`);
         const trackData = await trackRes.json();
 
         if (trackData.success && trackData.order) {

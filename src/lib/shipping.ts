@@ -92,6 +92,7 @@ async function calculateShiprocketRate(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) return null;
@@ -206,8 +207,12 @@ export async function calculateShippingCharge(
 ): Promise<ShippingCalculationResult> {
   const cleaned = (deliveryPincode || '').trim();
 
-  // Special test pincode: 000000 → free delivery bypass (for internal testing)
-  if (cleaned === '000000') {
+  // Test pincode 000000 is strictly disabled in production unless explicitly overridden in non-prod
+  if (
+    cleaned === '000000' &&
+    process.env.NODE_ENV !== 'production' &&
+    process.env.ALLOW_TEST_PINCODE === 'true'
+  ) {
     return {
       serviceable: true,
       shippingFee: 0,

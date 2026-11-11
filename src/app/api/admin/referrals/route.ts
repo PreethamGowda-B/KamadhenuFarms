@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error('Admin referrals fetch error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to fetch referrals' },
+      { success: false, message: 'Failed to fetch referrals' },
       { status: 500 }
     );
   }
@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Create referral offer error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to create referral offer' },
+      { success: false, message: 'Failed to create referral offer' },
       { status: 500 }
     );
   }
@@ -204,7 +204,7 @@ export async function PATCH(req: NextRequest) {
   } catch (error: any) {
     console.error('Update referral offer error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to update referral offer' },
+      { success: false, message: 'Failed to update referral offer' },
       { status: 500 }
     );
   }
@@ -239,7 +239,7 @@ export async function DELETE(req: NextRequest) {
   } catch (error: any) {
     console.error('Delete referral offer error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to delete referral offer' },
+      { success: false, message: 'Failed to delete referral offer' },
       { status: 500 }
     );
   }

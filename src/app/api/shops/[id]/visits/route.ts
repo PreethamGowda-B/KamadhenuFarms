@@ -33,6 +33,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const salespersonId = salesSession?.id || body.salespersonId || null;
 
     const result = await prisma.$transaction(async (tx) => {
+      const shop = await tx.shop.findUnique({ where: { id }, select: { salespersonId: true } });
+      if (!shop) throw new Error('Shop not found');
+      if (salesSession && !adminSession && shop.salespersonId !== salesSession.id) {
+        throw new Error('FORBIDDEN_SHOP');
+      }
+
       const visit = await tx.shopVisit.create({
         data: {
           shopId: id,
@@ -73,7 +79,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ success: true, message: 'Visit logged successfully', visit: result });
   } catch (error: any) {
+    if (error?.message === 'FORBIDDEN_SHOP') {
+      return NextResponse.json({ success: false, message: 'Access denied to this shop' }, { status: 403 });
+    }
+    if (error?.message === 'Shop not found') {
+      return NextResponse.json({ success: false, message: 'Shop not found' }, { status: 404 });
+    }
     console.error('Visit log error:', error);
-    return NextResponse.json({ success: false, message: error.message || 'Failed to log visit' }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Failed to log visit' }, { status: 500 });
   }
 }

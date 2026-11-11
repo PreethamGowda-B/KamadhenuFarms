@@ -1,11 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { getAdminSessionFromRequest, checkRateLimitDistributed, getClientIp } from '@/lib/auth';
+import { getSalesSessionFromRequest } from '@/lib/salesAuth';
+
+const ALLOWED_FOLDERS = new Set(['kamadhenu_resumes', 'kamadhenu_shops', 'kamadhenu_products']);
+const RESUME_ALLOWED_MIME = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+const IMAGE_ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp']);
+
+function hasValidMagicBytes(buf: Buffer, mime: string): boolean {
+  if (buf.length < 4) return false;
+  if (mime === 'application/pdf') {
+    return buf.subarray(0, 4).toString('ascii') === '%PDF';
+  }
+  if (mime === 'image/jpeg') {
+    return buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  }
+  if (mime === 'image/png') {
+    return buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+  }
+  if (mime === 'image/webp') {
+    return buf.length >= 12 && buf.subarray(0, 4).toString('ascii') === 'RIFF' && buf.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return buf[0] === 0x50 && buf[1] === 0x4b; // ZIP container for DOCX
+  }
+  if (mime === 'application/msword') {
+    return buf[0] === 0xd0 && buf[1] === 0xcf && buf[2] === 0x11 && buf[3] === 0xe0; // OLE2 DOC
+  }
+  return false;
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rate = await checkRateLimitDistributed(`upload:${ip}`, 20, 15 * 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Too many file uploads. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
-    const folder = (formData.get('folder') as string) || 'kamadhenu_resumes';
+    const rawFolder = ((formData.get('folder') as string) || 'kamadhenu_resumes').trim();
+    const folder = ALLOWED_FOLDERS.has(rawFolder) ? rawFolder : null;
+
+    if (!folder) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid upload destination folder.' },
+        { status: 400 }
+      );
+    }
+
+    // Require Sales Executive or Admin authentication for internal CRM / catalog uploads
+    if (folder !== 'kamadhenu_resumes') {
+      const [salesSession, adminSession] = await Promise.all([
+        getSalesSessionFromRequest(req),
+        Promise.resolve(getAdminSessionFromRequest(req)),
+      ]);
+      if (!salesSession && !adminSession) {
+        return NextResponse.json(
+          { success: false, message: 'Unauthorized upload request.' },
+          { status: 401 }
+        );
+      }
+    }
 
     if (!file) {
       return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 });
@@ -13,10 +81,27 @@ export async function POST(req: NextRequest) {
 
     // Enforce 5MB file size limit per file
     const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    if (file.size > MAX_SIZE) {
+    if (file.size <= 0 || file.size > MAX_SIZE) {
       return NextResponse.json(
-        { success: false, message: `File is too large. Maximum allowed size is 5MB. Your file is ${(file.size / (1024 * 1024)).toFixed(1)}MB.` },
+        { success: false, message: `File size must be between 1B and 5MB.` },
         { status: 413 }
+      );
+    }
+
+    const ext = (file.name || '').split('.').pop()?.toLowerCase() || '';
+    const allowedMimes = folder === 'kamadhenu_resumes' ? RESUME_ALLOWED_MIME : IMAGE_ALLOWED_MIME;
+    if (!allowedMimes.has(file.type) || !ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        { success: false, message: 'Unsupported file format. Only approved document/image formats are permitted.' },
+        { status: 400 }
+      );
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    if (!hasValidMagicBytes(fileBuffer, file.type)) {
+      return NextResponse.json(
+        { success: false, message: 'File content does not match the declared file type.' },
+        { status: 400 }
       );
     }
 

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCustomerSessionFromRequest } from '@/lib/customerAuth';
+import { getAdminSessionFromRequest } from '@/lib/auth';
+import {
+  getCustomerSessionFromRequest,
+  ORDER_ACCESS_COOKIE_NAME,
+  verifyOrderAccessToken,
+} from '@/lib/customerAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,21 +51,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Customer Session & IDOR Verification:
-    // 1. Authorized if session belongs to the customer
+    // Strict Customer / Order-Token / Admin Ownership Verification (No time-window or raw phone bypass):
+    const admin = getAdminSessionFromRequest(req);
     const session = await getCustomerSessionFromRequest(req);
-    const isOwnerBySession = session && session.id === order.customerId;
+    const isOwnerBySession = Boolean(session && session.id === order.customerId);
 
-    // 2. Authorized if recently placed/confirmed order (< 2 hours checkout grace period for invoice display on redirect)
-    const isRecentOrder = (Date.now() - new Date(order.createdAt).getTime()) < 2 * 60 * 60 * 1000;
+    const rawOrderToken =
+      searchParams.get('token')?.trim() ||
+      req.cookies.get(ORDER_ACCESS_COOKIE_NAME)?.value ||
+      '';
+    const tokenPayload = rawOrderToken
+      ? verifyOrderAccessToken(rawOrderToken, order.orderNumber)
+      : null;
+    const isOwnerByOrderToken = Boolean(
+      tokenPayload && tokenPayload.customerId === order.customerId
+    );
 
-    // 3. Authorized if customer mobile param matches
-    const mobileParam = (searchParams.get('mobile') || searchParams.get('phone') || '').replace(/\D/g, '');
-    const isMobileMatch = mobileParam.length >= 10 && mobileParam.endsWith(order.customer.mobile.replace(/\D/g, '').slice(-10));
-
-    if (!isOwnerBySession && !isRecentOrder && !isMobileMatch) {
+    if (!admin && !isOwnerBySession && !isOwnerByOrderToken) {
       return NextResponse.json(
-        { success: false, message: 'Access denied: Please sign in or check your order tracking link.' },
+        { success: false, message: 'Access denied: Please sign in or open your official order confirmation link.' },
         { status: 403 }
       );
     }

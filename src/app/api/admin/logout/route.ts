@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ADMIN_COOKIE_NAME } from '@/lib/auth';
+import {
+  ADMIN_COOKIE_NAME,
+  getClientIp,
+  getAdminSessionFromRequestAsync,
+  revokeAdminTokenDistributed,
+} from '@/lib/auth';
 import { logAdminAction } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
-  logAdminAction('admin@kamadhenuhoneyfarms.in', 'LOGOUT', undefined, undefined, ip);
+  const ip = getClientIp(req);
+  const admin = await getAdminSessionFromRequestAsync(req);
+  const token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  await revokeAdminTokenDistributed(token);
+  logAdminAction(admin?.email || 'admin@kamadhenuhoneyfarms.in', 'LOGOUT', undefined, undefined, ip);
 
   const response = NextResponse.json({
     success: true,
@@ -15,6 +23,8 @@ export async function POST(req: NextRequest) {
     name: ADMIN_COOKIE_NAME,
     value: '',
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     expires: new Date(0),
     path: '/',
   });

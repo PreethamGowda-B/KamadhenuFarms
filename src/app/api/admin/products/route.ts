@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error('Admin products GET error:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to fetch admin products', error: error?.message },
+      { success: false, message: 'Failed to fetch admin products' },
       { status: 500 }
     );
   }
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Admin products POST error:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to update product stock', error: error?.message },
+      { success: false, message: 'Failed to update product stock' },
       { status: 500 }
     );
   }

@@ -15,8 +15,17 @@ import {
 } from '@/lib/email';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
 import { logAdminAction } from '@/lib/audit';
+import { getAdminSessionFromRequest } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const admin = getAdminSessionFromRequest(req);
+  if (!admin || admin.role !== 'ADMIN') {
+    return NextResponse.json(
+      { success: false, message: '403 Unauthorized: Admin session required' },
+      { status: 403 }
+    );
+  }
+
   let apps: ApplicationRecord[] = [];
 
   // Query PostgreSQL via Prisma if DATABASE_URL is set
@@ -78,7 +87,15 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const admin = getAdminSessionFromRequest(req);
+    if (!admin || admin.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, message: '403 Unauthorized: Admin session required' },
+        { status: 403 }
+      );
+    }
+
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || '127.0.0.1';
     const body = await req.json();
     const { id, status, note, author, interviewDate, interviewTime, interviewLocation, interviewLink } = body;
 

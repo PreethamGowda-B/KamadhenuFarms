@@ -66,7 +66,7 @@ export async function GET() {
   } catch (error: any) {
     console.error('Error fetching product inventory:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to fetch product inventory', error: error?.message },
+      { success: false, message: 'Failed to fetch product inventory' },
       { status: 500 }
     );
   }

@@ -73,6 +73,19 @@ export default async function DocumentViewPage({ params }: Props) {
     );
   }
 
+  if (candidate.status !== 'HIRED' || candidate.isAuthActive === false) {
+    return (
+      <div className="min-h-screen bg-amber-50 flex items-center justify-center p-6 text-center font-sans">
+        <div className="max-w-md bg-white p-8 rounded-2xl border-2 border-amber-300 shadow-xl">
+          <h1 className="text-xl font-bold text-amber-900">Document Verification Unavailable</h1>
+          <p className="text-sm text-gray-600 mt-2">
+            Authorization documents for <span className="font-mono font-bold">{candidate.applicationNo || salesId}</span> are not currently active for public verification.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const validFromDate = candidate.authValidFrom || candidate.joiningDate || new Date().toISOString().split('T')[0];
   const validUntilDate = candidate.authValidUntil || calculateValidUntil(validFromDate);
 

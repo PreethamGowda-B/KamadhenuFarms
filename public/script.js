@@ -15,6 +15,29 @@
 })();
 
 function initKamadhenuApp() {
+  const escapeHtml = (val) => {
+    if (val === null || val === undefined) return '';
+    return String(val)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+  const sanitizeUrl = (raw) => {
+    if (!raw || typeof raw !== 'string') return '';
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
+    try {
+      const parsed = new URL(trimmed, window.location.origin);
+      if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+        return parsed.toString();
+      }
+    } catch (_) {}
+    return '';
+  };
+
   if (typeof document !== 'undefined') {
     document.body.classList.add('loaded');
     document.body.classList.remove('overflow-hidden');
@@ -606,17 +629,25 @@ function initKamadhenuApp() {
     }
   };
   window.updateMobileFloatingCart = updateMobileFloatingCart;
-  window.addEventListener('resize', updateMobileFloatingCart);
+  let lastResizeViewportWidth = window.innerWidth;
+  window.addEventListener('resize', () => {
+    // Ignore vertical-only resizes caused by mobile browser address bar collapse during scroll
+    if (window.innerWidth !== lastResizeViewportWidth) {
+      lastResizeViewportWidth = window.innerWidth;
+      updateMobileFloatingCart();
+    }
+  }, { passive: true });
 
   const updateBadges = () => {
     // Accurately calculate total quantity from state
     const totalQty = (cart || []).reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
+    const isDesktop = window.innerWidth > 768;
     
     // Update all cart count badges in header, floating bar and drawer title
     document.querySelectorAll('.cart-count').forEach(el => {
       const prev = el.textContent;
       el.textContent = totalQty;
-      if (prev !== String(totalQty)) {
+      if (isDesktop && prev !== String(totalQty)) {
         el.classList.remove('cart-badge-bounce');
         void el.offsetWidth;
         el.classList.add('cart-badge-bounce');
@@ -645,7 +676,9 @@ function initKamadhenuApp() {
     localStorage.setItem('kamadhenu_cart', JSON.stringify(cart));
     updateBadges();
     renderCart();
-    renderCheckoutSummary();
+    if (checkoutModalOverlay && checkoutModalOverlay.classList.contains('active')) {
+      renderCheckoutSummary();
+    }
     updateMobileFloatingCart();
 
     // In real-time: If a 6-digit delivery pincode is entered or remembered, recalculate shipping for new cart weight and subtotal!
@@ -730,7 +763,7 @@ function initKamadhenuApp() {
       itemRow.className = 'cart-item';
       itemRow.innerHTML = `
         <div class="cart-item-img">
-          <img src="${item.img}" alt="${item.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <img src="${escapeHtml(sanitizeUrl(item.img) || item.img)}" alt="${escapeHtml(item.name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           <div class="media-placeholder" style="display:none; padding:5px;">
             <svg style="width:24px; height:24px; margin-bottom:4px;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3" />
@@ -740,8 +773,8 @@ function initKamadhenuApp() {
         </div>
         <div class="cart-item-details">
           <div>
-            <h4 class="cart-item-title">${item.name}</h4>
-            <p class="cart-item-meta">Size: ${item.size}</p>
+            <h4 class="cart-item-title">${escapeHtml(item.name)}</h4>
+            <p class="cart-item-meta">Size: ${escapeHtml(item.size)}</p>
           </div>
           <div class="cart-item-bottom">
             <span class="cart-item-price">₹${item.price * item.qty}</span>
@@ -977,6 +1010,7 @@ function initKamadhenuApp() {
     couponInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        couponInput.blur();
         applyCouponBtn?.click();
       }
     });
@@ -984,6 +1018,9 @@ function initKamadhenuApp() {
 
   if (applyCouponBtn) {
     applyCouponBtn.addEventListener('click', async () => {
+      if (couponInput && document.activeElement === couponInput) {
+        couponInput.blur();
+      }
       const code = (couponInput.value || '').trim().toUpperCase();
       couponFeedback.className = 'coupon-feedback';
       
@@ -1007,7 +1044,7 @@ function initKamadhenuApp() {
       try {
         applyCouponBtn.disabled = true;
         couponFeedback.textContent = 'Verifying referral code...';
-        couponFeedback.className = 'coupon-feedback';
+        couponFeedback.className = 'coupon-feedback verifying';
 
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
         const res = await fetchWithTimeout('/api/referrals/validate', {
@@ -1288,14 +1325,14 @@ function initKamadhenuApp() {
       const card = document.createElement('div');
       card.className = `saved-addr-card ${idx === 0 ? 'selected' : ''} ${isExtra ? 'saved-addr-extra' : ''}`;
       card.innerHTML = `
-        <input type="radio" name="selectedSavedAddress" class="saved-addr-radio" id="savedAddr_${addr.id}" ${idx === 0 ? 'checked' : ''}>
+        <input type="radio" name="selectedSavedAddress" class="saved-addr-radio" id="savedAddr_${escapeHtml(addr.id)}" ${idx === 0 ? 'checked' : ''}>
         <div class="saved-addr-details">
           <div class="saved-addr-recipient">
-            <span>${addr.recipientName || currentCustomer?.customer?.name} (${addr.mobileNumber || currentCustomer?.customer?.mobile})</span>
-            <span style="font-family:monospace; color:#8c7851;">${addr.pincode}</span>
+            <span>${escapeHtml(addr.recipientName || currentCustomer?.customer?.name)} (${escapeHtml(addr.mobileNumber || currentCustomer?.customer?.mobile)})</span>
+            <span style="font-family:monospace; color:#8c7851;">${escapeHtml(addr.pincode)}</span>
           </div>
-          <div>${addr.addressLine1}${addr.addressLine2 ? ', ' + addr.addressLine2 : ''}${addr.area ? ', ' + addr.area : ''}</div>
-          <div style="color:#718096; font-size:0.75rem;">${addr.city}, ${addr.state}${addr.landmark ? ' • ' + addr.landmark : ''}</div>
+          <div>${escapeHtml(addr.addressLine1)}${addr.addressLine2 ? ', ' + escapeHtml(addr.addressLine2) : ''}${addr.area ? ', ' + escapeHtml(addr.area) : ''}</div>
+          <div style="color:#718096; font-size:0.75rem;">${escapeHtml(addr.city)}, ${escapeHtml(addr.state)}${addr.landmark ? ' • ' + escapeHtml(addr.landmark) : ''}</div>
         </div>
       `;
 
@@ -1492,16 +1529,16 @@ function initKamadhenuApp() {
         const productsHtml = (order.items || []).map(it => `
           <div class="order-product-row">
             <div>
-              <span class="order-product-name">${it.productNameSnapshot || 'Honey'}</span>
-              <span class="order-product-meta">(${it.weightVariant}) × ${it.quantity}</span>
+              <span class="order-product-name">${escapeHtml(it.productNameSnapshot || 'Honey')}</span>
+              <span class="order-product-meta">(${escapeHtml(it.weightVariant)}) × ${Number(it.quantity) || 1}</span>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-weight:700; color:#2d3748;">₹${it.totalPrice}</span>
+              <span style="font-weight:700; color:#2d3748;">₹${Number(it.totalPrice) || 0}</span>
               <button class="btn-buy-again btn-item-reorder" 
-                data-product-id="${it.productId}" 
-                data-size="${it.weightVariant}" 
-                data-qty="${it.quantity}" 
-                title="Reorder ${it.productNameSnapshot}">
+                data-product-id="${escapeHtml(it.productId)}" 
+                data-size="${escapeHtml(it.weightVariant)}" 
+                data-qty="${Number(it.quantity) || 1}" 
+                title="Reorder ${escapeHtml(it.productNameSnapshot)}">
                 Buy Again
               </button>
             </div>
@@ -1510,15 +1547,16 @@ function initKamadhenuApp() {
 
         // Address HTML
         const addr = order.shippingAddress;
-        const addrStr = addr ? `${addr.addressLine1}, ${addr.city} (${addr.pincode})` : 'Delivery address recorded';
+        const addrStr = addr ? `${escapeHtml(addr.addressLine1)}, ${escapeHtml(addr.city)} (${escapeHtml(addr.pincode)})` : 'Delivery address recorded';
 
         // Tracking HTML
         let trackingHtml = '';
         if (order.shipment && order.shipment.trackingNumber) {
+          const safeTrackUrl = sanitizeUrl(order.shipment.trackingUrl);
           trackingHtml = `
             <div style="margin-top: 8px; padding: 8px 12px; background: #ebf8ff; border-radius: 8px; font-size: 0.78rem; color: #2b6cb0; display:flex; justify-content:space-between; align-items:center;">
-              <span>Courier: <b>${order.shipment.courierProvider}</b> (${order.shipment.trackingNumber})</span>
-              ${order.shipment.trackingUrl ? `<a href="${order.shipment.trackingUrl}" target="_blank" rel="noopener" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Courier ↗</a>` : ''}
+              <span>Courier: <b>${escapeHtml(order.shipment.courierProvider)}</b> (${escapeHtml(order.shipment.trackingNumber)})</span>
+              ${safeTrackUrl ? `<a href="${escapeHtml(safeTrackUrl)}" target="_blank" rel="noopener noreferrer" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Courier ↗</a>` : ''}
             </div>
           `;
         }
@@ -1526,10 +1564,10 @@ function initKamadhenuApp() {
         card.innerHTML = `
           <div class="order-card-header">
             <div>
-              <span class="order-number-pill">${order.orderNumber}</span>
-              <span style="font-size:0.75rem; color:#a0aec0; margin-left:8px;">${dateStr}</span>
+              <span class="order-number-pill">${escapeHtml(order.orderNumber)}</span>
+              <span style="font-size:0.75rem; color:#a0aec0; margin-left:8px;">${escapeHtml(dateStr)}</span>
             </div>
-            <span class="order-status-badge ${statusClass}">${order.orderStatus}</span>
+            <span class="order-status-badge ${escapeHtml(statusClass)}">${escapeHtml(order.orderStatus)}</span>
           </div>
 
           <div class="order-card-products">
@@ -1543,20 +1581,20 @@ function initKamadhenuApp() {
           ${trackingHtml}
 
           <div class="order-card-actions" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid #edf2f7;">
-            <button class="btn-order-track" data-order-number="${order.orderNumber}" style="flex:1; min-width:130px; padding:7px 12px; background:#ebf8ff; color:#2b6cb0; border:1px solid #bee3f8; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+            <button class="btn-order-track" data-order-number="${escapeHtml(order.orderNumber)}" style="flex:1; min-width:130px; padding:7px 12px; background:#ebf8ff; color:#2b6cb0; border:1px solid #bee3f8; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
               🔍 Track Live Status
             </button>
-            <a href="/order-confirmation?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
+            <a href="/order-confirmation?orderNumber=${encodeURIComponent(order.orderNumber)}" target="_blank" rel="noopener noreferrer" class="btn-order-invoice" style="flex:1; min-width:130px; padding:7px 12px; background:#f7fafc; color:#4a5568; border:1px solid #e2e8f0; border-radius:6px; font-size:0.78rem; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:5px;">
               📄 Official Invoice ↗
             </a>
           </div>
 
           <div class="order-card-footer">
             <span style="font-size:0.8rem; color:#718096;">
-              Payment: <b style="color:#2d3748;">${order.paymentMethod}</b> (${order.paymentStatus})
+              Payment: <b style="color:#2d3748;">${escapeHtml(order.paymentMethod)}</b> (${escapeHtml(order.paymentStatus)})
             </span>
             <div style="display:flex; align-items:center; gap:10px;">
-              <span class="order-total-amount">₹${order.total}</span>
+              <span class="order-total-amount">₹${Number(order.total) || 0}</span>
               <button class="btn-reorder-all btn-order-reorder-all" title="Reorder all products from this order">
                 🔁 Reorder All
               </button>
@@ -1656,7 +1694,7 @@ function initKamadhenuApp() {
         } else if (p.stockStatus === 'RESTOCKING_SOON') {
           stockPill.innerHTML = `
             <span class="stock-dot" style="width:8px; height:8px; border-radius:50%; background:#dd6b20; box-shadow:0 0 8px #dd6b20; display:inline-block;"></span>
-            <span class="stock-text" style="color:#dd6b20 !important; font-size:0.78rem; font-weight:700; text-transform:uppercase;">Restocking in ${p.restockDays || 3} Days</span>
+            <span class="stock-text" style="color:#dd6b20 !important; font-size:0.78rem; font-weight:700; text-transform:uppercase;">Restocking in ${Number(p.restockDays) || 3} Days</span>
           `;
           stockPill.style.background = 'rgba(221, 107, 32, 0.15)';
           stockPill.style.borderColor = 'rgba(221, 107, 32, 0.4)';
@@ -1675,7 +1713,7 @@ function initKamadhenuApp() {
         if (buyBtn) { buyBtn.disabled = true; buyBtn.classList.add('btn-disabled'); buyBtn.innerHTML = '<span>Out of Stock</span>'; }
       } else if (p.stockStatus === 'RESTOCKING_SOON' && !p.canPreorder) {
         if (addBtn) { addBtn.disabled = true; addBtn.classList.add('btn-disabled'); addBtn.innerHTML = `<span>Restocking Soon</span>`; }
-        if (buyBtn) { buyBtn.disabled = true; buyBtn.classList.add('btn-disabled'); buyBtn.innerHTML = `<span>Restocking in ${p.restockDays || 3}d</span>`; }
+        if (buyBtn) { buyBtn.disabled = true; buyBtn.classList.add('btn-disabled'); buyBtn.innerHTML = `<span>Restocking in ${Number(p.restockDays) || 3}d</span>`; }
       } else {
         if (addBtn) { addBtn.disabled = false; addBtn.classList.remove('btn-disabled'); addBtn.innerHTML = '<span>Add to Cart</span>'; }
         if (buyBtn) { buyBtn.disabled = false; buyBtn.classList.remove('btn-disabled'); buyBtn.innerHTML = '<span>Buy Now</span>'; }
@@ -1749,6 +1787,8 @@ function initKamadhenuApp() {
     const searchQuery = productSearch ? productSearch.value.toLowerCase() : '';
     const activeTab = document.querySelector('.filter-tab.active');
     const activeCategory = activeTab ? activeTab.dataset.filter : 'all';
+    const isDesktopViewport = window.innerWidth > 768;
+    const gridFragment = document.createDocumentFragment();
 
     // Loop through our product configs (all 4 products: Raw, Infused, Honeycomb Jar & Honeycomb Box)
     Object.values(productDatabase).forEach(product => {
@@ -1760,7 +1800,7 @@ function initKamadhenuApp() {
       if (!matchesSearch || !matchesCategory) return;
 
       const productCard = document.createElement('div');
-      productCard.className = 'product-card reveal reveal-fade-up';
+      productCard.className = isDesktopViewport ? 'product-card reveal reveal-fade-up' : 'product-card';
       productCard.id = `product-${product.id}`;
       productCard.dataset.productId = product.id;
 
@@ -1940,7 +1980,8 @@ function initKamadhenuApp() {
               <span class="delivery-notice">${(() => {
                 try {
                   const sp = localStorage.getItem('kamadhenu_user_pincode');
-                  return sp ? `🚚 Deliverable to ${sp}` : '(Delivery charges calculated at checkout)';
+                  const safePin = sp ? sp.replace(/\D/g, '').slice(0, 6) : '';
+                  return safePin.length === 6 ? `🚚 Deliverable to ${escapeHtml(safePin)}` : '(Delivery charges calculated at checkout)';
                 } catch (_) {
                   return '(Delivery charges calculated at checkout)';
                 }
@@ -1957,7 +1998,7 @@ function initKamadhenuApp() {
         </div>
       `;
 
-      productGrid.appendChild(productCard);
+      gridFragment.appendChild(productCard);
 
       // Wire up card thumbnail gallery clicks & automatic slideshow
       if (hasGallery && product.images.length > 1) {
@@ -2050,9 +2091,11 @@ function initKamadhenuApp() {
           selectedSize = pill.dataset.size;
           if (priceText) {
             priceText.textContent = `₹${product.prices[selectedSize]}`;
-            priceText.classList.remove('price-pop');
-            void priceText.offsetWidth;
-            priceText.classList.add('price-pop');
+            if (window.innerWidth > 768) {
+              priceText.classList.remove('price-pop');
+              void priceText.offsetWidth;
+              priceText.classList.add('price-pop');
+            }
           }
         });
       });
@@ -2070,11 +2113,10 @@ function initKamadhenuApp() {
           
           const isFirstItem = cart.length === 0;
           
-          // 1. Add item to cart immediately and automatically open cart page/drawer
+          // 1. Add item to cart and open drawer once (addItemToCart(..., true) handles openCart)
           addItemToCart(product.id, selectedSize, 1, true);
-          openCart();
           
-          // 2. Trigger silky smooth celebration if available
+          // 2. Trigger silky smooth celebration (lightweight on mobile so drawer slide never stutters)
           if (window.CartCelebration) {
             window.CartCelebration.trigger(addToCartBtn, product, e, isFirstItem);
           }
@@ -2140,8 +2182,12 @@ function initKamadhenuApp() {
 
     });
 
-    // Fire reveal checks
-    triggerScrollReveal();
+    productGrid.appendChild(gridFragment);
+
+    // Fire reveal checks on desktop only (mobile shows sections immediately with zero scroll observers)
+    if (window.innerWidth > 768) {
+      triggerScrollReveal();
+    }
   };
 
   // Universal Share Product click listener (handles regular products and upcoming honeycomb cards)
@@ -2299,22 +2345,22 @@ ${points}
 
         if (isBangalore) {
           highlightHtml = `
-            <div>⚡ <strong>Express Bengaluru Delivery to ${pin}:</strong> Expected arrival within <strong>24–48 hours</strong> via ${data.courierName || 'Bangalore Express Courier'}.</div>
+            <div>⚡ <strong>Express Bengaluru Delivery to ${escapeHtml(pin)}:</strong> Expected arrival within <strong>24–48 hours</strong> via ${escapeHtml(data.courierName || 'Bangalore Express Courier')}.</div>
             <div style="margin-top:4px; font-size:0.8rem; color:#2e7d32;">💵 <strong>Cash on Delivery (COD) &amp; Online Payment</strong> both supported at your doorstep.</div>
           `;
-          badgeNotice = `🚚 Est. 24–48 hrs to ${pin} (Bangalore)`;
+          badgeNotice = `🚚 Est. 24–48 hrs to ${escapeHtml(pin)} (Bangalore)`;
         } else if (isKarnataka) {
           highlightHtml = `
-            <div>🚚 <strong>Karnataka Regional Delivery to ${pin}:</strong> Expected arrival in <strong>2–3 business days</strong> via ${data.courierName || 'Regional Courier'}.</div>
+            <div>🚚 <strong>Karnataka Regional Delivery to ${escapeHtml(pin)}:</strong> Expected arrival in <strong>2–3 business days</strong> via ${escapeHtml(data.courierName || 'Regional Courier')}.</div>
             <div style="margin-top:4px; font-size:0.8rem; color:#3A2A18;">📦 Safe double-layered bubble wrap &amp; sturdy cardboard protection for all glass jars.</div>
           `;
-          badgeNotice = `🚚 Est. 2–3 Days to ${pin}`;
+          badgeNotice = `🚚 Est. 2–3 Days to ${escapeHtml(pin)}`;
         } else {
           highlightHtml = `
-            <div>📦 <strong>Pan-India Safe Delivery to ${pin}:</strong> Expected within <strong>${data.estimatedDays || '3–5 business days'}</strong> via ${data.courierName || 'National Courier'}.</div>
+            <div>📦 <strong>Pan-India Safe Delivery to ${escapeHtml(pin)}:</strong> Expected within <strong>${escapeHtml(data.estimatedDays || '3–5 business days')}</strong> via ${escapeHtml(data.courierName || 'National Courier')}.</div>
             <div style="margin-top:4px; font-size:0.8rem; color:#3A2A18;">🛡️ Transit break-free guarantee with certified glass packaging.</div>
           `;
-          badgeNotice = `🚚 Est. ${data.estimatedDays || '3-5 Days'} to ${pin}`;
+          badgeNotice = `🚚 Est. ${escapeHtml(data.estimatedDays || '3-5 Days')} to ${escapeHtml(pin)}`;
         }
 
         estimatorResultBox.className = 'estimator-result-box success';
@@ -2485,11 +2531,11 @@ ${points}
         }
         if (checkoutShippingNoticeEl) {
           if (currentShippingCharge === 0) {
-            checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery (Karnataka)</strong> &bull; ${data.courierName || 'Bangalore Express Courier'} (Est. arrival: ${data.estimatedDays || '1-2 Days'})`;
+            checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery (Karnataka)</strong> &bull; ${escapeHtml(data.courierName || 'Bangalore Express Courier')} (Est. arrival: ${escapeHtml(data.estimatedDays || '1-2 Days')})`;
           } else if (reachedThreshold && !isKarnataka) {
-            checkoutShippingNoticeEl.innerHTML = `🚚 <strong>Subsidized Inter-State Courier (₹99)</strong> &bull; ${data.courierName || 'National Express'} (Est. arrival: ${data.estimatedDays || '3-5 business days'})`;
+            checkoutShippingNoticeEl.innerHTML = `🚚 <strong>Subsidized Inter-State Courier (₹99)</strong> &bull; ${escapeHtml(data.courierName || 'National Express')} (Est. arrival: ${escapeHtml(data.estimatedDays || '3-5 business days')})`;
           } else {
-            checkoutShippingNoticeEl.innerHTML = `🚚 <strong>${data.courierName || 'Courier Delivery'}</strong> &bull; Est. arrival: ${data.estimatedDays || '2-4 business days'}`;
+            checkoutShippingNoticeEl.innerHTML = `🚚 <strong>${escapeHtml(data.courierName || 'Courier Delivery')}</strong> &bull; Est. arrival: ${escapeHtml(data.estimatedDays || '2-4 business days')}`;
           }
         }
       } else {
@@ -2501,7 +2547,7 @@ ${points}
           checkoutShippingEl.style.color = '#c0392b';
         }
         if (checkoutShippingNoticeEl) {
-          checkoutShippingNoticeEl.innerHTML = `<span style="color:#c0392b;">${data.message || 'Delivery is currently unavailable for this pincode.'}</span>`;
+          checkoutShippingNoticeEl.innerHTML = `<span style="color:#c0392b;">${escapeHtml(data.message || 'Delivery is currently unavailable for this pincode.')}</span>`;
         }
       }
     } catch (err) {
@@ -2815,8 +2861,8 @@ ${points}
       summaryRow.className = 'checkout-summary-item';
       summaryRow.innerHTML = `
         <div style="flex:1; min-width:0; padding-right:8px;">
-          <span class="item-name" title="${item.name}" style="display:block; font-weight:600; color:#3A2A18; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.name}</span>
-          <span class="item-qty-size" style="font-size:0.75rem; color:#888;">${item.size} &bull; ₹${item.price} each</span>
+          <span class="item-name" title="${escapeHtml(item.name)}" style="display:block; font-weight:600; color:#3A2A18; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(item.name)}</span>
+          <span class="item-qty-size" style="font-size:0.75rem; color:#888;">${escapeHtml(item.size)} &bull; ₹${Number(item.price) || 0} each</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <div style="display:inline-flex; align-items:center; border:1px solid #d8a64f; border-radius:12px; overflow:hidden; background:#fff;">
@@ -2911,12 +2957,12 @@ ${points}
 
     if (checkoutShippingNoticeEl && currentShippingDetails) {
       if (shippingCharge === 0) {
-        const courier = currentShippingDetails.courierName || 'Bangalore Express Courier';
-        const days = currentShippingDetails.estimatedDays || '1-2 Days';
+        const courier = escapeHtml(currentShippingDetails.courierName || 'Bangalore Express Courier');
+        const days = escapeHtml(currentShippingDetails.estimatedDays || '1-2 Days');
         checkoutShippingNoticeEl.innerHTML = `🎉 <strong>FREE Delivery (Karnataka)</strong> &bull; ${courier} (Est. arrival: ${days})`;
       } else if (reachedThreshold && !isKarnatakaPin) {
-        const courier = currentShippingDetails.courierName || 'National Express Courier';
-        const days = currentShippingDetails.estimatedDays || '3-5 business days';
+        const courier = escapeHtml(currentShippingDetails.courierName || 'National Express Courier');
+        const days = escapeHtml(currentShippingDetails.estimatedDays || '3-5 business days');
         checkoutShippingNoticeEl.innerHTML = `🚚 <strong>Subsidized Inter-State Courier (₹99)</strong> &bull; ${courier} (Est. arrival: ${days})`;
       }
     }
@@ -3176,7 +3222,8 @@ ${points}
                 body: JSON.stringify({
                   orderNumber: createData.orderNumber,
                   orderId: createData.orderId,
-                  cashfreeOrderId: createData.cashfreeOrderId
+                  cashfreeOrderId: createData.cashfreeOrderId,
+                  token: createData.orderAccessToken
                 })
               }, 12000);
 
@@ -3209,15 +3256,17 @@ ${points}
             currentCoupon = null;
             closeCheckout();
             const targetOrder = verifyData.orderNumber || createData.orderNumber;
+            const tokenParam = createData.orderAccessToken ? `&token=${encodeURIComponent(createData.orderAccessToken)}` : '';
             localStorage.setItem('kamadhenu_last_order', targetOrder);
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}&status=confirmed`;
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}&status=confirmed${tokenParam}`;
             return true;
           }
 
           if (verifyData && verifyData.pending) {
             closeCheckout();
+            const tokenParam = createData.orderAccessToken ? `&token=${encodeURIComponent(createData.orderAccessToken)}` : '';
             localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending`;
+            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending${tokenParam}`;
             return true;
           }
 
@@ -3371,7 +3420,14 @@ ${points}
         if (!orderData) {
           // Query live API for database orders
           try {
-            const res = await fetch(`/api/orders/track?orderNumber=${encodeURIComponent(orderId)}`);
+            let savedMobile = '';
+            try { savedMobile = localStorage.getItem('kamadhenu_customer_mobile') || ''; } catch (_) {}
+            const mobileParam = savedMobile ? `&mobile=${encodeURIComponent(savedMobile)}` : '';
+            const res = await fetch(`/api/orders/track?orderNumber=${encodeURIComponent(orderId)}${mobileParam}`);
+            if (res.status === 401) {
+              window.location.href = `/track-order?orderNumber=${encodeURIComponent(orderId)}`;
+              return;
+            }
             const json = await res.json();
             if (json.success && json.order) {
               const o = json.order;
@@ -3449,6 +3505,7 @@ ${points}
             statusBadgeBg = '#fefcbf';
           }
 
+          const safeTrackUrl = orderData.shipment ? sanitizeUrl(orderData.shipment.trackingUrl) : '';
           itemsContainer.innerHTML = `
             <div style="margin-top:16px; padding-top:14px; border-top:1px dashed rgba(216,166,79,0.45); text-align:left;">
               
@@ -3457,19 +3514,19 @@ ${points}
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <span style="color:#786c5e; font-weight:600;">Payment Status</span>
                   <span style="font-weight:700; color:${statusBadgeColor}; background:${statusBadgeBg}; padding:2px 10px; border-radius:12px; font-size:0.75rem;">
-                    ● ${orderData.paymentStatus || 'CONFIRMED'}
+                    ● ${escapeHtml(orderData.paymentStatus || 'CONFIRMED')}
                   </span>
                 </div>
                 ${orderData.shippingCity ? `
                   <div style="display:flex; justify-content:space-between; align-items:center; color:#4a5568;">
                     <span style="color:#786c5e;">Delivery Location</span>
-                    <span style="font-weight:600; color:#2d3748;">${orderData.shippingCity}${orderData.shippingPincode ? ` (${orderData.shippingPincode})` : ''}</span>
+                    <span style="font-weight:600; color:#2d3748;">${escapeHtml(orderData.shippingCity)}${orderData.shippingPincode ? ` (${escapeHtml(orderData.shippingPincode)})` : ''}</span>
                   </div>
                 ` : ''}
                 ${orderData.shipment && orderData.shipment.courierProvider ? `
                   <div style="margin-top:4px; padding:7px 10px; background:#ebf8ff; border:1px solid #bee3f8; border-radius:8px; font-size:0.76rem; color:#2b6cb0; display:flex; justify-content:space-between; align-items:center;">
-                    <span>Courier: <b>${orderData.shipment.courierProvider}</b> (${orderData.shipment.trackingNumber || 'Active'})</span>
-                    ${orderData.shipment.trackingUrl ? `<a href="${orderData.shipment.trackingUrl}" target="_blank" rel="noopener noreferrer" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Courier ↗</a>` : ''}
+                    <span>Courier: <b>${escapeHtml(orderData.shipment.courierProvider)}</b> (${escapeHtml(orderData.shipment.trackingNumber || 'Active')})</span>
+                    ${safeTrackUrl ? `<a href="${escapeHtml(safeTrackUrl)}" target="_blank" rel="noopener noreferrer" style="color:#2b6cb0; font-weight:700; text-decoration:underline;">Track Courier ↗</a>` : ''}
                   </div>
                 ` : ''}
               </div>
@@ -3480,12 +3537,12 @@ ${points}
                 ${orderData.items.map(it => `
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid #f0eae1; font-size:0.82rem;">
                     <div>
-                      <span style="font-weight:700; color:#2d3748;">${it.productNameSnapshot || 'Honey'}</span>
-                      <span style="color:#718096; margin-left:4px;">(${it.weightVariant})</span>
+                      <span style="font-weight:700; color:#2d3748;">${escapeHtml(it.productNameSnapshot || 'Honey')}</span>
+                      <span style="color:#718096; margin-left:4px;">(${escapeHtml(it.weightVariant)})</span>
                     </div>
                     <div style="text-align:right;">
-                      <span style="font-weight:700; color:#8C6219;">Qty: ${it.quantity}</span>
-                      ${it.totalPrice ? `<span style="color:#718096; font-size:0.78rem; margin-left:8px;">(₹${it.totalPrice})</span>` : ''}
+                      <span style="font-weight:700; color:#8C6219;">Qty: ${Number(it.quantity) || 1}</span>
+                      ${it.totalPrice ? `<span style="color:#718096; font-size:0.78rem; margin-left:8px;">(₹${Number(it.totalPrice) || 0})</span>` : ''}
                     </div>
                   </div>
                 `).join('')}
@@ -3749,7 +3806,6 @@ ${points}
 
       const isFirstItem = cart.length === 0;
       addItemToCart(pid, size, 1, true);
-      openCart();
 
       if (window.CartCelebration && productDatabase[pid]) {
         window.CartCelebration.trigger(btn, productDatabase[pid], e, isFirstItem);
@@ -4151,8 +4207,15 @@ ${points}
     },
 
     trigger: function(button, product, event, isFirstItem) {
-      const isMobile = window.innerWidth < 768;
-      
+      const isMobile = window.innerWidth <= 768 || (navigator.maxTouchPoints > 0 && window.innerWidth <= 992);
+
+      if (isMobile) {
+        // Mobile zero-lag path: never block the opening cart drawer with canvas, fly-image clones, or offsetWidth reflows
+        this.showToast(product && product.name);
+        setTimeout(() => this.playChime(isFirstItem), 32);
+        return;
+      }
+
       // 1. Play subtle chime safely
       this.playChime(isFirstItem);
       
@@ -4453,12 +4516,12 @@ ${points}
 
       toastEl.style.display = 'flex';
       toastEl.innerHTML = `
-        <img src="${order.img}" alt="${order.item}" class="social-proof-img" />
+        <img src="${escapeHtml(sanitizeUrl(order.img) || order.img)}" alt="${escapeHtml(order.item)}" class="social-proof-img" />
         <div class="social-proof-content">
-          <div class="social-proof-buyer">${order.buyer} <span style="font-weight:400; color:#666; font-size:0.75rem;">• ${order.area}</span></div>
-          <div class="social-proof-action">Ordered <strong>${order.item}</strong></div>
+          <div class="social-proof-buyer">${escapeHtml(order.buyer)} <span style="font-weight:400; color:#666; font-size:0.75rem;">• ${escapeHtml(order.area)}</span></div>
+          <div class="social-proof-action">Ordered <strong>${escapeHtml(order.item)}</strong></div>
           <div class="social-proof-meta">
-            <span>${order.time}</span>
+            <span>${escapeHtml(order.time)}</span>
             <span>•</span>
             <span class="social-proof-badge">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -4589,14 +4652,27 @@ ${points}
       setTimeout(() => { if (typeof addDynamicLighting === 'function') addDynamicLighting(); }, 850);
     }
 
-    // Trigger scroll reveal immediately for all viewports (both desktop and mobile)
-    if (typeof triggerScrollReveal === 'function') {
-      triggerScrollReveal();
+    // Auto-pause marquee animation whenever scrolled offscreen to save compositor GPU/battery
+    const launchMarquee = document.querySelector('.announcement-marquee-wrapper.heavy-premium-launch');
+    if (launchMarquee && 'IntersectionObserver' in window) {
+      const marqueeObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          launchMarquee.classList.toggle('marquee-paused', !entry.isIntersecting);
+        });
+      }, { threshold: 0.01 });
+      marqueeObserver.observe(launchMarquee);
     }
-    setTimeout(() => {
-      if (typeof triggerScrollReveal === 'function') triggerScrollReveal();
+
+    // Trigger scroll reveal on desktop; mark visible immediately on mobile without observer overhead
+    if (window.innerWidth > 768 && typeof triggerScrollReveal === 'function') {
+      triggerScrollReveal();
+      setTimeout(() => {
+        if (typeof triggerScrollReveal === 'function') triggerScrollReveal();
+        document.querySelectorAll('.reveal:not(.active)').forEach(el => el.classList.add('active'));
+      }, 400);
+    } else {
       document.querySelectorAll('.reveal:not(.active)').forEach(el => el.classList.add('active'));
-    }, 400);
+    }
   };
 
   initApp();

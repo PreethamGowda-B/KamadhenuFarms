@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { signSalesJwt, SALES_COOKIE_NAME } from '@/lib/salesAuth';
+import { checkRateLimitDistributed, resetRateLimitDistributed, getClientIp } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rateKey = `sales_login:${ip}`;
+    const rateCheck = await checkRateLimitDistributed(rateKey, 8, 15 * 60 * 1000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Too many login attempts. Please wait 15 minutes and try again.',
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const { identifier, mobileNumber } = body;
 
@@ -14,25 +28,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanId = (identifier || '').trim().toUpperCase();
-    const cleanMobile = (mobileNumber || identifier || '').replace(/[^0-9]/g, '');
+    const cleanId = (typeof identifier === 'string' ? identifier : '').trim().toUpperCase();
+    const cleanDigits = (typeof mobileNumber === 'string' ? mobileNumber : (typeof identifier === 'string' ? identifier : '')).replace(/[^0-9]/g, '');
+    const exactMobile10 = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : '';
 
-    // Search for Candidate/Executive who is HIRED or has role SALES_EXECUTIVE
+    if (cleanId.length < 5 && !exactMobile10) {
+      return NextResponse.json(
+        { success: false, message: 'Please enter a valid Sales Executive ID or complete 10-digit mobile number.' },
+        { status: 400 }
+      );
+    }
+
+    const orFilters: any[] = [];
+    if (cleanId.length >= 5) {
+      orFilters.push({ applicationNo: { equals: cleanId, mode: 'insensitive' } });
+    }
+    if (exactMobile10) {
+      orFilters.push(
+        { mobileNumber: exactMobile10 },
+        { mobileNumber: `+91${exactMobile10}` },
+        { mobileNumber: `91${exactMobile10}` },
+        { whatsAppNumber: exactMobile10 },
+        { whatsAppNumber: `+91${exactMobile10}` },
+        { whatsAppNumber: `91${exactMobile10}` }
+      );
+    }
+
+    // Strictly verify Candidate/Executive is explicitly HIRED or SALES_EXECUTIVE (never arbitrary substring matches)
     const agent = await prisma.application.findFirst({
       where: {
         AND: [
-          {
-            OR: [
-              { applicationNo: { equals: cleanId, mode: 'insensitive' } },
-              { mobileNumber: { contains: cleanMobile } },
-              { whatsAppNumber: { contains: cleanMobile } },
-            ],
-          },
+          { OR: orFilters },
           {
             OR: [
               { role: 'SALES_EXECUTIVE' },
               { status: 'HIRED' },
-              { engagementType: { contains: 'Sales', mode: 'insensitive' } },
             ],
           },
         ],
@@ -45,7 +75,7 @@ export async function POST(req: NextRequest) {
           success: false,
           message: 'No active Sales Executive found with these credentials. Please check your Executive ID / Mobile Number or contact Admin.',
         },
-        { status: 404 }
+        { status: 401 }
       );
     }
 
@@ -56,8 +86,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Ensure role is explicitly set to SALES_EXECUTIVE in DB
-    if (agent.role !== 'SALES_EXECUTIVE') {
+    await resetRateLimitDistributed(rateKey);
+
+    // Ensure role is explicitly set to SALES_EXECUTIVE in DB for HIRED executives
+    if (agent.role !== 'SALES_EXECUTIVE' && agent.status === 'HIRED') {
       await prisma.application.update({
         where: { id: agent.id },
         data: { role: 'SALES_EXECUTIVE' },

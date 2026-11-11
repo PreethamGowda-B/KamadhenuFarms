@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminJtiRevokedDistributed } from '@/lib/distributedSecurity';
 
 const ADMIN_COOKIE_NAME = 'khf_admin_token';
 const SALES_COOKIE_NAME = 'khf_sales_token';
+const MIN_HMAC_SECRET_LENGTH = 32;
 
 /**
  * Edge Runtime compatible HMAC-SHA256 JWT signature verification using native Web Crypto API.
  * Validates token structure (3 segments), header algorithm (HS256), cryptographic signature,
- * token expiry (exp claim), and expected role.
+ * token expiry (exp claim), expected role, and distributed/local JTI revocation.
  */
 async function verifyJwtEdge(token: string | undefined, expectedRole: string): Promise<boolean> {
   if (!token || typeof token !== 'string') return false;
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) return false;
+  const secret = process.env.JWT_SECRET?.trim();
+  if (!secret || secret.length < MIN_HMAC_SECRET_LENGTH) return false;
 
   try {
     const parts = token.split('.');
@@ -70,13 +72,58 @@ async function verifyJwtEdge(token: string | undefined, expectedRole: string): P
       return false;
     }
 
+    if (
+      expectedRole === 'ADMIN' &&
+      typeof payload.jti === 'string' &&
+      (await isAdminJtiRevokedDistributed(payload.jti))
+    ) {
+      return false;
+    }
+
     return true;
   } catch {
     return false;
   }
 }
 
+const ALLOWED_CORS_ORIGINS = new Set([
+  'https://kamadhenuhoneyfarms.in',
+  'https://www.kamadhenuhoneyfarms.in',
+  'https://admin.kamadhenuhoneyfarms.in',
+  'https://form.kamadhenuhoneyfarms.in',
+]);
+
+function isAllowedCorsOrigin(origin: string | null): string | null {
+  if (!origin) return null;
+  const normalized = origin.trim().replace(/\/$/, '');
+  if (ALLOWED_CORS_ORIGINS.has(normalized)) {
+    return normalized;
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
+function sanitizeRewriteSegment(segment: string): string {
+  const trimmed = segment.trim();
+  if (!trimmed || trimmed.includes('..') || !/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+    return '';
+  }
+  return trimmed;
+}
+
 export async function middleware(req: NextRequest) {
+  // Defense-in-depth against CVE-2025-29927 middleware bypass header spoofing
+  if (req.headers.has('x-middleware-subrequest')) {
+    return NextResponse.json(
+      { success: false, message: 'Forbidden request header' },
+      { status: 403 }
+    );
+  }
+
   const { pathname } = req.nextUrl;
 
   // 0. Static Service Worker Bypass: Never redirect or intercept Web Push service worker on any domain/subdomain
@@ -86,19 +133,24 @@ export async function middleware(req: NextRequest) {
 
   const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.hostname || '').toLowerCase();
   const proto = req.headers.get('x-forwarded-proto') || 'https';
+  const requestOrigin = req.headers.get('origin');
+  const allowedOrigin = isAllowedCorsOrigin(requestOrigin);
 
-  // Handle CORS Preflight OPTIONS requests
+  // Handle CORS Preflight OPTIONS requests with strict origin allowlist
   if (req.method === 'OPTIONS') {
-    const origin = req.headers.get('origin') || '*';
+    const headers: Record<string, string> = {
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept',
+      'Access-Control-Max-Age': '86400',
+      'Vary': 'Origin',
+    };
+    if (allowedOrigin) {
+      headers['Access-Control-Allow-Origin'] = allowedOrigin;
+      headers['Access-Control-Allow-Credentials'] = 'true';
+    }
     return new NextResponse(null, {
-      status: 200,
-      headers: {
-        'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, rsc, Next-Router-State-Tree, Next-Router-Prefetch, Next-Url, Accept',
-        'Access-Control-Allow-Credentials': 'true',
-        'Access-Control-Max-Age': '86400',
-      },
+      status: allowedOrigin || !requestOrigin ? 204 : 403,
+      headers,
     });
   }
 
@@ -107,17 +159,15 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(`https://${host}${req.nextUrl.pathname}${req.nextUrl.search}`, 308);
   }
 
-  // Helper to add CORS headers to outgoing response
+  // Helper to add strict CORS headers to outgoing response
   const setCorsHeaders = (res: NextResponse) => {
-    const origin = req.headers.get('origin');
-    if (origin) {
-      res.headers.set('Access-Control-Allow-Origin', origin);
+    res.headers.set('Vary', 'Origin');
+    if (allowedOrigin) {
+      res.headers.set('Access-Control-Allow-Origin', allowedOrigin);
       res.headers.set('Access-Control-Allow-Credentials', 'true');
-    } else {
-      res.headers.set('Access-Control-Allow-Origin', '*');
+      res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
     }
-    res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, rsc, Next-Router-State-Tree, Next-Router-Prefetch, Next-Url, Accept');
     return res;
   };
 
@@ -215,14 +265,16 @@ export async function middleware(req: NextRequest) {
         return NextResponse.rewrite(new URL('/admin/recruitment', req.url));
       }
       if (pathname.startsWith('/applications/')) {
-        const id = pathname.replace('/applications/', '');
+        const id = sanitizeRewriteSegment(pathname.replace('/applications/', ''));
+        if (!id) return NextResponse.redirect(new URL('/applications', req.url));
         return NextResponse.rewrite(new URL(`/admin/recruitment/applications/${id}`, req.url));
       }
       if (pathname === '/orders') {
         return NextResponse.rewrite(new URL('/admin/orders', req.url));
       }
       if (pathname.startsWith('/orders/')) {
-        const id = pathname.replace('/orders/', '');
+        const id = sanitizeRewriteSegment(pathname.replace('/orders/', ''));
+        if (!id) return NextResponse.redirect(new URL('/orders', req.url));
         return NextResponse.rewrite(new URL(`/admin/orders/${id}`, req.url));
       }
       if (pathname === '/referrals') {
@@ -232,14 +284,16 @@ export async function middleware(req: NextRequest) {
         return NextResponse.rewrite(new URL('/admin/shops', req.url));
       }
       if (pathname.startsWith('/shops/')) {
-        const id = pathname.replace('/shops/', '');
+        const id = sanitizeRewriteSegment(pathname.replace('/shops/', ''));
+        if (!id) return NextResponse.redirect(new URL('/shops', req.url));
         return NextResponse.rewrite(new URL(`/admin/shops/${id}`, req.url));
       }
       if (pathname === '/customers') {
         return NextResponse.rewrite(new URL('/admin/customers', req.url));
       }
       if (pathname.startsWith('/customers/')) {
-        const id = pathname.replace('/customers/', '');
+        const id = sanitizeRewriteSegment(pathname.replace('/customers/', ''));
+        if (!id) return NextResponse.redirect(new URL('/customers', req.url));
         return NextResponse.rewrite(new URL(`/admin/customers/${id}`, req.url));
       }
       if (pathname === '/analytics') {

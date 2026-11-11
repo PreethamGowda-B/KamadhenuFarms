@@ -63,11 +63,30 @@ if (messaging) {
   });
 }
 
+// Validate notification click URL to prevent open redirects or script execution
+function sanitizeNotificationUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return '/';
+  const trimmed = rawUrl.trim();
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    return trimmed;
+  }
+  try {
+    const parsed = new URL(trimmed, self.location.origin);
+    if (
+      parsed.origin === self.location.origin ||
+      /^(www\.|admin\.|form\.)?kamadhenuhoneyfarms\.in$/i.test(parsed.hostname)
+    ) {
+      return parsed.toString();
+    }
+  } catch (e) {}
+  return '/';
+}
+
 // Notification Click Event Handler: Opens or focuses relevant tab
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || '/';
+  const targetUrl = sanitizeNotificationUrl(event.notification.data?.url);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {

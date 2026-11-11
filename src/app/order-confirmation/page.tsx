@@ -86,6 +86,8 @@ function ConfirmationContent() {
     searchParams.get('order') ||
     searchParams.get('order_id') ||
     '';
+  const orderToken = searchParams.get('token') || '';
+  const tokenQuery = orderToken ? `&token=${encodeURIComponent(orderToken)}` : '';
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const invoiceRef = useRef<HTMLDivElement>(null);
@@ -95,7 +97,7 @@ function ConfirmationContent() {
 
     // 1. Instant Direct Load: Fetch official invoice directly from DB (instant ~40ms if already confirmed)
     try {
-      const fastRes = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`, {
+      const fastRes = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}${tokenQuery}`, {
         headers: { 'Cache-Control': 'no-cache' },
       });
       const fastData = await fastRes.json();
@@ -120,7 +122,7 @@ function ConfirmationContent() {
         fetch('/api/checkout/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderNumber }),
+          body: JSON.stringify({ orderNumber, token: orderToken || undefined }),
         }).catch(() => {});
         return;
       }
@@ -133,7 +135,7 @@ function ConfirmationContent() {
       const verifyRes = await fetch('/api/checkout/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderNumber }),
+        body: JSON.stringify({ orderNumber, token: orderToken || undefined }),
       });
       const verifyData = await verifyRes.json();
       if (verifyData.success && verifyData.order) {
@@ -162,7 +164,7 @@ function ConfirmationContent() {
       while (attempts < 3) {
         attempts++;
         await new Promise((r) => setTimeout(r, 600));
-        const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}`);
+        const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}${tokenQuery}`);
         const data = await res.json();
         if (data.success && data.order) {
           invoiceData = data.order;

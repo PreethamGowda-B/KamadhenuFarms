@@ -14,6 +14,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
+    const shop = await prisma.shop.findUnique({ where: { id }, select: { salespersonId: true } });
+    if (!shop) {
+      return NextResponse.json({ success: false, message: 'Shop not found' }, { status: 404 });
+    }
+    if (salesSession && !adminSession && shop.salespersonId !== salesSession.id) {
+      return NextResponse.json({ success: false, message: 'Access denied to this shop' }, { status: 403 });
+    }
+
     const { reminderType = 'REORDER_DUE_TODAY', dueDate, notes = '' } = body;
     if (!dueDate) {
       return NextResponse.json({ success: false, message: 'Due date is required' }, { status: 400 });
@@ -46,6 +54,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (!salesSession && !adminSession) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const shop = await prisma.shop.findUnique({ where: { id }, select: { salespersonId: true } });
+    if (!shop) {
+      return NextResponse.json({ success: false, message: 'Shop not found' }, { status: 404 });
+    }
+    if (salesSession && !adminSession && shop.salespersonId !== salesSession.id) {
+      return NextResponse.json({ success: false, message: 'Access denied to this shop' }, { status: 403 });
     }
 
     const actorName = salesSession?.fullName || (adminSession ? 'Admin' : 'Salesperson');

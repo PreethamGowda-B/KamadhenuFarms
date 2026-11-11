@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAdminSessionFromRequest } from '@/lib/auth';
+import {
+  canTransitionOrderStatus,
+  isOrderPaymentConfirmed,
+  sanitizeTrackingUrl,
+} from '@/lib/orderStateMachine';
 import { notifyCustomerOrderShipped } from '@/lib/notifications';
 
 export async function POST(
@@ -27,11 +32,37 @@ export async function POST(
       );
     }
 
+    const safeTrackingUrl = trackingUrl?.trim() ? sanitizeTrackingUrl(trackingUrl) : null;
+    if (trackingUrl?.trim() && !safeTrackingUrl) {
+      return NextResponse.json(
+        { success: false, message: 'Tracking URL must be a valid http or https link' },
+        { status: 400 }
+      );
+    }
+
     const order = await prisma.order.findUnique({ where: { id } });
     if (!order) {
       return NextResponse.json(
         { success: false, message: 'Order not found' },
         { status: 404 }
+      );
+    }
+
+    const transition = canTransitionOrderStatus(order.orderStatus, 'SHIPPED');
+    if (!transition.allowed) {
+      return NextResponse.json(
+        { success: false, message: transition.reason || 'Cannot dispatch shipment for this order status' },
+        { status: 400 }
+      );
+    }
+
+    if (!isOrderPaymentConfirmed(order.paymentStatus)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Cannot dispatch shipment before payment or COD advance is confirmed (current status: ${order.paymentStatus}).`,
+        },
+        { status: 400 }
       );
     }
 
@@ -42,8 +73,8 @@ export async function POST(
           orderId: id,
           courierProvider: courierProvider.trim(),
           trackingNumber: trackingNumber.trim(),
-          trackingUrl: trackingUrl?.trim() || null,
-          shippingFee: Number(shippingFee) || order.shippingFee || 0,
+          trackingUrl: safeTrackingUrl,
+          shippingFee: Math.max(0, Number(shippingFee) || order.shippingFee || 0),
           status: 'SHIPPED',
           shippedAt: new Date(),
         },
@@ -86,7 +117,7 @@ export async function POST(
   } catch (error: any) {
     console.error('Create shipment error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to dispatch shipment' },
+      { success: false, message: 'Failed to dispatch shipment' },
       { status: 500 }
     );
   }

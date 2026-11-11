@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Failed to trigger test notification:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Internal server error' },
+      { success: false, message: 'Internal server error triggering notification' },
       { status: 500 }
     );
   }

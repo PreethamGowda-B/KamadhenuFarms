@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import {
+  checkRateLimitDistributed,
+  getAdminSessionFromRequest,
+  getClientIp,
+} from '@/lib/auth';
+import {
+  getCustomerSessionFromRequest,
+  ORDER_ACCESS_COOKIE_NAME,
+  verifyOrderAccessToken,
+} from '@/lib/customerAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rate = await checkRateLimitDistributed(`order_track:${ip}`, 25, 15 * 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Too many tracking requests. Please wait a few minutes and try again.' },
+        { status: 429 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const orderNumber = searchParams.get('orderNumber')?.trim().toUpperCase();
     const mobile = searchParams.get('mobile')?.trim().replace(/\D/g, '');
@@ -22,6 +41,28 @@ export async function GET(req: NextRequest) {
       cleanNum.startsWith('KHF-ORD-') ? cleanNum : `KHF-ORD-${cleanNum}`,
     ];
 
+    const admin = getAdminSessionFromRequest(req);
+    const session = await getCustomerSessionFromRequest(req);
+    const rawOrderToken =
+      searchParams.get('token')?.trim() ||
+      req.cookies.get(ORDER_ACCESS_COOKIE_NAME)?.value ||
+      '';
+    const tokenPayload = rawOrderToken
+      ? verifyOrderAccessToken(rawOrderToken, candidateNumbers[0]) ||
+        verifyOrderAccessToken(rawOrderToken, candidateNumbers[1])
+      : null;
+    const hasMobileProof = Boolean(mobile && mobile.length >= 10);
+
+    if (!admin && !session && !tokenPayload && !hasMobileProof) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Please enter the 10-digit mobile number used at checkout to track your order.',
+        },
+        { status: 401 }
+      );
+    }
+
     const whereClause: any = {
       OR: [
         { orderNumber: { in: candidateNumbers } },
@@ -29,12 +70,17 @@ export async function GET(req: NextRequest) {
         { id: cleanNum },
       ],
     };
-    if (mobile && mobile.length >= 10) {
+    if (hasMobileProof) {
       whereClause.customer = {
         mobile: {
-          endsWith: mobile.slice(-10),
+          endsWith: mobile!.slice(-10),
         },
       };
+    } else if (!admin && session) {
+      whereClause.customerId = session.id;
+    } else if (!admin && tokenPayload) {
+      whereClause.orderNumber = tokenPayload.orderNumber;
+      whereClause.customerId = tokenPayload.customerId;
     }
 
     const order = await prisma.order.findFirst({

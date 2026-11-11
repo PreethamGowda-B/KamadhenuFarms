@@ -88,8 +88,40 @@ export function calculateValidUntil(validFromStr: string): string {
   return formatDateFormatted(d);
 }
 
-export function generateDocumentHtml(docType: DocTypeKey, data: DocumentSnapshotData): string {
-  const fullProductionUrl = getFullVerificationUrl(data.applicationNo);
+function escapeDocHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function generateDocumentHtml(docType: DocTypeKey, rawData: DocumentSnapshotData): string {
+  const data: DocumentSnapshotData = {
+    ...rawData,
+    applicationId: escapeDocHtml(rawData.applicationId),
+    applicationNo: escapeDocHtml(rawData.applicationNo),
+    fullName: escapeDocHtml(rawData.fullName),
+    mobileNumber: escapeDocHtml(rawData.mobileNumber),
+    email: escapeDocHtml(rawData.email),
+    address: escapeDocHtml(rawData.address),
+    city: escapeDocHtml(rawData.city),
+    state: escapeDocHtml(rawData.state),
+    pinCode: escapeDocHtml(rawData.pinCode),
+    joiningDate: escapeDocHtml(rawData.joiningDate),
+    workingTerritory: escapeDocHtml(rawData.workingTerritory),
+    commissionRate: escapeDocHtml(rawData.commissionRate),
+    payoutFrequency: escapeDocHtml(rawData.payoutFrequency),
+    reportingManager: escapeDocHtml(rawData.reportingManager),
+    engagementType: escapeDocHtml(rawData.engagementType),
+    additionalTerms: rawData.additionalTerms ? escapeDocHtml(rawData.additionalTerms) : undefined,
+    validFrom: escapeDocHtml(rawData.validFrom),
+    validUntil: escapeDocHtml(rawData.validUntil),
+    documentNo: escapeDocHtml(rawData.documentNo),
+    issueDate: escapeDocHtml(rawData.issueDate),
+  };
+  const fullProductionUrl = getFullVerificationUrl(rawData.applicationNo);
   const qrcodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(
     fullProductionUrl
   )}`;

@@ -194,7 +194,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error('Admin orders list error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to fetch admin orders' },
+      { success: false, message: 'Failed to fetch admin orders' },
       { status: 500 }
     );
   }

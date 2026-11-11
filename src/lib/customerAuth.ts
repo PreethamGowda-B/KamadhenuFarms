@@ -1,9 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { getJwtSecret } from '@/lib/auth';
 
 export const CUSTOMER_COOKIE_NAME = 'khf_customer_session';
+export const ORDER_ACCESS_COOKIE_NAME = 'khf_order_token';
 export const CUSTOMER_SESSION_DURATION_SECONDS = 90 * 24 * 60 * 60; // 90 days
+export const ORDER_TOKEN_DURATION_SECONDS = 24 * 60 * 60; // 24 hours
+
+function getOrderTokenHmacSecret(): Buffer {
+  const configured = process.env.ORDER_TOKEN_SECRET?.trim();
+  if (configured && configured.length < 32) {
+    throw new Error(
+      'CRITICAL CONFIGURATION ERROR: ORDER_TOKEN_SECRET must be at least 32 characters.'
+    );
+  }
+  const raw = configured || getJwtSecret();
+  return crypto.createHash('sha256').update(`khf-order-access-v1:${raw}`).digest();
+}
+
+export function signOrderAccessToken(
+  orderNumber: string,
+  customerId: string,
+  expiresInSeconds = ORDER_TOKEN_DURATION_SECONDS
+): string {
+  const iat = Math.floor(Date.now() / 1000);
+  const exp = iat + expiresInSeconds;
+  const payloadB64 = Buffer.from(
+    JSON.stringify({ orderNumber: orderNumber.trim().toUpperCase(), customerId, iat, exp })
+  ).toString('base64url');
+  const sig = crypto
+    .createHmac('sha256', getOrderTokenHmacSecret())
+    .update(payloadB64)
+    .digest('base64url');
+  return `${payloadB64}.${sig}`;
+}
+
+export function verifyOrderAccessToken(
+  token: string | undefined | null,
+  expectedOrderRef: string
+): { orderNumber: string; customerId: string } | null {
+  if (!token || typeof token !== 'string' || !expectedOrderRef) return null;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 2) return null;
+    const [payloadB64, sig] = parts;
+    const expectedSig = crypto
+      .createHmac('sha256', getOrderTokenHmacSecret())
+      .update(payloadB64)
+      .digest('base64url');
+
+    const a = Buffer.from(sig);
+    const b = Buffer.from(expectedSig);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return null;
+    }
+
+    const parsed = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    if (!parsed?.exp || now > parsed.exp) return null;
+    if (
+      String(parsed.orderNumber || '').toUpperCase() !== expectedOrderRef.trim().toUpperCase()
+    ) {
+      return null;
+    }
+    if (!parsed.customerId) return null;
+    return { orderNumber: parsed.orderNumber, customerId: parsed.customerId };
+  } catch {
+    return null;
+  }
+}
+
+export function attachOrderAccessCookie(response: NextResponse, token: string): void {
+  response.cookies.set({
+    name: ORDER_ACCESS_COOKIE_NAME,
+    value: token,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: ORDER_TOKEN_DURATION_SECONDS,
+  });
+}
 
 export interface CustomerSessionContext {
   id: string; // customerId
@@ -118,6 +196,8 @@ export function clearCustomerSessionCookie(response: NextResponse): void {
     name: CUSTOMER_COOKIE_NAME,
     value: '',
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     expires: new Date(0),
     path: '/',
   });

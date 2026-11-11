@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, verifyAdminPassword, signJwt, ADMIN_COOKIE_NAME } from '@/lib/auth';
+import {
+  checkRateLimitDistributed,
+  resetRateLimitDistributed,
+  getClientIp,
+  verifyAdminPassword,
+  signJwt,
+  ADMIN_COOKIE_NAME,
+} from '@/lib/auth';
 import { logAdminAction } from '@/lib/audit';
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+    const ip = getClientIp(req);
+    const rateKey = `admin_login:${ip}`;
 
-    // 1. Rate Limiting Check
-    const rateCheck = checkRateLimit(ip);
+    // 1. Rate Limiting Check (Distributed via Upstash Redis when configured)
+    const rateCheck = await checkRateLimitDistributed(rateKey, 5, 15 * 60 * 1000);
     if (!rateCheck.allowed) {
       logAdminAction('UNKNOWN', 'LOGIN_RATE_LIMITED', undefined, `IP: ${ip}`, ip);
       return NextResponse.json(
@@ -31,16 +39,18 @@ export async function POST(req: NextRequest) {
 
     // 2. Credential Verification
     const expectedAdminEmail = (process.env.ADMIN_EMAIL || 'admin@kamadhenuhoneyfarms.in').trim().toLowerCase();
-    const isValidEmail = email.trim().toLowerCase() === expectedAdminEmail;
-    const isValidPassword = verifyAdminPassword(password);
+    const isValidEmail = typeof email === 'string' && email.trim().toLowerCase() === expectedAdminEmail;
+    const isValidPassword = typeof password === 'string' && verifyAdminPassword(password);
 
     if (!isValidEmail || !isValidPassword) {
-      logAdminAction(email, 'LOGIN_FAILED', undefined, `Invalid credentials for ${email}`, ip);
+      logAdminAction(String(email).slice(0, 120), 'LOGIN_FAILED', undefined, `Invalid credentials for ${String(email).slice(0, 120)}`, ip);
       return NextResponse.json(
         { success: false, message: 'Invalid admin email or password' },
         { status: 401 }
       );
     }
+
+    await resetRateLimitDistributed(rateKey);
 
     // 3. Generate Signed JWT Token (8 hours or 30 days if rememberMe)
     const expiresInSeconds = rememberMe ? 30 * 24 * 3600 : 8 * 3600;

@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
       update: {
         isAdmin: true,
         adminEmail: admin.email,
+        customerId: null,
         isActive: true,
         lastUsedAt: new Date(),
         deviceType: deviceType || 'desktop',

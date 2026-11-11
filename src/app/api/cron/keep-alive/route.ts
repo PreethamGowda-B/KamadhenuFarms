@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       {
         success: false,
         status: 'degraded',
-        error: error.message || 'Database ping failed',
+        error: 'Database ping failed',
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

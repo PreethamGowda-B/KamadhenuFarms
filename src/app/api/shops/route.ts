@@ -9,9 +9,13 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     
-    // Auth Context (authenticated Salesperson or Admin or Field Onboarding)
+    // Auth Context (must be authenticated Salesperson or Admin)
     const salesSession = await getSalesSessionFromRequest(req);
     const adminSession = getAdminSessionFromRequest(req);
+
+    if (!salesSession && !adminSession) {
+      return NextResponse.json({ success: false, message: 'Unauthorized: Sales or Admin session required' }, { status: 401 });
+    }
 
     const {
       shopName,
@@ -71,10 +75,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Shop Front / Board Image is required' }, { status: 400 });
     }
 
-    // Determine Salesperson Details
-    const salespersonId = salesSession?.id || (body.salespersonId && body.salespersonId !== 'ADMIN' ? body.salespersonId : null);
-    const salespersonName = salesSession?.fullName || body.salespersonName || (adminSession ? 'Admin' : 'Field Sales');
-    const salespersonMobile = salesSession?.mobileNumber || body.salespersonMobile || '';
+    // Determine Salesperson Details (never trust caller-supplied salespersonId for non-admin sessions)
+    const salespersonId = adminSession
+      ? (body.salespersonId && body.salespersonId !== 'ADMIN' ? body.salespersonId : (salesSession?.id || null))
+      : salesSession!.id;
+    const salespersonName = adminSession
+      ? (body.salespersonName || salesSession?.fullName || 'Admin')
+      : salesSession!.fullName;
+    const salespersonMobile = adminSession
+      ? (body.salespersonMobile || salesSession?.mobileNumber || '')
+      : (salesSession!.mobileNumber || '');
 
     // Transaction-Safe Atomic Code Generation and Persistence
     const createdData = await prisma.$transaction(async (tx) => {
@@ -310,7 +320,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Shop creation error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to submit shop. Please try again.' },
+      { success: false, message: 'Failed to submit shop. Please try again.' },
       { status: 500 }
     );
   }
@@ -334,6 +344,10 @@ export async function GET(req: NextRequest) {
     // Check caller session
     const salesSession = await getSalesSessionFromRequest(req);
     const adminSession = getAdminSessionFromRequest(req);
+
+    if (!salesSession && !adminSession) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
 
     const where: any = {};
 

@@ -151,11 +151,22 @@ export async function validateDiscountOrReferralCode(
       };
     }
 
-    // Abuse Prevention: Customer cannot refer themselves
-    if (offer.referrerCustomer && customerMobile) {
-      const cleanCustomerMobile = customerMobile.replace(/\D/g, '').slice(-10);
-      const cleanReferrerMobile = offer.referrerCustomer.mobile.replace(/\D/g, '').slice(-10);
-      if (cleanCustomerMobile === cleanReferrerMobile) {
+    // Abuse Prevention: Customer cannot refer themselves (by mobile OR email)
+    if (offer.referrerCustomer) {
+      const cleanCustomerMobile = (customerMobile || '').replace(/\D/g, '').slice(-10);
+      const cleanReferrerMobile = (offer.referrerCustomer.mobile || '').replace(/\D/g, '').slice(-10);
+      const cleanCustomerEmail = (customerEmail || '').trim().toLowerCase();
+      const cleanReferrerEmail = (offer.referrerCustomer.email || '').trim().toLowerCase();
+
+      const sameMobile = Boolean(cleanCustomerMobile && cleanReferrerMobile && cleanCustomerMobile === cleanReferrerMobile);
+      const sameEmail = Boolean(
+        cleanCustomerEmail &&
+        cleanReferrerEmail &&
+        !cleanCustomerEmail.endsWith('@kamadhenuhoneyfarms.in') &&
+        cleanCustomerEmail === cleanReferrerEmail
+      );
+
+      if (sameMobile || sameEmail) {
         return {
           valid: false,
           code,

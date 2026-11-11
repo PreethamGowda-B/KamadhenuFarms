@@ -5,11 +5,29 @@ import { calculateShippingCharge } from '@/lib/shipping';
 import { validateDiscountOrReferralCode } from '@/lib/referral';
 import { isBangaloreDelivery } from '@/lib/location';
 import { generateNextOrderNumber } from '@/lib/orderNumber';
-import { AUTHORITATIVE_PRICES } from '@/lib/products';
-import { createCustomerSession, attachCustomerSessionCookie } from '@/lib/customerAuth';
+import { AUTHORITATIVE_PRICES, PRODUCTS } from '@/lib/products';
+import { checkRateLimitDistributed, getClientIp } from '@/lib/auth';
+import {
+  createCustomerSession,
+  attachCustomerSessionCookie,
+  getCustomerSessionFromRequest,
+  signOrderAccessToken,
+  attachOrderAccessCookie,
+} from '@/lib/customerAuth';
 
 export async function POST(req: NextRequest) {
+  let createdOrderId: string | null = null;
+
   try {
+    const ip = getClientIp(req);
+    const rate = await checkRateLimitDistributed(`checkout_create:${ip}`, 15, 15 * 60 * 1000);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Too many checkout attempts. Please wait a few minutes and try again.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
     const {
       name,
@@ -30,26 +48,40 @@ export async function POST(req: NextRequest) {
     const isCod = String(paymentMethod).toLowerCase() === 'cod';
 
     // Validate customer inputs
-    if (!name?.trim() || !mobile?.trim()) {
+    if (!name || typeof name !== 'string' || !name.trim() || !mobile || typeof mobile !== 'string' || !mobile.trim()) {
       return NextResponse.json(
         { success: false, message: 'Please provide full name and mobile number' },
         { status: 400 }
       );
     }
 
-    const cleanMobile = mobile.replace(/\D/g, '');
-    if (cleanMobile.length < 10) {
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    if (cleanMobile.length !== 10 || !/^[6-9]\d{9}$/.test(cleanMobile)) {
       return NextResponse.json(
-        { success: false, message: 'Please provide a valid 10-digit mobile number' },
+        { success: false, message: 'Please provide a valid 10-digit Indian mobile number' },
         { status: 400 }
       );
     }
 
-    const cleanEmail = email && typeof email === 'string' && email.trim()
-      ? email.trim().toLowerCase()
-      : `${cleanMobile}@kamadhenuhoneyfarms.in`;
+    const cleanEmail =
+      email && typeof email === 'string' && email.trim()
+        ? email.trim().toLowerCase().slice(0, 120)
+        : `${cleanMobile}@kamadhenuhoneyfarms.in`;
 
-    if (!addressLine1?.trim() || !city?.trim() || !state?.trim() || !pincode?.trim()) {
+    if (
+      !addressLine1 ||
+      typeof addressLine1 !== 'string' ||
+      !addressLine1.trim() ||
+      !city ||
+      typeof city !== 'string' ||
+      !city.trim() ||
+      !state ||
+      typeof state !== 'string' ||
+      !state.trim() ||
+      !pincode ||
+      typeof pincode !== 'string' ||
+      !pincode.trim()
+    ) {
       return NextResponse.json(
         { success: false, message: 'Please provide complete street address, city, state, and pincode' },
         { status: 400 }
@@ -75,14 +107,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    if (!items || !Array.isArray(items) || items.length === 0 || items.length > 20) {
       return NextResponse.json(
-        { success: false, message: 'Your cart is empty' },
+        { success: false, message: 'Your cart is empty or contains invalid items' },
         { status: 400 }
       );
     }
 
-    // 1. Calculate Authoritative Subtotal Server-Side
+    // 1. Validate Products & Authoritative Prices + Database Inventory Availability
+    const requestedProductIds = Array.from(
+      new Set(items.map((it: any) => String(it?.productId || '').trim()).filter(Boolean))
+    );
+    const dbInventoryRows = await prisma.productInventory.findMany({
+      where: { id: { in: requestedProductIds } },
+    });
+    const inventoryMap = new Map(dbInventoryRows.map((row) => [row.id, row]));
+
     let subtotal = 0;
     const validatedItems: {
       productId: string;
@@ -95,44 +135,74 @@ export async function POST(req: NextRequest) {
     }[] = [];
 
     for (const item of items) {
-      const product = AUTHORITATIVE_PRICES[item.productId];
-      if (!product) {
+      const productId = String(item?.productId || '').trim();
+      const weightVariant = String(item?.weightVariant || '').trim();
+      const product = AUTHORITATIVE_PRICES[productId];
+      const productConfig = PRODUCTS[productId];
+
+      if (!product || (productConfig && (!productConfig.active || !productConfig.purchasable))) {
         return NextResponse.json(
-          { success: false, message: `Invalid product ID: ${item.productId}` },
+          { success: false, message: `Product unavailable or invalid ID: ${productId}` },
           { status: 400 }
         );
       }
 
-      const unitPrice = product.prices[item.weightVariant];
-      if (!unitPrice) {
+      const dbStock = inventoryMap.get(productId);
+      if (dbStock) {
+        if (dbStock.stockStatus === 'OUT_OF_STOCK') {
+          return NextResponse.json(
+            { success: false, message: `${product.name} is currently out of stock.` },
+            { status: 400 }
+          );
+        }
+        if (dbStock.stockStatus === 'RESTOCKING_SOON' && !dbStock.canPreorder) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: `${product.name} is currently restocking and unavailable for immediate checkout.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      const unitPrice = product.prices[weightVariant];
+      if (!unitPrice || !Number.isFinite(unitPrice) || unitPrice <= 0) {
         return NextResponse.json(
-          { success: false, message: `Invalid weight variant ${item.weightVariant} for ${product.name}` },
+          { success: false, message: `Invalid weight variant ${weightVariant} for ${product.name}` },
           { status: 400 }
         );
       }
 
-      const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
-      const itemTotal = unitPrice * qty;
+      const parsedQty = Number(item?.quantity);
+      if (!Number.isInteger(parsedQty) || parsedQty < 1 || parsedQty > 50) {
+        return NextResponse.json(
+          { success: false, message: `Invalid quantity for ${product.name} (must be between 1 and 50).` },
+          { status: 400 }
+        );
+      }
+
+      const itemTotal = unitPrice * parsedQty;
       subtotal += itemTotal;
 
       let weightKg = 0.5;
-      if (item.weightVariant === '250g') weightKg = 0.35;
-      else if (item.weightVariant === '500g') weightKg = 0.65;
-      else if (item.weightVariant === '1kg') weightKg = 1.30;
+      if (weightVariant === '250g') weightKg = 0.35;
+      else if (weightVariant === '500g') weightKg = 0.65;
+      else if (weightVariant === '1kg') weightKg = 1.3;
 
       validatedItems.push({
-        productId: item.productId,
+        productId,
         productNameSnapshot: product.name,
-        weightVariant: item.weightVariant,
-        quantity: qty,
+        weightVariant,
+        quantity: parsedQty,
         unitPrice,
         totalPrice: itemTotal,
         weightKg,
       });
     }
 
-    // 2. Calculate Server-side Verified Shipping Rate (Free Delivery for Karnataka >= ₹999, Subsidized ₹99 for Outside States)
-    const shippingResult = await calculateShippingCharge(cleanPincode, items, subtotal);
+    // 2. Calculate Server-side Verified Shipping Rate using ONLY validated items
+    const shippingResult = await calculateShippingCharge(cleanPincode, validatedItems, subtotal);
     if (!shippingResult.serviceable) {
       return NextResponse.json(
         {
@@ -146,60 +216,56 @@ export async function POST(req: NextRequest) {
 
     const shippingFee = shippingResult.shippingFee;
 
-    // 3. Calculate Authoritative Discount (Static Coupons + Admin Referral Offers & Rewards)
+    // 3. Calculate Authoritative Discount using ONLY validated items & server subtotal
     let discount = 0;
     let validatedCode: string | null = null;
     if (couponCode && typeof couponCode === 'string') {
       const validation = await validateDiscountOrReferralCode(
         couponCode,
         subtotal,
-        items,
+        validatedItems,
         cleanMobile,
         cleanEmail
       );
       if (validation.valid) {
-        discount = validation.calculatedDiscount;
+        discount = Math.max(0, Math.min(subtotal, Math.round(validation.calculatedDiscount)));
         validatedCode = validation.code;
       }
     }
 
     // 4. Compute Final Verified Total & 50% Advance for COD
     const finalTotal = Math.max(1, subtotal - discount + shippingFee);
-    const advanceAmount = isCod ? Math.ceil(finalTotal * 0.50) : finalTotal;
-    const codRemainingAmount = isCod ? (finalTotal - advanceAmount) : 0;
+    const advanceAmount = isCod ? Math.ceil(finalTotal * 0.5) : finalTotal;
+    const codRemainingAmount = isCod ? finalTotal - advanceAmount : 0;
 
-    // 5. Generate Next Unique Order Number (instantaneous in memory)
+    // 5. Generate Cryptographic Non-Enumerable Order Number
     const orderNumber = generateNextOrderNumber();
+    const cleanCustomerName = name.trim().slice(0, 120);
+    const existingSession = await getCustomerSessionFromRequest(req);
 
-    // 6. Create or Find Customer & Address in Database
-    const cleanCustomerName = name.trim();
-
-    let appBaseUrl = (
-      process.env.NEXT_PUBLIC_APP_URL ||
-      'https://www.kamadhenuhoneyfarms.in'
-    ).replace(/\/$/, '');
-
-    if (appBaseUrl.includes('vercel.app') || appBaseUrl === 'https://kamadhenuhoneyfarms.in') {
-      appBaseUrl = 'https://www.kamadhenuhoneyfarms.in';
-    }
-
-    const returnUrl = `${appBaseUrl}/order-confirmation?orderNumber={order_id}&order_id={order_id}&status=confirmed`;
-    const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;
-
-    // 6, 7 & 8: Concurrently create database record AND Cashfree order session
-    const dbPromise = (async () => {
-      let customer = await prisma.customer.findFirst({
-        where: {
-          OR: [
-            { mobile: cleanMobile },
-            { email: cleanEmail },
-          ],
-        },
-        select: { id: true },
-      });
+    // 6. Create or Reuse Customer, Address, and Pending Order BEFORE creating Gateway Session
+    let isBrandNewCustomer = false;
+    const dbOrder = await prisma.$transaction(async (tx) => {
+      let customer = null;
+      if (existingSession) {
+        customer = await tx.customer.findUnique({
+          where: { id: existingSession.id },
+          select: { id: true },
+        });
+      }
 
       if (!customer) {
-        customer = await prisma.customer.create({
+        customer = await tx.customer.findFirst({
+          where: {
+            OR: [{ mobile: cleanMobile }, { email: cleanEmail }],
+          },
+          select: { id: true },
+        });
+      }
+
+      if (!customer) {
+        isBrandNewCustomer = true;
+        customer = await tx.customer.create({
           data: {
             name: cleanCustomerName,
             mobile: cleanMobile,
@@ -209,26 +275,26 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      const address = await prisma.address.create({
+      const address = await tx.address.create({
         data: {
           customerId: customer.id,
           recipientName: cleanCustomerName,
           mobileNumber: cleanMobile,
-          addressLine1: addressLine1.trim(),
-          addressLine2: addressLine2?.trim() || null,
-          area: area?.trim() || '',
-          city: city.trim(),
-          state: state.trim(),
+          addressLine1: addressLine1.trim().slice(0, 250),
+          addressLine2: addressLine2 ? String(addressLine2).trim().slice(0, 250) : null,
+          area: area ? String(area).trim().slice(0, 120) : '',
+          city: city.trim().slice(0, 100),
+          state: state.trim().slice(0, 100),
           pincode: cleanPincode,
-          landmark: landmark?.trim() || null,
+          landmark: landmark ? String(landmark).trim().slice(0, 150) : null,
         },
         select: { id: true },
       });
 
-      return await prisma.order.create({
+      return tx.order.create({
         data: {
           orderNumber,
-          cashfreeOrderId: orderNumber, // Pre-bound without second roundtrip
+          cashfreeOrderId: orderNumber,
           customerId: customer.id,
           shippingAddressId: address.id,
           subtotal,
@@ -243,7 +309,7 @@ export async function POST(req: NextRequest) {
           advancePaidAmount: 0,
           codRemainingAmount: isCod ? codRemainingAmount : 0,
           referralCode: validatedCode,
-          notes: landmark ? `Landmark: ${landmark}` : null,
+          notes: landmark ? `Landmark: ${String(landmark).trim().slice(0, 150)}` : null,
           items: {
             create: validatedItems.map((it) => ({
               productId: it.productId,
@@ -264,31 +330,51 @@ export async function POST(req: NextRequest) {
           },
         },
       });
-    })();
-
-    const cashfreePromise = createCashfreeOrder({
-      orderId: orderNumber,
-      orderAmount: advanceAmount, // Full payment for online, or 50% advance for COD
-      orderCurrency: 'INR',
-      customer: {
-        customer_id: `cust_${cleanMobile}`,
-        customer_name: cleanCustomerName,
-        customer_email: cleanEmail,
-        customer_phone: cleanMobile,
-      },
-      returnUrl,
-      notifyUrl,
-      orderNote: isCod
-        ? `50% COD Advance for Kamadhenu Honey Farms Order ${orderNumber}`
-        : `Kamadhenu Honey Farms Pure Honey Order ${orderNumber}`,
     });
 
-    // Concurrently await BOTH database order creation and Cashfree order session
-    // This guarantees the database record is 100% committed before checkout opens.
-    const [dbOrder, cashfreeOrder] = await Promise.all([
-      dbPromise,
-      cashfreePromise,
-    ]);
+    createdOrderId = dbOrder.id;
+
+    let appBaseUrl = (
+      process.env.NEXT_PUBLIC_APP_URL ||
+      'https://www.kamadhenuhoneyfarms.in'
+    ).replace(/\/$/, '');
+
+    if (appBaseUrl.includes('vercel.app') || appBaseUrl === 'https://kamadhenuhoneyfarms.in') {
+      appBaseUrl = 'https://www.kamadhenuhoneyfarms.in';
+    }
+
+    const orderAccessToken = signOrderAccessToken(orderNumber, dbOrder.customerId);
+    const returnUrl = `${appBaseUrl}/order-confirmation?orderNumber={order_id}&order_id={order_id}&status=confirmed&token=${encodeURIComponent(orderAccessToken)}`;
+    const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;
+
+    let cashfreeOrder;
+    try {
+      cashfreeOrder = await createCashfreeOrder({
+        orderId: orderNumber,
+        orderAmount: advanceAmount,
+        orderCurrency: 'INR',
+        customer: {
+          customer_id: dbOrder.customerId,
+          customer_name: cleanCustomerName,
+          customer_email: cleanEmail,
+          customer_phone: cleanMobile,
+        },
+        returnUrl,
+        notifyUrl,
+        orderNote: isCod
+          ? `50% COD Advance for Kamadhenu Honey Farms Order ${orderNumber}`
+          : `Kamadhenu Honey Farms Pure Honey Order ${orderNumber}`,
+      });
+    } catch (cfError) {
+      // Prevent orphaned NEW/pending orders in DB if gateway initialization fails
+      await prisma.order
+        .update({
+          where: { id: dbOrder.id },
+          data: { orderStatus: 'CANCELLED', paymentStatus: 'FAILED' },
+        })
+        .catch(() => {});
+      throw cfError;
+    }
 
     const cashfreeConfig = getCashfreeConfig();
 
@@ -298,6 +384,7 @@ export async function POST(req: NextRequest) {
       orderNumber,
       orderId: dbOrder.id,
       cashfreeOrderId: cashfreeOrder.order_id,
+      orderAccessToken,
       environment: cashfreeConfig.env,
       amount: advanceAmount,
       currency: 'INR',
@@ -312,18 +399,25 @@ export async function POST(req: NextRequest) {
       estimatedDays: shippingResult.estimatedDays,
     });
 
-    try {
-      const sessionToken = await createCustomerSession(dbOrder.customerId, req);
-      if (sessionToken) attachCustomerSessionCookie(response, sessionToken);
-    } catch (sessionError) {
-      console.error('Session creation error in create-order:', sessionError);
+    // Attach order-scoped access cookie (works across redirects without hijacking other customer accounts)
+    attachOrderAccessCookie(response, orderAccessToken);
+
+    // Only issue a full customer account session cookie when customer is brand-new
+    // (if returning customer isn't signed in yet, we do NOT auto-authenticate someone just from entering their phone number)
+    if (isBrandNewCustomer && !existingSession) {
+      try {
+        const sessionToken = await createCustomerSession(dbOrder.customerId, req);
+        if (sessionToken) attachCustomerSessionCookie(response, sessionToken);
+      } catch (sessionError) {
+        console.error('Session creation error in create-order:', sessionError);
+      }
     }
 
     return response;
   } catch (error: any) {
-    console.error('Create Cashfree order error:', error);
+    console.error('Create Cashfree order error:', error, createdOrderId ? { createdOrderId } : {});
     return NextResponse.json(
-      { success: false, message: error.message || 'Failed to initialize Cashfree payment checkout' },
+      { success: false, message: 'Failed to initialize payment checkout. Please try again.' },
       { status: 500 }
     );
   }

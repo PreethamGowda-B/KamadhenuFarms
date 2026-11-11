@@ -3,36 +3,15 @@ import { fullApplicationSchema } from '@/lib/validations/application';
 import { addApplicationStore, findDuplicateApplication } from '@/lib/store';
 import { prisma } from '@/lib/prisma';
 import { sendEmail, getApplicantConfirmationTemplate, getAdminNotificationTemplate } from '@/lib/email';
-
-// Simple in-memory rate limiter per IP (Max 5 submissions per 10 minutes)
-const ipRateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const windowMs = 10 * 60 * 1000; // 10 minutes
-  const maxLimit = 5;
-
-  const client = ipRateLimitMap.get(ip);
-
-  if (!client || now > client.resetTime) {
-    ipRateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
-    return true;
-  }
-
-  if (client.count >= maxLimit) {
-    return false;
-  }
-
-  client.count += 1;
-  return true;
-}
+import { checkRateLimitDistributed, getClientIp } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    const ip = getClientIp(req);
 
-    // 1. Rate Limiting Check
-    if (!checkRateLimit(ip)) {
+    // 1. Rate Limiting Check (Distributed via Upstash Redis when configured)
+    const rate = await checkRateLimitDistributed(`careers_apply:${ip}`, 5, 10 * 60 * 1000);
+    if (!rate.allowed) {
       return NextResponse.json(
         {
           success: false,

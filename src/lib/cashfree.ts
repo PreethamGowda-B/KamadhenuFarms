@@ -142,6 +142,7 @@ export async function createCashfreeOrder(params: CashfreeOrderParams): Promise<
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(12000),
   });
 
   const data = await response.json();
@@ -167,6 +168,7 @@ export async function getCashfreeOrder(orderId: string): Promise<CashfreeOrderRe
   const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(sanitizedOrderId)}`, {
     method: 'GET',
     headers,
+    signal: AbortSignal.timeout(10000),
   });
 
   const data = await response.json();
@@ -192,6 +194,7 @@ export async function getCashfreeOrderPayments(orderId: string): Promise<Cashfre
   const response = await fetch(`${baseUrl}/orders/${encodeURIComponent(sanitizedOrderId)}/payments`, {
     method: 'GET',
     headers,
+    signal: AbortSignal.timeout(10000),
   });
 
   const data = await response.json();
@@ -203,6 +206,19 @@ export async function getCashfreeOrderPayments(orderId: string): Promise<Cashfre
   }
 
   return Array.isArray(data) ? data : [];
+}
+
+/**
+ * Validates that a Cashfree webhook timestamp is within an acceptable replay window (default ±5 minutes).
+ * Cashfree x-webhook-timestamp may be in milliseconds or seconds.
+ */
+export function isFreshWebhookTimestamp(timestamp: string, maxSkewSeconds = 300): boolean {
+  if (!timestamp || !/^\d+$/.test(timestamp.trim())) return false;
+  const rawNum = Number(timestamp.trim());
+  if (!Number.isFinite(rawNum) || rawNum <= 0) return false;
+  // Convert seconds to ms if timestamp looks like 10-digit Unix seconds
+  const tsMs = rawNum < 1e12 ? rawNum * 1000 : rawNum;
+  return Math.abs(Date.now() - tsMs) <= maxSkewSeconds * 1000;
 }
 
 /**
