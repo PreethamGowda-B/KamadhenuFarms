@@ -8,6 +8,10 @@ import { generateNextOrderNumber } from '@/lib/orderNumber';
 import { AUTHORITATIVE_PRICES, PRODUCTS } from '@/lib/products';
 import { checkRateLimitDistributed, getClientIp } from '@/lib/auth';
 import {
+  claimCheckoutIdempotencyKey,
+  releaseCheckoutIdempotencyKey,
+} from '@/lib/distributedSecurity';
+import {
   createCustomerSession,
   attachCustomerSessionCookie,
   getCustomerSessionFromRequest,
@@ -15,8 +19,16 @@ import {
   attachOrderAccessCookie,
 } from '@/lib/customerAuth';
 
+class StockUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'StockUnavailableError';
+  }
+}
+
 export async function POST(req: NextRequest) {
   let createdOrderId: string | null = null;
+  let claimedIdempotencyKey: string | null = null;
 
   try {
     const ip = getClientIp(req);
@@ -29,6 +41,22 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
+    const rawIdemKey =
+      req.headers.get('x-idempotency-key') ||
+      (typeof body?.idempotencyKey === 'string' ? body.idempotencyKey : '');
+    const normalizedIdemKey = rawIdemKey.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+
+    if (normalizedIdemKey) {
+      const acquired = await claimCheckoutIdempotencyKey(normalizedIdemKey, 120);
+      if (!acquired) {
+        return NextResponse.json(
+          { success: false, message: 'This checkout request is already being processed. Please wait.' },
+          { status: 409 }
+        );
+      }
+      claimedIdempotencyKey = normalizedIdemKey;
+    }
+
     const {
       name,
       mobile,
@@ -114,14 +142,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Validate Products & Authoritative Prices + Database Inventory Availability
+    // 1. Validate Products & Authoritative Prices (stock status verified inside DB transaction)
     const requestedProductIds = Array.from(
       new Set(items.map((it: any) => String(it?.productId || '').trim()).filter(Boolean))
     );
-    const dbInventoryRows = await prisma.productInventory.findMany({
-      where: { id: { in: requestedProductIds } },
-    });
-    const inventoryMap = new Map(dbInventoryRows.map((row) => [row.id, row]));
 
     let subtotal = 0;
     const validatedItems: {
@@ -145,25 +169,6 @@ export async function POST(req: NextRequest) {
           { success: false, message: `Product unavailable or invalid ID: ${productId}` },
           { status: 400 }
         );
-      }
-
-      const dbStock = inventoryMap.get(productId);
-      if (dbStock) {
-        if (dbStock.stockStatus === 'OUT_OF_STOCK') {
-          return NextResponse.json(
-            { success: false, message: `${product.name} is currently out of stock.` },
-            { status: 400 }
-          );
-        }
-        if (dbStock.stockStatus === 'RESTOCKING_SOON' && !dbStock.canPreorder) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: `${product.name} is currently restocking and unavailable for immediate checkout.`,
-            },
-            { status: 400 }
-          );
-        }
       }
 
       const unitPrice = product.prices[weightVariant];
@@ -243,9 +248,27 @@ export async function POST(req: NextRequest) {
     const cleanCustomerName = name.trim().slice(0, 120);
     const existingSession = await getCustomerSessionFromRequest(req);
 
-    // 6. Create or Reuse Customer, Address, and Pending Order BEFORE creating Gateway Session
+    // 6. Verify Stock Atomically & Create Customer/Address/Pending Order in Transaction
     let isBrandNewCustomer = false;
     const dbOrder = await prisma.$transaction(async (tx) => {
+      const dbInventoryRows = await tx.productInventory.findMany({
+        where: { id: { in: requestedProductIds } },
+      });
+      const inventoryMap = new Map(dbInventoryRows.map((row) => [row.id, row]));
+      for (const vItem of validatedItems) {
+        const dbStock = inventoryMap.get(vItem.productId);
+        if (dbStock) {
+          if (dbStock.stockStatus === 'OUT_OF_STOCK') {
+            throw new StockUnavailableError(`${vItem.productNameSnapshot} is currently out of stock.`);
+          }
+          if (dbStock.stockStatus === 'RESTOCKING_SOON' && !dbStock.canPreorder) {
+            throw new StockUnavailableError(
+              `${vItem.productNameSnapshot} is currently restocking and unavailable for immediate checkout.`
+            );
+          }
+        }
+      }
+
       let customer = null;
       if (existingSession) {
         customer = await tx.customer.findUnique({
@@ -339,7 +362,11 @@ export async function POST(req: NextRequest) {
       'https://www.kamadhenuhoneyfarms.in'
     ).replace(/\/$/, '');
 
-    if (appBaseUrl.includes('vercel.app') || appBaseUrl === 'https://kamadhenuhoneyfarms.in') {
+    const isSandboxEnv = (process.env.CASHFREE_ENV || '').trim().toUpperCase() === 'SANDBOX';
+    if (
+      !isSandboxEnv &&
+      (appBaseUrl.includes('vercel.app') || appBaseUrl === 'https://kamadhenuhoneyfarms.in')
+    ) {
       appBaseUrl = 'https://www.kamadhenuhoneyfarms.in';
     }
 
@@ -415,6 +442,12 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: any) {
+    if (claimedIdempotencyKey) {
+      await releaseCheckoutIdempotencyKey(claimedIdempotencyKey);
+    }
+    if (error instanceof StockUnavailableError) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    }
     console.error('Create Cashfree order error:', error, createdOrderId ? { createdOrderId } : {});
     return NextResponse.json(
       { success: false, message: 'Failed to initialize payment checkout. Please try again.' },

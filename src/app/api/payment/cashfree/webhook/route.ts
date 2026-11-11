@@ -161,12 +161,14 @@ export async function POST(req: NextRequest) {
         });
 
         if (orderWithDetails) {
-          notifyAdminNewOrder(orderWithDetails as any).catch((e) =>
-            console.warn('Webhook admin push notice:', e)
-          );
-          notifyCustomerOrderConfirmed(orderWithDetails as any).catch((e) =>
-            console.warn('Webhook customer push notice:', e)
-          );
+          await Promise.allSettled([
+            notifyAdminNewOrder(orderWithDetails as any).catch((e) =>
+              console.warn('Webhook admin push notice:', e)
+            ),
+            notifyCustomerOrderConfirmed(orderWithDetails as any).catch((e) =>
+              console.warn('Webhook customer push notice:', e)
+            ),
+          ]);
         }
       }
 
@@ -191,7 +193,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (markedFailed) {
-        notifyCustomerPaymentFailed(order as any).catch((e) =>
+        await notifyCustomerPaymentFailed(order as any).catch((e) =>
           console.warn('Webhook customer failed payment push notice:', e)
         );
       }

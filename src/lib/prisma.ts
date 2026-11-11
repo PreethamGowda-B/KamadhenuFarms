@@ -12,26 +12,22 @@ function getSanitizedDatabaseUrl(): string | undefined {
   // Supabase direct connection host (db.[ref].supabase.co) only resolves to IPv6,
   // which causes "Can't reach database server" on IPv4-only serverless runtimes (like Vercel / AWS Lambda).
   // Dynamically rewrite to the dedicated IPv4 pooler: aws-0-ap-northeast-2.pooler.supabase.com:6543
-  if (url.includes('yohqiodernlavohsiffo')) {
-    if (url.includes('pooler.supabase.com')) {
-      if (!url.includes('pgbouncer=true')) {
-        url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true';
-      }
-      return url;
-    }
-
+  if (url.includes('yohqiodernlavohsiffo') && !url.includes('pooler.supabase.com')) {
     url = url
       .replace('db.yohqiodernlavohsiffo.supabase.co:5432', 'aws-0-ap-northeast-2.pooler.supabase.com:6543')
       .replace('db.yohqiodernlavohsiffo.supabase.co:6543', 'aws-0-ap-northeast-2.pooler.supabase.com:6543')
       .replace('db.yohqiodernlavohsiffo.supabase.co', 'aws-0-ap-northeast-2.pooler.supabase.com:6543');
 
     url = url.replace('://postgres:', '://postgres.yohqiodernlavohsiffo:');
+  }
 
+  // Ensure ANY Supabase / PgBouncer transaction pooler (port 6543) enforces safe serverless flags
+  if (url.includes('pooler.supabase.com') || url.includes(':6543/')) {
     if (!url.includes('pgbouncer=true')) {
       url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true';
     }
     if (!url.includes('connection_limit=')) {
-      url += '&connection_limit=10&pool_timeout=20';
+      url += '&connection_limit=5&pool_timeout=20';
     }
   }
 

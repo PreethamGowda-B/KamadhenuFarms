@@ -308,7 +308,7 @@ describe('Dual-Customer Concurrency, Notification Isolation, Unassigned-Shop BOL
       },
     });
 
-    const res = await shopDetailGet(req, { params: { id: 'shop_unassigned' } });
+    const res = await shopDetailGet(req, { params: Promise.resolve({ id: 'shop_unassigned' }) });
     expect(res.status).toBe(403);
   });
 

@@ -15,14 +15,14 @@ const DOC_TITLES: Record<DocTypeKey, string> = {
   COMPLETE_ONBOARDING_PACK: 'Complete Onboarding & Field Authorization Pack',
 };
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getAdminSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Admin session required.' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     let documents: any[] = [];
 
     if (process.env.DATABASE_URL) {
@@ -42,14 +42,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getAdminSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Admin authentication required.' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { docType } = body as { docType: DocTypeKey };
 
@@ -212,14 +212,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getAdminSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Admin session required.' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { documentId, status } = body;
 

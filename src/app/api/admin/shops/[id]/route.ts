@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { logAdminAction } from '@/lib/audit';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = getAdminSessionFromRequest(req);
     if (!admin) {
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    const id = params.id;
+    const { id } = await params;
 
     const shop = await prisma.shop.findFirst({
       where: {
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = getAdminSessionFromRequest(req);
     if (!admin) {
@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       );
     }
 
-    const id = params.id;
+    const { id } = await params;
     const body = await req.json();
 
     const currentShop = await prisma.shop.findFirst({

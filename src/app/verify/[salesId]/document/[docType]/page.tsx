@@ -10,10 +10,10 @@ import {
 import DocumentViewerClient from './DocumentViewerClient';
 
 interface Props {
-  params: {
+  params: Promise<{
     salesId: string;
     docType: string;
-  };
+  }>;
 }
 
 export const revalidate = 0;
@@ -29,7 +29,7 @@ const DOC_TITLES: Record<string, string> = {
 };
 
 export default async function DocumentViewPage({ params }: Props) {
-  const { salesId, docType } = params;
+  const { salesId, docType } = await params;
   const normalizedId = salesId.toUpperCase().trim();
   const validDocType = (DOC_TITLES[docType] ? docType : 'COMPLETE_ONBOARDING_PACK') as DocTypeKey;
 

@@ -5,14 +5,14 @@ import { logAdminAction } from '@/lib/audit';
 import { getApplicationsStore } from '@/lib/store';
 import { DocTypeKey, DocumentSnapshotData, generateDocumentHtml, calculateValidUntil } from '@/lib/onboarding/templates';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getAdminSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Admin authentication required.' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     const {

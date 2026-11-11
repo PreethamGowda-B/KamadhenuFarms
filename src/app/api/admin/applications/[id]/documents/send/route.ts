@@ -12,14 +12,14 @@ import {
   getVerificationUrl 
 } from '@/lib/onboarding/templates';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getAdminSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Admin session required.' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     let candidate: any = null;
     if (process.env.DATABASE_URL) {

@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  fullApplicationSchema, 
-  FullApplicationData 
+import {
+  fullApplicationSchema,
+  FullApplicationData
 } from '@/lib/validations/application';
+import type { z } from 'zod';
 import { 
   User, 
   Briefcase, 
@@ -51,7 +52,7 @@ export default function ApplicationForm() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<FullApplicationData>({
+  } = useForm<z.input<typeof fullApplicationSchema>, any, FullApplicationData>({
     resolver: zodResolver(fullApplicationSchema),
     defaultValues: {
       fullName: '',

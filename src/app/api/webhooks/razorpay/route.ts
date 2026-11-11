@@ -109,12 +109,14 @@ export async function POST(req: NextRequest) {
             });
 
             if (orderWithDetails) {
-              notifyAdminNewOrder(orderWithDetails as any).catch((e) =>
-                console.warn('Razorpay webhook admin push notice:', e)
-              );
-              notifyCustomerOrderConfirmed(orderWithDetails as any).catch((e) =>
-                console.warn('Razorpay webhook customer push notice:', e)
-              );
+              await Promise.allSettled([
+                notifyAdminNewOrder(orderWithDetails as any).catch((e) =>
+                  console.warn('Razorpay webhook admin push notice:', e)
+                ),
+                notifyCustomerOrderConfirmed(orderWithDetails as any).catch((e) =>
+                  console.warn('Razorpay webhook customer push notice:', e)
+                ),
+              ]);
             }
           }
         }
@@ -136,7 +138,7 @@ export async function POST(req: NextRequest) {
             providerLabel: 'Razorpay',
           });
           if (markedFailed) {
-            notifyCustomerPaymentFailed(order as any).catch((e) =>
+            await notifyCustomerPaymentFailed(order as any).catch((e) =>
               console.warn('Razorpay webhook failed payment push notice:', e)
             );
           }

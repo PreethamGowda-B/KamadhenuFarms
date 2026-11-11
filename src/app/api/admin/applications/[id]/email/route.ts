@@ -9,7 +9,7 @@ import {
   getInterviewScheduleTemplate 
 } from '@/lib/email';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = getAdminSessionFromRequest(req);
     if (!admin) {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       );
     }
 
-    const id = params.id;
+    const { id } = await params;
     const body = await req.json();
     const { type, date, time, location } = body;
 

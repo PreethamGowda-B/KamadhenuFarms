@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { getSalesSessionFromRequest } from '@/lib/salesAuth';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const salesSession = await getSalesSessionFromRequest(req);
     const adminSession = getAdminSessionFromRequest(req);
 
@@ -92,9 +92,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const salesSession = await getSalesSessionFromRequest(req);
     const adminSession = getAdminSessionFromRequest(req);

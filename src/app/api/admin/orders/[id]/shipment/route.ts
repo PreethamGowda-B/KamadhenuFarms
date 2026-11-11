@@ -10,7 +10,7 @@ import { notifyCustomerOrderShipped } from '@/lib/notifications';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const admin = getAdminSessionFromRequest(req);
@@ -21,7 +21,7 @@ export async function POST(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { courierProvider, trackingNumber, trackingUrl, shippingFee } = body;
 
@@ -105,9 +105,10 @@ export async function POST(
       }),
     ]);
 
-    // Dispatch Customer Push Notification for order shipment
-    notifyCustomerOrderShipped(updatedOrder as any, courierProvider, trackingNumber)
-      .catch((err) => console.warn('Customer shipment push error:', err));
+    // Dispatch Customer Push Notification for order shipment (awaited safely inside catch)
+    await notifyCustomerOrderShipped(updatedOrder as any, courierProvider, trackingNumber).catch(
+      (err) => console.warn('Customer shipment push error:', err)
+    );
 
     return NextResponse.json({
       success: true,

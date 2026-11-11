@@ -3,15 +3,15 @@ import { getApplicationsStore } from '@/lib/store';
 import { ShieldCheck, ShieldAlert, Award, Calendar, MapPin, CheckCircle2, XCircle } from 'lucide-react';
 
 interface Props {
-  params: {
+  params: Promise<{
     salesId: string;
-  };
+  }>;
 }
 
 export const revalidate = 0;
 
 export default async function VerificationPage({ params }: Props) {
-  const { salesId } = params;
+  const { salesId } = await params;
   const normalizedId = salesId.toUpperCase().trim();
 
   let candidate: any = null;

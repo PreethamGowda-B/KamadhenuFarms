@@ -3,13 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { logAdminAction } from '@/lib/audit';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = getAdminSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Only company admin can record orders and confirm payments.' }, { status: 401 });
     }
-    const shopId = params.id;
+    const { id: shopId } = await params;
     const body = await req.json();
     const {
       product,

@@ -4,10 +4,11 @@ import { getApplicationsStore } from '@/lib/store';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const rawId = params.id ? params.id.trim() : '';
+    const { id } = await params;
+    const rawId = id ? id.trim() : '';
 
     if (!rawId) {
       return NextResponse.json({ success: false, message: 'Application ID is required' }, { status: 400 });

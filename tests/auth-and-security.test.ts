@@ -45,6 +45,7 @@ import {
   verifyOrderAccessToken,
 } from '@/lib/customerAuth';
 import { middleware } from '@/middleware';
+import { validateServerEnvironment } from '@/lib/env';
 
 describe('Authentication, JWT, Rate Limiting & Middleware Security', () => {
   beforeEach(() => {
@@ -240,5 +241,65 @@ describe('Authentication, JWT, Rate Limiting & Middleware Security', () => {
     });
     const authedRes = await middleware(authedReq);
     expect(authedRes.status).toBe(200);
+  });
+
+  it('validateServerEnvironment flags missing ADMIN_PASSWORD_HASH and short JWT_SECRET without leaking values', () => {
+    const prev = {
+      DATABASE_URL: process.env.DATABASE_URL,
+      JWT_SECRET: process.env.JWT_SECRET,
+      ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+      ORDER_TOKEN_SECRET: process.env.ORDER_TOKEN_SECRET,
+      CASHFREE_APP_ID: process.env.CASHFREE_APP_ID,
+      CASHFREE_CLIENT_ID: process.env.CASHFREE_CLIENT_ID,
+      CASHFREE_SECRET_KEY: process.env.CASHFREE_SECRET_KEY,
+      CASHFREE_CLIENT_SECRET: process.env.CASHFREE_CLIENT_SECRET,
+      CASHFREE_ENV: process.env.CASHFREE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+    };
+
+    try {
+      process.env.DATABASE_URL = 'postgresql://user:supersecret@localhost:5432/db';
+      process.env.JWT_SECRET = 'too-short-secret';
+      delete process.env.ADMIN_PASSWORD_HASH;
+      delete process.env.CASHFREE_APP_ID;
+      delete process.env.CASHFREE_CLIENT_ID;
+      delete process.env.CASHFREE_SECRET_KEY;
+      delete process.env.CASHFREE_CLIENT_SECRET;
+
+      const badReport = validateServerEnvironment();
+      expect(badReport.valid).toBe(false);
+      expect(badReport.missingRequired).toContain('ADMIN_PASSWORD_HASH');
+      expect(badReport.missingRequired).toContain('CASHFREE_APP_ID or CASHFREE_CLIENT_ID');
+      expect(badReport.invalidFormat).toContain('JWT_SECRET (must be >= 32 characters)');
+      expect(JSON.stringify(badReport)).not.toContain('too-short-secret');
+      expect(JSON.stringify(badReport)).not.toContain('supersecret');
+
+      process.env.JWT_SECRET = 'a'.repeat(40);
+      process.env.ADMIN_PASSWORD_HASH = 'scrypt:1234567890abcdef:fedcba0987654321';
+      process.env.ORDER_TOKEN_SECRET = 'b'.repeat(40);
+      process.env.CASHFREE_CLIENT_ID = 'cf-test-client-id-secret-value';
+      process.env.CASHFREE_CLIENT_SECRET = 'cf-test-client-secret-value';
+
+      process.env.VERCEL_ENV = 'preview';
+      process.env.CASHFREE_ENV = 'production';
+      const unsafePreviewReport = validateServerEnvironment();
+      expect(unsafePreviewReport.valid).toBe(false);
+      expect(unsafePreviewReport.invalidFormat).toContain(
+        'CASHFREE_ENV (must be SANDBOX on Vercel Preview deployments)'
+      );
+
+      process.env.CASHFREE_ENV = 'SANDBOX';
+      const goodReport = validateServerEnvironment();
+      expect(goodReport.valid).toBe(true);
+      expect(goodReport.missingRequired).toHaveLength(0);
+      expect(goodReport.invalidFormat).toHaveLength(0);
+      expect(JSON.stringify(goodReport)).not.toContain('fedcba0987654321');
+      expect(JSON.stringify(goodReport)).not.toContain('cf-test-client-secret-value');
+    } finally {
+      for (const [k, v] of Object.entries(prev)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
   });
 });

@@ -338,7 +338,7 @@ export async function POST(req: NextRequest) {
             })
             .catch((e) => console.warn('Failed to record admin payment failed notification:', e));
 
-          notifyCustomerPaymentFailed(order).catch((e) =>
+          await notifyCustomerPaymentFailed(order).catch((e) =>
             console.warn('Customer failed payment notice error:', e)
           );
         }
@@ -420,12 +420,14 @@ export async function POST(req: NextRequest) {
         shippingAddress: order.shippingAddress,
         items: order.items,
       };
-      notifyAdminNewOrder(orderWithDetails as any).catch((err) =>
-        console.warn('Admin push notice error:', err)
-      );
-      notifyCustomerOrderConfirmed(orderWithDetails as any).catch((err) =>
-        console.warn('Customer push notice error:', err)
-      );
+      await Promise.allSettled([
+        notifyAdminNewOrder(orderWithDetails as any).catch((err) =>
+          console.warn('Admin push notice error:', err)
+        ),
+        notifyCustomerOrderConfirmed(orderWithDetails as any).catch((err) =>
+          console.warn('Customer push notice error:', err)
+        ),
+      ]);
     }
 
     if (!isAuthorizedCaller) {

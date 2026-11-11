@@ -193,13 +193,15 @@ export async function sendMulticastPush(payload: PushMessagePayload): Promise<Pu
       }
     });
 
-    // Cleanup stale tokens from PostgreSQL asynchronously
+    // Cleanup stale tokens from PostgreSQL before returning (prevents Vercel serverless drop)
     if (invalidTokens.length > 0) {
       console.log(`🧹 [Firebase Admin] Deactivating ${invalidTokens.length} expired or invalid device token(s).`);
-      prisma.deviceToken.updateMany({
-        where: { token: { in: invalidTokens } },
-        data: { isActive: false },
-      }).catch((e: any) => console.warn('Failed to deactivate invalid tokens:', e));
+      await prisma.deviceToken
+        .updateMany({
+          where: { token: { in: invalidTokens } },
+          data: { isActive: false },
+        })
+        .catch((e: any) => console.warn('Failed to deactivate invalid tokens:', e));
     }
 
     console.log(`✅ [Firebase Admin Push] Sent to ${uniqueTokens.length} tokens: ${successCount} success, ${failureCount} failed.`);

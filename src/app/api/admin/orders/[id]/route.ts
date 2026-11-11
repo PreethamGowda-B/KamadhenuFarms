@@ -10,11 +10,12 @@ import {
   notifyCustomerOrderProcessing,
   notifyCustomerOrderPacked,
   notifyCustomerOrderDelivered,
+  notifyCustomerOrderCancelled,
 } from '@/lib/notifications';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const admin = getAdminSessionFromRequest(req);
@@ -25,7 +26,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
@@ -60,7 +61,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const admin = getAdminSessionFromRequest(req);
@@ -71,7 +72,7 @@ export async function PATCH(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { orderStatus, paymentStatus, notes } = body;
 
@@ -87,11 +88,19 @@ export async function PATCH(
       body.action === 'COLLECT_COD_BALANCE' || body.collectCodBalance
     );
 
-    if (isCollectingCodBalance && currentOrder.paymentStatus === 'FULLY_PAID') {
-      return NextResponse.json(
-        { success: false, message: 'COD balance has already been collected for this order.' },
-        { status: 400 }
-      );
+    if (isCollectingCodBalance) {
+      if (currentOrder.paymentStatus === 'FULLY_PAID') {
+        return NextResponse.json(
+          { success: false, message: 'COD balance has already been collected for this order.' },
+          { status: 400 }
+        );
+      }
+      if (!isOrderPaymentConfirmed(currentOrder.paymentStatus)) {
+        return NextResponse.json(
+          { success: false, message: 'Cannot collect COD balance before advance/payment confirmation.' },
+          { status: 400 }
+        );
+      }
     }
 
     const updateData: any = {};
@@ -138,18 +147,36 @@ export async function PATCH(
       }
     }
 
+    let codAlreadyCollectedRace = false;
     const updatedOrder = await prisma.$transaction(async (tx) => {
       if (isCollectingCodBalance && currentOrder.codRemainingAmount > 0) {
+        const claim = await tx.order.updateMany({
+          where: {
+            id,
+            paymentStatus: { in: ['COD_ADVANCE_PAID', 'COD_BALANCE_PENDING'] },
+          },
+          data: {
+            paymentStatus: 'FULLY_PAID',
+            codBalanceCollectedAt: updateData.codBalanceCollectedAt,
+            codBalanceCollectedBy: admin.email,
+          },
+        });
+        if (claim.count === 0) {
+          codAlreadyCollectedRace = true;
+          return null;
+        }
+
         await tx.payment.create({
           data: {
             orderId: id,
             provider: 'CASH_ON_DELIVERY',
             cashfreeOrderId: `COD-BAL-${currentOrder.orderNumber}`,
-            cashfreePaymentId: `COD-CASH-${Date.now()}`,
+            cashfreePaymentId: `COD-CASH-${currentOrder.orderNumber}`,
             amount: currentOrder.codRemainingAmount,
             currency: 'INR',
             status: 'PAID',
             paymentMethod: 'CASH',
+            paidAt: new Date(),
           },
         });
       }
@@ -185,15 +212,32 @@ export async function PATCH(
       return updated;
     });
 
-    // Customer Lifecycle Push Notification triggers on status changes
+    if (codAlreadyCollectedRace || !updatedOrder) {
+      return NextResponse.json(
+        { success: false, message: 'COD balance has already been collected for this order.' },
+        { status: 400 }
+      );
+    }
+
+    // Customer Lifecycle Push Notification triggers on status changes (awaited cleanly so Vercel does not freeze early)
     const newEffectiveStatus = updateData.orderStatus || orderStatus;
     if (newEffectiveStatus && newEffectiveStatus !== currentOrder.orderStatus) {
       if (newEffectiveStatus === 'PROCESSING') {
-        notifyCustomerOrderProcessing(updatedOrder as any).catch((e) => console.warn('Customer push notice:', e));
+        await notifyCustomerOrderProcessing(updatedOrder as any).catch((e) =>
+          console.warn('Customer push notice:', e)
+        );
       } else if (newEffectiveStatus === 'PACKED') {
-        notifyCustomerOrderPacked(updatedOrder as any).catch((e) => console.warn('Customer push notice:', e));
+        await notifyCustomerOrderPacked(updatedOrder as any).catch((e) =>
+          console.warn('Customer push notice:', e)
+        );
       } else if (newEffectiveStatus === 'DELIVERED') {
-        notifyCustomerOrderDelivered(updatedOrder as any).catch((e) => console.warn('Customer push notice:', e));
+        await notifyCustomerOrderDelivered(updatedOrder as any).catch((e) =>
+          console.warn('Customer push notice:', e)
+        );
+      } else if (newEffectiveStatus === 'CANCELLED') {
+        await notifyCustomerOrderCancelled(updatedOrder as any).catch((e) =>
+          console.warn('Customer push notice:', e)
+        );
       }
     }
 

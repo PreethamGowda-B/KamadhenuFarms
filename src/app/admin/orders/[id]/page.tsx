@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ShoppingBag,
@@ -26,9 +26,10 @@ import {
   Gift,
 } from 'lucide-react';
 
-export default function AdminOrderDetailPage({ params }: { params: { id: string } }) {
+export default function AdminOrderDetailPage() {
   const router = useRouter();
-  const { id } = params;
+  const params = useParams();
+  const id = String(params?.id || '');
 
   const [order, setOrder] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);

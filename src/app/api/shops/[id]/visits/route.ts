@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma';
 import { getSalesSessionFromRequest } from '@/lib/salesAuth';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const salesSession = await getSalesSessionFromRequest(req);
     const adminSession = getAdminSessionFromRequest(req);

@@ -193,3 +193,58 @@ export async function isAdminJtiRevokedDistributed(jti: string | undefined): Pro
     return false;
   }
 }
+
+const idempotencyFallbackMap = new Map<string, number>();
+
+export async function claimCheckoutIdempotencyKey(
+  key: string,
+  ttlSeconds = 120
+): Promise<boolean> {
+  const clean = key.trim();
+  if (!clean) return true;
+
+  const now = Date.now();
+  if (idempotencyFallbackMap.size > 1000) {
+    for (const [k, exp] of idempotencyFallbackMap.entries()) {
+      if (now >= exp) idempotencyFallbackMap.delete(k);
+    }
+  }
+
+  const localExp = idempotencyFallbackMap.get(clean);
+  if (localExp && now < localExp) {
+    return false;
+  }
+
+  if (!isDistributedSecurityConfigured()) {
+    idempotencyFallbackMap.set(clean, now + ttlSeconds * 1000);
+    return true;
+  }
+
+  try {
+    const results = await runUpstashPipeline([
+      ['SET', `khf:idem:${clean}`, '1', 'EX', ttlSeconds, 'NX'],
+    ]);
+    const ok = results?.[0]?.result === 'OK';
+    if (ok) {
+      idempotencyFallbackMap.set(clean, now + ttlSeconds * 1000);
+    }
+    return ok;
+  } catch (err) {
+    console.warn('⚠️ [Checkout Idempotency] Upstash claim failed, using local fallback:', err);
+    idempotencyFallbackMap.set(clean, now + ttlSeconds * 1000);
+    return true;
+  }
+}
+
+export async function releaseCheckoutIdempotencyKey(key: string): Promise<void> {
+  const clean = key.trim();
+  if (!clean) return;
+  idempotencyFallbackMap.delete(clean);
+  if (!isDistributedSecurityConfigured()) return;
+
+  try {
+    await runUpstashPipeline([['DEL', `khf:idem:${clean}`]]);
+  } catch {
+    // Non-fatal
+  }
+}

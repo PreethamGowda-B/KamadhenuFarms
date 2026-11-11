@@ -6,7 +6,7 @@ export const personalInfoSchema = z.object({
   whatsAppNumber: z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit WhatsApp number'),
   email: z.string().email('Please enter a valid email address'),
   gender: z.enum(['male', 'female', 'other'], {
-    errorMap: () => ({ message: 'Please select a gender' }),
+    error: 'Please select a gender',
   }),
   age: z.coerce.number().min(18, 'Must be at least 18 years old').max(70, 'Age limit is 70'),
   city: z.string().min(2, 'City is required'),
@@ -15,8 +15,8 @@ export const personalInfoSchema = z.object({
 });
 
 export const professionalDetailsSchema = z.object({
-  hasBike: z.boolean({ required_error: 'Please specify if you own a bike' }),
-  hasDrivingLicense: z.boolean({ required_error: 'Please specify driving license status' }),
+  hasBike: z.boolean({ error: 'Please specify if you own a bike' }),
+  hasDrivingLicense: z.boolean({ error: 'Please specify driving license status' }),
   salesExperience: z.string().min(1, 'Please select your sales experience level'),
   currentOccupation: z.string().min(2, 'Current occupation is required'),
   languagesKnown: z.array(z.string()).min(1, 'Select at least one language'),
@@ -37,9 +37,9 @@ export const finalStepSchema = z.object({
 });
 
 export const fullApplicationSchema = personalInfoSchema
-  .merge(professionalDetailsSchema)
-  .merge(documentsSchema)
-  .merge(finalStepSchema);
+  .extend(professionalDetailsSchema.shape)
+  .extend(documentsSchema.shape)
+  .extend(finalStepSchema.shape);
 
 export type PersonalInfoData = z.infer<typeof personalInfoSchema>;
 export type ProfessionalDetailsData = z.infer<typeof professionalDetailsSchema>;

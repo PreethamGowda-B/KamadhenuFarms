@@ -3152,9 +3152,16 @@ ${points}
       }
 
       try {
+        const checkoutAttemptKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `chk_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
         const createRes = await fetchWithTimeout('/api/checkout/create-order', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-idempotency-key': checkoutAttemptKey
+          },
           body: JSON.stringify({
             name,
             mobile: cleanMobile,
@@ -3193,7 +3200,7 @@ ${points}
 
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
-          returnUrl: `https://www.kamadhenuhoneyfarms.in/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&order_id=${encodeURIComponent(createData.orderNumber)}&status=confirmed`,
+          returnUrl: `${window.location.origin}/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&order_id=${encodeURIComponent(createData.orderNumber)}&status=confirmed`,
           redirectTarget: '_modal'
         };
 

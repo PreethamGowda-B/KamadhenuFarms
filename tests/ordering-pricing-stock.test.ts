@@ -325,4 +325,66 @@ describe('Checkout Pricing, Stock, Shipping & Referral Integrity', () => {
     expect(weightRes.valid).toBe(false);
     expect(weightRes.message).toMatch(/2kg/i);
   });
+
+  it('prevents duplicate checkout submissions with identical x-idempotency-key and releases lock on failure', async () => {
+    const idemKey = `idem_test_${Date.now()}`;
+    createCashfreeOrderMock.mockResolvedValueOnce({
+      order_id: 'KHF-ORD-IDEM',
+      payment_session_id: 'sess_idem_1',
+    });
+
+    const firstReq = new NextRequest('https://kamadhenuhoneyfarms.in/api/checkout/create-order', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-for': '198.51.100.77',
+        'x-idempotency-key': idemKey,
+      },
+      body: JSON.stringify(makeCheckoutBody()),
+    });
+    const firstRes = await createOrderPost(firstReq);
+    expect(firstRes.status).toBe(200);
+
+    // Rapid duplicate click with same idempotency key must be blocked with 409 Conflict
+    const dupReq = new NextRequest('https://kamadhenuhoneyfarms.in/api/checkout/create-order', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-for': '198.51.100.77',
+        'x-idempotency-key': idemKey,
+      },
+      body: JSON.stringify(makeCheckoutBody()),
+    });
+    const dupRes = await createOrderPost(dupReq);
+    expect(dupRes.status).toBe(409);
+
+    // Failed gateway initiation releases the idempotency lock so customer can retry cleanly
+    const retryKey = `idem_retry_${Date.now()}`;
+    createCashfreeOrderMock.mockRejectedValueOnce(new Error('Transient gateway timeout'));
+    const failedReq = new NextRequest('https://kamadhenuhoneyfarms.in/api/checkout/create-order', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-for': '198.51.100.78',
+        'x-idempotency-key': retryKey,
+      },
+      body: JSON.stringify(makeCheckoutBody()),
+    });
+    expect((await createOrderPost(failedReq)).status).toBe(500);
+
+    createCashfreeOrderMock.mockResolvedValueOnce({
+      order_id: 'KHF-ORD-RETRY-OK',
+      payment_session_id: 'sess_retry_ok',
+    });
+    const retryOkReq = new NextRequest('https://kamadhenuhoneyfarms.in/api/checkout/create-order', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-forwarded-for': '198.51.100.78',
+        'x-idempotency-key': retryKey,
+      },
+      body: JSON.stringify(makeCheckoutBody()),
+    });
+    expect((await createOrderPost(retryOkReq)).status).toBe(200);
+  });
 });

@@ -50,7 +50,7 @@ export async function notifyAdminNewOrder(order: OrderSnapshot): Promise<void> {
       update: {},
       create: {
         title: `New Order: ${order.orderNumber}`,
-        message: `${firstName} placed order of ₹${order.total} (${order.orderNumber}) via Cashfree.`,
+        message: `${firstName} placed order of ₹${order.total} (${order.orderNumber}) via ${order.paymentMethod || 'Online'}.`,
         type: 'HIGH_VALUE_ORDER',
         link: `/admin/orders/${order.id}`,
         dedupKey,
@@ -293,5 +293,17 @@ export async function notifyCustomerPaymentFailed(order: OrderSnapshot): Promise
     title: `⚠️ Payment Unsuccessful (${order.orderNumber})`,
     body: `Your payment for order ${order.orderNumber} (₹${order.total}) could not be completed. Tap to retry.`,
     path: `/order-confirmation?orderNumber=${encodeURIComponent(order.orderNumber)}&retry=true`,
+  });
+}
+
+export async function notifyCustomerOrderCancelled(order: OrderSnapshot): Promise<void> {
+  await notifyCustomerOrderEvent({
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    customerId: order.customerId,
+    eventType: 'ORDER_CANCELLED',
+    title: `Order Cancelled (${order.orderNumber})`,
+    body: `Your Kamadhenu Honey order ${order.orderNumber} has been cancelled. Any eligible refund will reflect shortly.`,
+    path: `/track-order?orderNumber=${encodeURIComponent(order.orderNumber)}`,
   });
 }

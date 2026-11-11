@@ -7,6 +7,7 @@ const { prismaMock } = vi.hoisted(() => ({
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     shipment: {
       create: vi.fn(),
@@ -37,12 +38,17 @@ const { prismaMock } = vi.hoisted(() => ({
   },
 }));
 
+const { notifyCustomerOrderCancelledMock } = vi.hoisted(() => ({
+  notifyCustomerOrderCancelledMock: vi.fn(async () => {}),
+}));
+
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('@/lib/notifications', () => ({
   notifyCustomerOrderProcessing: vi.fn(async () => {}),
   notifyCustomerOrderPacked: vi.fn(async () => {}),
   notifyCustomerOrderDelivered: vi.fn(async () => {}),
   notifyCustomerOrderShipped: vi.fn(async () => {}),
+  notifyCustomerOrderCancelled: notifyCustomerOrderCancelledMock,
 }));
 
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-kamadhenu-unit-tests-2026';
@@ -117,7 +123,7 @@ describe('Order State Machine, IDOR Guards, Admin RBAC & Upload Validation', () 
         },
         body: JSON.stringify({ orderStatus: 'PROCESSING' }),
       }),
-      { params: { id: 'ord_1' } }
+      { params: Promise.resolve({ id: 'ord_1' }) }
     );
     expect(invalidRes.status).toBe(400);
 
@@ -138,9 +144,75 @@ describe('Order State Machine, IDOR Guards, Admin RBAC & Upload Validation', () 
         },
         body: JSON.stringify({ action: 'COLLECT_COD_BALANCE', markDelivered: true }),
       }),
-      { params: { id: 'ord_2' } }
+      { params: Promise.resolve({ id: 'ord_2' }) }
     );
     expect(dupCodRes.status).toBe(400);
+
+    // 2b. Atomic COD balance collection succeeds once & cancels notify customer cleanly
+    prismaMock.order.findUnique.mockResolvedValueOnce({
+      id: 'ord_cod_ok',
+      orderNumber: 'KHF-ORD-CODOK',
+      orderStatus: 'SHIPPED',
+      paymentStatus: 'COD_ADVANCE_PAID',
+      codRemainingAmount: 425,
+    });
+    prismaMock.order.updateMany.mockResolvedValueOnce({ count: 1 });
+    prismaMock.payment.create.mockResolvedValueOnce({ id: 'pay_cod_bal' });
+    prismaMock.order.update.mockResolvedValueOnce({
+      id: 'ord_cod_ok',
+      orderNumber: 'KHF-ORD-CODOK',
+      customerId: 'cust_cod',
+      orderStatus: 'DELIVERED',
+      paymentStatus: 'FULLY_PAID',
+      total: 850,
+    });
+    prismaMock.auditLog.create.mockResolvedValueOnce({ id: 'aud_1' });
+
+    const okCodRes = await adminOrderPatch(
+      new NextRequest('https://admin.kamadhenuhoneyfarms.in/api/admin/orders/ord_cod_ok', {
+        method: 'PATCH',
+        headers: {
+          cookie: `${ADMIN_COOKIE_NAME}=${adminToken}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'COLLECT_COD_BALANCE', markDelivered: true }),
+      }),
+      { params: Promise.resolve({ id: 'ord_cod_ok' }) }
+    );
+    expect(okCodRes.status).toBe(200);
+    expect(prismaMock.payment.create).toHaveBeenCalledTimes(1);
+
+    // Cancellation dispatches ORDER_CANCELLED notification safely
+    prismaMock.order.findUnique.mockResolvedValueOnce({
+      id: 'ord_cancel_1',
+      orderNumber: 'KHF-ORD-CANC1',
+      orderStatus: 'CONFIRMED',
+      paymentStatus: 'PAID',
+      codRemainingAmount: 0,
+    });
+    prismaMock.order.update.mockResolvedValueOnce({
+      id: 'ord_cancel_1',
+      orderNumber: 'KHF-ORD-CANC1',
+      customerId: 'cust_canc',
+      orderStatus: 'CANCELLED',
+      paymentStatus: 'PAID',
+      total: 750,
+    });
+    prismaMock.auditLog.create.mockResolvedValueOnce({ id: 'aud_2' });
+
+    const cancelRes = await adminOrderPatch(
+      new NextRequest('https://admin.kamadhenuhoneyfarms.in/api/admin/orders/ord_cancel_1', {
+        method: 'PATCH',
+        headers: {
+          cookie: `${ADMIN_COOKIE_NAME}=${adminToken}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ orderStatus: 'CANCELLED' }),
+      }),
+      { params: Promise.resolve({ id: 'ord_cancel_1' }) }
+    );
+    expect(cancelRes.status).toBe(200);
+    expect(notifyCustomerOrderCancelledMock).toHaveBeenCalledTimes(1);
 
     // 3. Shipment creation blocked for unpaid orders and javascript: trackingUrl
     prismaMock.order.findUnique.mockResolvedValueOnce({
@@ -163,7 +235,7 @@ describe('Order State Machine, IDOR Guards, Admin RBAC & Upload Validation', () 
           trackingUrl: 'https://delhivery.com/track/AWB123456',
         }),
       }),
-      { params: { id: 'ord_3' } }
+      { params: Promise.resolve({ id: 'ord_3' }) }
     );
     expect(unpaidShipRes.status).toBe(400);
 
@@ -180,7 +252,7 @@ describe('Order State Machine, IDOR Guards, Admin RBAC & Upload Validation', () 
           trackingUrl: 'javascript:alert(1)',
         }),
       }),
-      { params: { id: 'ord_3' } }
+      { params: Promise.resolve({ id: 'ord_3' }) }
     );
     expect(xssTrackRes.status).toBe(400);
   });
@@ -233,7 +305,7 @@ describe('Order State Machine, IDOR Guards, Admin RBAC & Upload Validation', () 
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ note: 'Unauthorized note' }),
       }),
-      { params: { id: 'shop_1' } }
+      { params: Promise.resolve({ id: 'shop_1' }) }
     );
     expect(noAuthFollowup.status).toBe(403);
   });
@@ -278,7 +350,7 @@ describe('Order State Machine, IDOR Guards, Admin RBAC & Upload Validation', () 
         items: [{ productName: 'Pure Raw Honey', quantity: 2, unitPrice: 500 }],
       }),
     });
-    expect((await shopOrdersPost(idorShopReq, { params: { id: 'shop_A' } })).status).toBe(403);
+    expect((await shopOrdersPost(idorShopReq, { params: Promise.resolve({ id: 'shop_A' }) })).status).toBe(403);
   });
 
   it('blocks disallowed upload folders, dangerous MIME/extensions, and spoofed PDF magic bytes', async () => {
