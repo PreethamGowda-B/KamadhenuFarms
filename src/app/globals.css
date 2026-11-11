@@ -53,6 +53,16 @@ body {
     -webkit-backdrop-filter: none;
     background: rgba(30, 25, 18, 0.98);
   }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
 }
 
 /* Custom Scrollbar */

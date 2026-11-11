@@ -124,7 +124,7 @@ function TrackContent() {
                 value={inputAppId}
                 onChange={(e) => setInputAppId(e.target.value)}
                 placeholder="e.g. KHF-2026-001"
-                className="w-full px-4 py-3.5 pl-11 text-sm font-mono font-semibold rounded-2xl border-2 border-gold-300 bg-white outline-none focus:border-gold-500 shadow-inner"
+                className="w-full px-4 py-3.5 pl-11 text-base sm:text-sm font-mono font-semibold rounded-2xl border-2 border-gold-300 bg-white outline-none focus:border-gold-500 shadow-inner"
               />
               <Search className="w-5 h-5 text-gold-600 absolute left-3.5 top-3.5" />
             </div>

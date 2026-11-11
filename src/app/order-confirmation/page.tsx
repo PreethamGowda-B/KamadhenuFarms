@@ -435,7 +435,7 @@ function ConfirmationContent() {
         {/* ==============================================================
              TOP LEVEL ANIMATED SUCCESS CELEBRATION HERO CARD
              ============================================================== */}
-        <div className="non-print-section bg-white rounded-3xl p-6 sm:p-10 shadow-2xl shadow-amber-900/10 border border-amber-200/70 relative overflow-hidden text-center backdrop-blur-md">
+        <div className="non-print-section bg-white rounded-3xl p-6 sm:p-10 shadow-2xl shadow-amber-900/10 border border-amber-200/70 relative overflow-hidden text-center">
           {/* Top Gold Foil Gradient Ribbon */}
           <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600"></div>
 
@@ -568,7 +568,7 @@ function ConfirmationContent() {
           </div>
 
           {/* Quick Action Navigation Bar */}
-          <div className="mt-8 flex flex-wrap gap-3 justify-center items-center">
+          <div className="mt-8 grid grid-cols-1 sm:flex sm:flex-wrap gap-3 justify-center items-stretch sm:items-center">
             {/* 1-Tap WhatsApp Order Notification */}
             <a
               href={`https://wa.me/919980114675?text=${encodeURIComponent(
@@ -582,7 +582,7 @@ function ConfirmationContent() {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition active:scale-[0.98] text-sm"
+              className="w-full sm:w-auto justify-center min-h-[44px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition active:scale-[0.98] text-sm"
             >
               <svg fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4 shrink-0">
                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.244 8.477 3.513 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.501-5.734-1.453L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.623-1.023-5.09-2.885-6.956C16.63 2.029 14.162.999 11.536.999c-5.438 0-9.863 4.372-9.867 9.802-.001 1.767.487 3.491 1.415 5.011L2.091 22.09l6.556-1.714z" />
@@ -592,7 +592,7 @@ function ConfirmationContent() {
 
             <button
               onClick={scrollToInvoice}
-              className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-amber-600/25 transition active:scale-[0.98] text-sm"
+              className="w-full sm:w-auto justify-center min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-lg shadow-amber-600/25 transition active:scale-[0.98] text-sm"
             >
               <FileText className="w-4 h-4" />
               <span>Scroll to Official Invoice</span>
@@ -602,7 +602,7 @@ function ConfirmationContent() {
             <button
               onClick={handleDownloadInvoice}
               disabled={downloadingPdf}
-              className="bg-stone-900 hover:bg-stone-800 disabled:opacity-75 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-md transition active:scale-[0.98] text-sm cursor-pointer"
+              className="w-full sm:w-auto justify-center min-h-[44px] bg-stone-900 hover:bg-stone-800 disabled:opacity-75 text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-md transition active:scale-[0.98] text-sm cursor-pointer"
             >
               {downloadingPdf ? (
                 <>
@@ -619,7 +619,7 @@ function ConfirmationContent() {
 
             <button
               onClick={() => window.print()}
-              className="bg-stone-200/80 hover:bg-stone-300 text-stone-900 font-bold py-3 px-5 rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98] text-sm cursor-pointer"
+              className="w-full sm:w-auto justify-center min-h-[44px] bg-stone-200/80 hover:bg-stone-300 text-stone-900 font-bold py-3 px-5 rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98] text-sm cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Print Bill</span>
@@ -631,7 +631,7 @@ function ConfirmationContent() {
                 e.preventDefault();
                 window.location.href = '/';
               }}
-              className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold py-3 px-6 rounded-xl flex items-center gap-2 transition active:scale-[0.98] text-sm cursor-pointer"
+              className="w-full sm:w-auto justify-center min-h-[44px] bg-stone-100 hover:bg-stone-200 text-stone-800 font-semibold py-3 px-6 rounded-xl flex items-center gap-2 transition active:scale-[0.98] text-sm cursor-pointer"
             >
               <Home className="w-4 h-4" />
               <span>Return to Store</span>

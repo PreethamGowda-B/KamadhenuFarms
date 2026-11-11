@@ -1016,6 +1016,14 @@ function initKamadhenuApp() {
     });
   }
 
+  function revealCouponFeedbackOnMobile() {
+    if (couponFeedback && window.innerWidth <= 768) {
+      requestAnimationFrame(() => {
+        couponFeedback.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+  }
+
   if (applyCouponBtn) {
     applyCouponBtn.addEventListener('click', async () => {
       if (couponInput && document.activeElement === couponInput) {
@@ -1027,6 +1035,7 @@ function initKamadhenuApp() {
       if (!code) {
         couponFeedback.textContent = 'Please enter a coupon or referral code.';
         couponFeedback.classList.add('error');
+        revealCouponFeedbackOnMobile();
         return;
       }
 
@@ -1037,6 +1046,7 @@ function initKamadhenuApp() {
         couponFeedback.classList.add('success');
         renderCart();
         renderCheckoutSummary();
+        revealCouponFeedbackOnMobile();
         return;
       }
 
@@ -1078,6 +1088,7 @@ function initKamadhenuApp() {
         couponFeedback.classList.add('error');
       } finally {
         applyCouponBtn.disabled = false;
+        revealCouponFeedbackOnMobile();
       }
     });
   }
@@ -1143,11 +1154,10 @@ function initKamadhenuApp() {
     document.body.classList.add('overflow-hidden');
     document.documentElement.classList.add('overflow-hidden');
     updateMobileFloatingCart();
-    const cartItems = document.getElementById('cartItems');
-    if (cartItems) cartItems.scrollTop = 0;
-    if (cartDrawer) cartDrawer.scrollTop = 0;
     requestAnimationFrame(() => {
+      const cartItems = document.getElementById('cartItems');
       if (cartItems) cartItems.scrollTop = 0;
+      if (cartDrawer) cartDrawer.scrollTop = 0;
     });
   }
 
@@ -2113,8 +2123,9 @@ function initKamadhenuApp() {
           
           const isFirstItem = cart.length === 0;
           
-          // 1. Add item to cart and open drawer once (addItemToCart(..., true) handles openCart)
-          addItemToCart(product.id, selectedSize, 1, true);
+          // 1. Add item to cart and defer drawer slide into next frame so tap feedback never stutters
+          addItemToCart(product.id, selectedSize, 1, false);
+          requestAnimationFrame(() => openCart());
           
           // 2. Trigger silky smooth celebration (lightweight on mobile so drawer slide never stutters)
           if (window.CartCelebration) {

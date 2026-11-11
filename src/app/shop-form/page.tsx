@@ -1365,7 +1365,7 @@ export default function ShopOnboardingPage() {
 
       {/* AGENT LOGIN MODAL */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 lg:backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-amber-300 text-center animate-in fade-in zoom-in duration-200">
             <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-3 font-serif font-bold text-xl">
               KHF
@@ -1384,7 +1384,7 @@ export default function ShopOnboardingPage() {
                 placeholder="Sales ID or Mobile Number"
                 value={loginIdentifier}
                 onChange={(e) => setLoginIdentifier(e.target.value)}
-                className="w-full px-3.5 py-3 rounded-xl border border-stone-300 text-sm font-semibold text-center uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-600"
+                className="w-full px-3.5 py-3 rounded-xl border border-stone-300 text-base sm:text-sm font-semibold text-center uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-amber-600"
               />
 
               {loginError && (

@@ -20,7 +20,7 @@ export default function Navbar() {
   }, [mobileMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 bg-cream-bg/90 backdrop-blur-md border-b border-gold-300/40 transition-all duration-300 shadow-sm">
+    <header className="sticky top-0 z-50 bg-cream-bg/95 lg:bg-cream-bg/90 lg:backdrop-blur-md border-b border-gold-300/40 transition-all duration-300 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
@@ -97,7 +97,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Drawer Overlay */}
       {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-x-0 top-20 bottom-0 bg-charcoal/50 backdrop-blur-md z-50 flex flex-col justify-between">
+        <div className="lg:hidden fixed inset-x-0 top-20 bottom-0 bg-charcoal/70 z-50 flex flex-col justify-between">
           <div className="bg-cream-bg border-b border-gold-300 shadow-2xl px-5 py-6 space-y-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
             
             <div className="space-y-1">

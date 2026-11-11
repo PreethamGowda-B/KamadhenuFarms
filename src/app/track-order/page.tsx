@@ -694,7 +694,7 @@ function TrackOrderContent() {
                       value={orderNumber}
                       onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
                       placeholder="e.g. KHF-ORD-68577332"
-                      className="w-full bg-[#FAF7F0] border border-amber-200 rounded-xl px-4 py-3 font-mono font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 uppercase"
+                      className="w-full bg-[#FAF7F0] border border-amber-200 rounded-xl px-4 py-3 font-mono font-semibold text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 uppercase"
                       required
                     />
                     <Package className="w-4 h-4 text-stone-400 absolute right-3.5 top-3.5 pointer-events-none" />
@@ -711,7 +711,7 @@ function TrackOrderContent() {
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       placeholder="10-digit mobile number"
-                      className="w-full bg-[#FAF7F0] border border-amber-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                      className="w-full bg-[#FAF7F0] border border-amber-200 rounded-xl px-4 py-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                     />
                     <Phone className="w-4 h-4 text-stone-400 absolute right-3.5 top-3.5 pointer-events-none" />
                   </div>
@@ -728,7 +728,7 @@ function TrackOrderContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-amber-950 font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition active:scale-[0.99] text-sm"
+                className="w-full min-h-[44px] bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-amber-950 font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition active:scale-[0.99] text-sm"
               >
                 {loading ? (
                   <span>Fetching Order Details...</span>
