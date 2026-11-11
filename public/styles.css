@@ -9276,6 +9276,52 @@ body.overflow-hidden {
   z-index: 1;
 }
 
+@keyframes decadeParticleFall {
+  0% {
+    transform: translate3d(0, -28px, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--fall-alpha, 0.72);
+  }
+  52% {
+    transform: translate3d(var(--fall-drift, 16px), 220px, 0) rotate(calc(var(--fall-rot, 160deg) * 0.55));
+    opacity: var(--fall-alpha, 0.72);
+  }
+  88% {
+    opacity: var(--fall-alpha, 0.72);
+  }
+  100% {
+    transform: translate3d(calc(var(--fall-drift, 16px) * -0.55), 480px, 0) rotate(var(--fall-rot, 160deg));
+    opacity: 0;
+  }
+}
+
+.decade-fall-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.decade-fall-item {
+  position: absolute;
+  top: 0;
+  left: var(--fall-x, 10%);
+  width: var(--fall-size, 14px);
+  height: var(--fall-size, 14px);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: decadeParticleFall var(--fall-dur, 12s) linear var(--fall-delay, 0s) infinite;
+}
+
+.decade-fall-item svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .decade-crest-content {
   position: relative;
   z-index: 2;
@@ -9562,6 +9608,18 @@ body.overflow-hidden {
   .decade-laurel-right,
   .decade-ten-sheen {
     animation: none !important;
+  }
+  .decade-fall-extra {
+    display: none !important;
+  }
+  .decade-fall-item {
+    --fall-alpha: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decade-fall-layer {
+    display: none !important;
   }
 }
 
