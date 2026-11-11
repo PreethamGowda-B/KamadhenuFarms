@@ -20,10 +20,10 @@ export default function RootHomePage() {
 
   return (
     <>
-      <link rel="stylesheet" href="/styles.css?v=20261111_v69" />
+      <link rel="stylesheet" href="/styles.css?v=20261111_v70" />
       <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
       <script src="https://sdk.cashfree.com/js/v3/cashfree.js" async />
-      <script src="/script.js?v=20261111_v69" defer />
+      <script src="/script.js?v=20261111_v70" defer />
     </>
   );
 }

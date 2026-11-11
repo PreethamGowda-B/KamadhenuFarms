@@ -1940,6 +1940,26 @@ function initKamadhenuApp() {
         </div>
       ` : '';
 
+      // Authentic crimson/ruby red maple leaf layers scoped exclusively inside each product showcase frame
+      const maplePhaseShift = { p1: 0, p2: -2.1, p3: -4.3, p4: -6.4 }[product.id] || 0;
+      const mapleSpecs = [
+        { x: '6%', drift: '14px', rot: '165deg', dur: 10.6, delay: -1.4, alpha: 0.76, size: 17, color: '#D12431', extra: false },
+        { x: '15%', drift: '-12px', rot: '-145deg', dur: 12.8, delay: -5.9, alpha: 0.64, size: 14, color: '#E13847', extra: true },
+        { x: '24%', drift: '10px', rot: '190deg', dur: 13.6, delay: -8.7, alpha: 0.56, size: 13, color: '#B81B27', extra: true },
+        { x: '76%', drift: '-11px', rot: '-175deg', dur: 13.2, delay: -3.5, alpha: 0.58, size: 14, color: '#DF2E3D', extra: true },
+        { x: '85%', drift: '13px', rot: '150deg', dur: 11.4, delay: -7.2, alpha: 0.72, size: 18, color: '#C81E2B', extra: false },
+        { x: '93%', drift: '-14px', rot: '-160deg', dur: 9.8, delay: -4.1, alpha: 0.74, size: 15, color: '#E63946', extra: false }
+      ];
+      const mapleLeavesHtml = `
+        <div class="product-maple-layer" aria-hidden="true">
+          ${mapleSpecs.map(m => `
+            <span class="product-maple-item${m.extra ? ' product-maple-extra' : ''}" style="--maple-x:${m.x};--maple-drift:${m.drift};--maple-rot:${m.rot};--maple-dur:${m.dur}s;--maple-delay:${(m.delay + maplePhaseShift).toFixed(1)}s;--maple-alpha:${m.alpha};--maple-size:${m.size}px;--maple-color:${m.color};">
+              <svg viewBox="0 0 32 32" fill="none"><path d="M16 2.2 L18.2 9.1 L23.5 6.8 L21.4 12.2 L28.5 13.4 L23.8 17.6 L26.2 21.8 L19.4 20.6 L17.3 25.4 L16.7 25.4 L16.7 29.8 L15.3 29.8 L15.3 25.4 L14.7 25.4 L12.6 20.6 L5.8 21.8 L8.2 17.6 L3.5 13.4 L10.6 12.2 L8.5 6.8 L13.8 9.1 Z" fill="currentColor"/><path d="M16 6.2 V25 M16 16.5 L10.2 12.5 M16 16.5 L21.8 12.5 M16 19.6 L9.5 19.2 M16 19.6 L22.5 19.2" stroke="rgba(255,228,220,0.45)" stroke-width="0.9" stroke-linecap="round"/></svg>
+            </span>
+          `).join('')}
+        </div>
+      `;
+
       productCard.innerHTML = `
         ${badgeHtml}
         <button class="wishlist-btn" data-product-id="${product.id}" title="Add to Wishlist">
@@ -1953,6 +1973,7 @@ function initKamadhenuApp() {
           </svg>
         </button>
         <div class="product-media">
+          ${mapleLeavesHtml}
           <img src="${getOptimizedProductMedia(product.image, false)}" data-fallback="${product.image}" alt="${product.name}" width="500" height="500" loading="lazy" decoding="async" onerror="if(!this.dataset.retried && this.dataset.fallback){this.dataset.retried='1';this.src=this.dataset.fallback;}else{this.style.display='none'; this.nextElementSibling.style.display='flex';}">
           <div class="media-placeholder" style="display:none;">
             ${product.placeholderIcon}
