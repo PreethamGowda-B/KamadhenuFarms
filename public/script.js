@@ -5151,7 +5151,7 @@ ${points}
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       scratchCanvas.width = Math.floor(w * dpr);
       scratchCanvas.height = Math.floor(h * dpr);
-      const ctx = scratchCanvas.getContext('2d');
+      const ctx = scratchCanvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -5209,7 +5209,7 @@ ${points}
 
     const scratchAt = (pos) => {
       if (!scratchCanvas || isScratched) return;
-      const ctx = scratchCanvas.getContext('2d');
+      const ctx = scratchCanvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
 
       ctx.save();
@@ -5242,7 +5242,7 @@ ${points}
       if (!force && now - lastProgressCheckTs < 90) return;
       lastProgressCheckTs = now;
 
-      const ctx = scratchCanvas.getContext('2d');
+      const ctx = scratchCanvas.getContext('2d', { willReadFrequently: true });
       if (!ctx) return;
       try {
         const { width, height } = scratchCanvas;
