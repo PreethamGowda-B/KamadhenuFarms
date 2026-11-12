@@ -83,7 +83,7 @@ export const PRODUCTS: Record<string, ProductConfig> = {
   },
   p4: {
     id: 'p4',
-    name: 'Raw Honey Comb Box',
+    name: 'Honey Cake',
     subtitle: 'Straight From The Hive.',
     category: 'honeycomb',
     baseDesc: 'Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste, aroma, and nutrients.',

@@ -268,7 +268,7 @@ function initKamadhenuApp() {
     },
     'p4': {
       id: 'p4',
-      name: 'Raw Honey Comb Box',
+      name: 'Honey Cake',
       subtitle: 'Straight From The Hive.',
       category: 'honeycomb',
       stockStatus: 'IN_STOCK',
@@ -394,13 +394,59 @@ function initKamadhenuApp() {
   };
   window.showToast = showToast;
 
-  // Coupons Database
+  // Coupons Database (single source of truth for static client-side preview)
   const validCoupons = {
     'KAMADHENU10': { type: 'percent', value: 10 },
     'HONEY50': { type: 'fixed', value: 50 },
     'FREEPURE': { type: 'percent', value: 15 },
-    'PREETHUGOWDA01': { type: 'percent', value: 10 }
+    'PREETHUGOWDA01': { type: 'percent', value: 10 },
+    'KHF-OFF': { type: 'percent', value: 5, eligibleProductIds: ['p1', 'p2'] }
   };
+
+  /**
+   * Single shared coupon discount calculator used by both Cart and Checkout Summary.
+   * Enforces per-product-ID eligibility and prevents double-discounting.
+   */
+  function calculateCouponDiscount(items, couponCode) {
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    if (!couponCode || !validCoupons[couponCode]) {
+      return { valid: false, ineligibleOnly: false, isPartial: false, subtotal, eligibleSubtotal: 0, discount: 0 };
+    }
+
+    const codeData = validCoupons[couponCode];
+    let eligibleSubtotal = subtotal;
+    let isPartial = false;
+
+    if (Array.isArray(codeData.eligibleProductIds) && codeData.eligibleProductIds.length > 0) {
+      const allowed = new Set(codeData.eligibleProductIds);
+      eligibleSubtotal = items.reduce((sum, item) => {
+        return allowed.has(item.id) ? sum + (item.price * item.qty) : sum;
+      }, 0);
+
+      if (items.length > 0 && eligibleSubtotal <= 0) {
+        return { valid: false, ineligibleOnly: true, isPartial: false, subtotal, eligibleSubtotal: 0, discount: 0 };
+      }
+      isPartial = items.length > 0 && eligibleSubtotal < subtotal;
+    }
+
+    let discount = 0;
+    if (eligibleSubtotal > 0) {
+      if (codeData.type === 'percent') {
+        discount = Math.round(eligibleSubtotal * (codeData.value / 100));
+      } else if (codeData.type === 'fixed') {
+        discount = Math.min(eligibleSubtotal, codeData.value);
+      }
+    }
+
+    return {
+      valid: true,
+      ineligibleOnly: false,
+      isPartial,
+      subtotal,
+      eligibleSubtotal,
+      discount: Math.max(0, Math.min(eligibleSubtotal, discount))
+    };
+  }
 
   // Simulated Tracker Database
   const trackingDatabase = {
@@ -919,20 +965,42 @@ function initKamadhenuApp() {
       }
     }
 
-    // Coupon Calculations
-    let discount = 0;
-    if (currentCoupon && validCoupons[currentCoupon]) {
-      const codeData = validCoupons[currentCoupon];
-      if (codeData.type === 'percent') {
-        discount = Math.round(subtotal * (codeData.value / 100));
-      } else if (codeData.type === 'fixed') {
-        discount = Math.min(subtotal, codeData.value);
+    // Coupon Calculations (single shared calculator)
+    const couponCalc = calculateCouponDiscount(cart, currentCoupon);
+    const discount = couponCalc.discount;
+    const cartDiscountLabelEl = document.getElementById('cartDiscountLabel');
+
+    if (couponCalc.valid && discount > 0) {
+      if (cartDiscountRow) cartDiscountRow.style.display = 'flex';
+      if (cartDiscountEl) cartDiscountEl.textContent = `-₹${discount}`;
+      if (cartDiscountLabelEl) {
+        const codeData = validCoupons[currentCoupon];
+        const tag = codeData.type === 'percent' ? `${codeData.value}% OFF` : `₹${codeData.value} OFF`;
+        cartDiscountLabelEl.innerHTML = `Discount (${escapeHtml(currentCoupon)} · ${tag}) <button type="button" id="removeCouponBtn" class="remove-coupon-btn" aria-label="Remove applied coupon">Remove</button>`;
+        const removeBtn = document.getElementById('removeCouponBtn');
+        if (removeBtn) {
+          removeBtn.onclick = () => {
+            currentCoupon = null;
+            if (couponInput) couponInput.value = '';
+            if (couponFeedback) {
+              couponFeedback.textContent = '';
+              couponFeedback.className = 'coupon-feedback';
+            }
+            renderCart();
+            renderCheckoutSummary();
+          };
+        }
       }
-      cartDiscountRow.style.display = 'flex';
-      cartDiscountEl.textContent = `-₹${discount}`;
     } else {
       if (cartDiscountRow) cartDiscountRow.style.display = 'none';
-      if (currentCoupon && !validCoupons[currentCoupon]) {
+      if (couponCalc.ineligibleOnly && currentCoupon) {
+        const ineligibleCode = currentCoupon;
+        currentCoupon = null;
+        if (couponFeedback) {
+          couponFeedback.textContent = `Coupon "${ineligibleCode}" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).`;
+          couponFeedback.className = 'coupon-feedback error';
+        }
+      } else if (currentCoupon && !validCoupons[currentCoupon]) {
         currentCoupon = null;
       }
     }
@@ -1068,10 +1136,38 @@ function initKamadhenuApp() {
         return;
       }
 
-      // 1. Instant check for local static coupons
+      if (currentCoupon === code && validCoupons[code]) {
+        const existingCalc = calculateCouponDiscount(cart, code);
+        if (existingCalc.valid) {
+          couponFeedback.textContent = `Coupon "${code}" is already applied (no duplicate stacking).`;
+          couponFeedback.classList.add('success');
+          revealCouponFeedbackOnMobile();
+          return;
+        }
+      }
+
+      // 1. Instant check for local static coupons (single active coupon, no stacking)
       if (validCoupons[code]) {
+        const codeData = validCoupons[code];
+        const previewCalc = calculateCouponDiscount(cart, code);
+
+        if (cart.length > 0 && previewCalc.ineligibleOnly) {
+          couponFeedback.textContent = `Coupon "${code}" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).`;
+          couponFeedback.classList.add('error');
+          renderCart();
+          renderCheckoutSummary();
+          revealCouponFeedbackOnMobile();
+          return;
+        }
+
         currentCoupon = code;
-        couponFeedback.textContent = `Coupon "${code}" applied successfully! You got ${validCoupons[code].value}${validCoupons[code].type === 'percent' ? '% off' : ' Rs off'}.`;
+        if (cart.length === 0 && Array.isArray(codeData.eligibleProductIds)) {
+          couponFeedback.textContent = `Coupon "${code}" saved! Add Pure Raw Honey or Dry Fruits Honey to get ${codeData.value}% OFF.`;
+        } else if (previewCalc.isPartial) {
+          couponFeedback.textContent = `Coupon "${code}" applied! ${codeData.value}% OFF (-₹${previewCalc.discount}) applied to Pure Raw Honey & Dry Fruits Honey items only.`;
+        } else {
+          couponFeedback.textContent = `Coupon "${code}" applied successfully! You got ${codeData.value}${codeData.type === 'percent' ? '% off' : ' Rs off'}.`;
+        }
         couponFeedback.classList.add('success');
         renderCart();
         renderCheckoutSummary();
@@ -3076,14 +3172,9 @@ ${points}
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     checkoutSubtotalEl.textContent = `₹${subtotal}`;
 
-    let discount = 0;
-    if (currentCoupon && validCoupons[currentCoupon]) {
-      const codeData = validCoupons[currentCoupon];
-      if (codeData.type === 'percent') {
-        discount = Math.round(subtotal * (codeData.value / 100));
-      } else if (codeData.type === 'fixed') {
-        discount = Math.min(subtotal, codeData.value);
-      }
+    const couponCalc = calculateCouponDiscount(cart, currentCoupon);
+    const discount = couponCalc.discount;
+    if (couponCalc.valid && discount > 0) {
       if (checkoutDiscountRow) {
         checkoutDiscountRow.style.display = 'flex';
         checkoutDiscountEl.textContent = `-₹${discount}`;
@@ -4996,6 +5087,116 @@ ${points}
     }
   };
 
+  // ============================================================================
+  // Secret Honey Treasure Card (5% OFF - KHF-OFF)
+  // ============================================================================
+  const initSecretHoneyTreasure = () => {
+    const card = document.getElementById('secretTreasureCard');
+    const front = document.getElementById('treasureCardFront');
+    const back = document.getElementById('treasureCardBack');
+    const flipBackBtn = document.getElementById('treasureFlipBackBtn');
+    const copyBtn = document.getElementById('copyTreasureCodeBtn');
+    const applyBtn = document.getElementById('applyTreasureCodeBtn');
+    if (!card || !front || !back) return;
+
+    const setFlipped = (flipped) => {
+      card.classList.toggle('is-flipped', flipped);
+      card.setAttribute('data-flipped', flipped ? 'true' : 'false');
+      front.setAttribute('aria-expanded', flipped ? 'true' : 'false');
+      front.setAttribute('aria-hidden', flipped ? 'true' : 'false');
+      back.setAttribute('aria-hidden', flipped ? 'false' : 'true');
+    };
+
+    front.addEventListener('click', () => setFlipped(true));
+    front.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setFlipped(true);
+      }
+    });
+
+    if (flipBackBtn) {
+      flipBackBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setFlipped(false);
+        front.focus();
+      });
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const code = 'KHF-OFF';
+        let copied = false;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(code);
+            copied = true;
+          }
+        } catch (err) {
+          copied = false;
+        }
+        if (!copied) {
+          const tempInput = document.createElement('input');
+          tempInput.value = code;
+          tempInput.setAttribute('readonly', '');
+          tempInput.style.position = 'fixed';
+          tempInput.style.opacity = '0';
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          try { copied = document.execCommand('copy'); } catch (e) { copied = false; }
+          tempInput.remove();
+        }
+        copyBtn.textContent = copied ? 'Copied! ✓' : 'Code: KHF-OFF';
+        showToast('Code KHF-OFF copied! Valid for 5% OFF on Pure Raw Honey & Dry Fruits Honey.', 'success');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy Code';
+        }, 2200);
+      });
+    }
+
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => {
+        const code = 'KHF-OFF';
+        if (couponInput) {
+          couponInput.value = code;
+        }
+        if (cart.length === 0) {
+          currentCoupon = code;
+          if (typeof saveCheckoutDraft === 'function') saveCheckoutDraft();
+          if (couponFeedback) {
+            couponFeedback.textContent = 'Coupon "KHF-OFF" saved! Add Pure Raw Honey or Dry Fruits Honey to get 5% OFF.';
+            couponFeedback.className = 'coupon-feedback success';
+          }
+          showToast('KHF-OFF is ready! Add Pure Raw Honey or Dry Fruits Honey to get 5% OFF.', 'success');
+          const productsSec = document.getElementById('products');
+          if (productsSec) {
+            productsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          return;
+        }
+
+        const check = calculateCouponDiscount(cart, code);
+        if (check.ineligibleOnly) {
+          if (couponFeedback) {
+            couponFeedback.textContent = 'Coupon "KHF-OFF" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).';
+            couponFeedback.className = 'coupon-feedback error';
+          }
+          showToast('KHF-OFF applies only to Pure Raw Honey & Dry Fruits Honey.', 'error');
+          return;
+        }
+
+        if (applyCouponBtn) {
+          applyCouponBtn.click();
+        }
+        if (typeof openCart === 'function') {
+          openCart();
+        }
+        showToast(`5% OFF applied (-₹${check.discount} on eligible honey)!`, 'success');
+      });
+    }
+  };
+
+  initSecretHoneyTreasure();
   initApp();
 }
 

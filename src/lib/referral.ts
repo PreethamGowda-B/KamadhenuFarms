@@ -1,16 +1,27 @@
 import { prisma } from '@/lib/prisma';
+import { AUTHORITATIVE_PRICES } from '@/lib/products';
 
-export const STATIC_VALID_COUPONS: Record<string, { type: 'percent' | 'fixed'; value: number }> = {
+export interface StaticCouponConfig {
+  type: 'percent' | 'fixed';
+  value: number;
+  eligibleProductIds?: readonly string[];
+}
+
+export const STATIC_VALID_COUPONS: Record<string, StaticCouponConfig> = {
   KAMADHENU10: { type: 'percent', value: 10 },
   HONEY50: { type: 'fixed', value: 50 },
   FREEPURE: { type: 'percent', value: 15 },
   PREETHUGOWDA01: { type: 'percent', value: 10 },
+  'KHF-OFF': { type: 'percent', value: 5, eligibleProductIds: ['p1', 'p2'] },
 };
 
 export interface CartItemInput {
-  productId: string;
-  weightVariant: string; // '250g', '500g', '1kg'
-  quantity: number | string;
+  productId?: string;
+  id?: string;
+  weightVariant?: string; // '250g', '500g', '1kg'
+  size?: string;
+  quantity?: number | string;
+  qty?: number | string;
   unitPrice?: number;
 }
 
@@ -20,6 +31,8 @@ export interface ReferralValidationResult {
   discountType: 'percent' | 'fixed';
   discountValue: number;
   calculatedDiscount: number;
+  eligibleSubtotal?: number;
+  eligibleProductIds?: string[];
   message: string;
   source: 'STATIC_COUPON' | 'REFERRAL_OFFER' | 'REFERRAL_REWARD';
   offerId?: string;
@@ -29,13 +42,45 @@ export interface ReferralValidationResult {
 }
 
 /**
+ * Authoritatively computes subtotal for only the eligible product IDs.
+ * Never trusts client-supplied totals or discounts.
+ */
+export function calculateEligibleSubtotal(
+  items: CartItemInput[] = [],
+  eligibleProductIds: readonly string[]
+): number {
+  const allowed = new Set(eligibleProductIds);
+  let eligibleSubtotal = 0;
+
+  for (const it of items) {
+    const pid = String(it.productId ?? it.id ?? '').trim();
+    if (!pid || !allowed.has(pid)) continue;
+
+    const variant = String(it.weightVariant ?? it.size ?? '').trim();
+    const qty = Math.max(1, parseInt(String(it.quantity ?? it.qty ?? 1), 10) || 1);
+
+    const authoritativePrice = AUTHORITATIVE_PRICES[pid]?.prices?.[variant];
+    const unitPrice =
+      typeof authoritativePrice === 'number' && Number.isFinite(authoritativePrice)
+        ? authoritativePrice
+        : Number(it.unitPrice) || 0;
+
+    if (unitPrice > 0) {
+      eligibleSubtotal += unitPrice * qty;
+    }
+  }
+
+  return eligibleSubtotal;
+}
+
+/**
  * Calculates total net honey weight in Kilograms across cart items
  */
 export function calculateTotalWeightKg(items: CartItemInput[] = []): number {
   let totalKg = 0;
   for (const it of items) {
-    const qty = Math.max(1, parseInt(String(it.quantity), 10) || 1);
-    const variant = String(it.weightVariant || '').toLowerCase();
+    const qty = Math.max(1, parseInt(String(it.quantity ?? it.qty ?? 1), 10) || 1);
+    const variant = String(it.weightVariant ?? it.size ?? '').toLowerCase();
     let unitKg = 0.5;
     if (variant.includes('250')) unitKg = 0.25;
     else if (variant.includes('500')) unitKg = 0.5;
@@ -74,6 +119,49 @@ export async function validateDiscountOrReferralCode(
   // 1. Check Existing Static Coupons (Backwards Compatibility)
   if (STATIC_VALID_COUPONS[code]) {
     const coupon = STATIC_VALID_COUPONS[code];
+
+    if (coupon.eligibleProductIds && coupon.eligibleProductIds.length > 0) {
+      const eligibleSubtotal = calculateEligibleSubtotal(items, coupon.eligibleProductIds);
+
+      if (items.length > 0 && eligibleSubtotal <= 0) {
+        return {
+          valid: false,
+          code,
+          discountType: coupon.type,
+          discountValue: coupon.value,
+          calculatedDiscount: 0,
+          eligibleSubtotal: 0,
+          eligibleProductIds: [...coupon.eligibleProductIds],
+          message: `Coupon "${code}" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).`,
+          source: 'STATIC_COUPON',
+          totalWeightKg,
+        };
+      }
+
+      const discount =
+        eligibleSubtotal > 0
+          ? coupon.type === 'percent'
+            ? Math.round(eligibleSubtotal * (coupon.value / 100))
+            : Math.min(eligibleSubtotal, coupon.value)
+          : 0;
+
+      const isPartial = items.length > 0 && eligibleSubtotal < subtotal;
+      return {
+        valid: true,
+        code,
+        discountType: coupon.type,
+        discountValue: coupon.value,
+        calculatedDiscount: discount,
+        eligibleSubtotal,
+        eligibleProductIds: [...coupon.eligibleProductIds],
+        message: isPartial
+          ? `Coupon "${code}" applied! (${coupon.value}% off on Pure Raw Honey & Dry Fruits Honey items only)`
+          : `Coupon "${code}" applied! (${coupon.value}${coupon.type === 'percent' ? '%' : ' Rs'} off on Pure Raw Honey & Dry Fruits Honey)`,
+        source: 'STATIC_COUPON',
+        totalWeightKg,
+      };
+    }
+
     const discount =
       coupon.type === 'percent'
         ? Math.round(subtotal * (coupon.value / 100))

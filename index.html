@@ -127,7 +127,7 @@
       },
       {
         "@type": "Product",
-        "name": "Raw Honey Comb Box",
+        "name": "Honey Cake",
         "description": "Fresh honeycomb harvested directly from our hives and packed carefully to preserve its natural taste and nutrients.",
         "brand": {
           "@type": "Brand",
@@ -766,6 +766,130 @@
           </div>
           <div class="stat-number" data-target="20" data-suffix="+">0+</div>
           <p>Bee Colonies</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       Secret Honey Treasure Promotional Card (5% OFF - KHF-OFF)
+       ========================================================================== -->
+  <section class="secret-treasure-section" id="secret-treasure" aria-labelledby="secretTreasureTitle">
+    <div class="container">
+      <div class="secret-treasure-scene">
+        <div
+          class="secret-treasure-card"
+          id="secretTreasureCard"
+          data-flipped="false"
+        >
+          <!-- Front Face: Mystery Sealed Treasure -->
+          <div
+            class="treasure-face treasure-face--front"
+            id="treasureCardFront"
+            role="button"
+            tabindex="0"
+            aria-expanded="false"
+            aria-controls="treasureCardBack"
+            aria-label="Secret Honey Treasure. Tap or press Enter to reveal your 5% off reward code."
+          >
+            <div class="treasure-honeycomb-bg" aria-hidden="true"></div>
+            <div class="treasure-sparkles" aria-hidden="true">
+              <span class="sparkle s1">✦</span>
+              <span class="sparkle s2">✧</span>
+              <span class="sparkle s3">✦</span>
+              <span class="sparkle s4">✧</span>
+            </div>
+
+            <div class="treasure-front-inner">
+              <div class="treasure-emblem" aria-hidden="true">
+                <svg viewBox="0 0 120 120" class="treasure-chest-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="goldHoneyGrad" x1="18" y1="16" x2="102" y2="104" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#FFE28A" />
+                      <stop offset="50%" stop-color="#D8A64F" />
+                      <stop offset="100%" stop-color="#9A6414" />
+                    </linearGradient>
+                    <linearGradient id="amberFillGrad" x1="34" y1="36" x2="86" y2="96" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stop-color="#FFF2BD" />
+                      <stop offset="45%" stop-color="#F5B82E" />
+                      <stop offset="100%" stop-color="#C67B0E" />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="60" cy="60" r="54" fill="rgba(216,166,79,0.12)" stroke="url(#goldHoneyGrad)" stroke-width="1.5" stroke-dasharray="4 4" />
+                  <path d="M60 14L98 36V84L60 106L22 84V36L60 14Z" fill="rgba(255,250,240,0.92)" stroke="url(#goldHoneyGrad)" stroke-width="2.5" />
+                  <rect x="44" y="31" width="32" height="9" rx="3" fill="url(#goldHoneyGrad)" />
+                  <path d="M40 42C40 39.8 41.8 38 44 38H76C78.2 38 80 39.8 80 42V79C80 86.2 74.2 92 67 92H53C45.8 92 40 86.2 40 79V42Z" fill="url(#amberFillGrad)" stroke="#8B5A12" stroke-width="2" />
+                  <path d="M40 53C46 58 53 51 60 55C67 59 74 52 80 56V42C80 39.8 78.2 38 76 38H44C41.8 38 40 39.8 40 42V53Z" fill="#FFF8DC" fill-opacity="0.55" />
+                  <circle cx="60" cy="67" r="10" fill="#FFF9EB" stroke="#8B5A12" stroke-width="1.8" />
+                  <path d="M60 61L62.2 65.4L67 66.1L63.5 69.5L64.3 74.3L60 72L55.7 74.3L56.5 69.5L53 66.1L57.8 65.4L60 61Z" fill="#D8A64F" />
+                </svg>
+              </div>
+
+              <div class="treasure-front-copy">
+                <span class="treasure-eyebrow">Kamadhenu Farm Exclusive</span>
+                <h2 class="treasure-title" id="secretTreasureTitle">Secret Honey Treasure</h2>
+                <p class="treasure-subtitle">
+                  A golden harvest reward is sealed inside. Unseal the honeycomb chest to reveal your exclusive farm discount.
+                </p>
+                <span class="treasure-reveal-cta">
+                  <span>Reveal Treasure</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Back Face: Revealed 5% OFF + KHF-OFF -->
+          <div class="treasure-face treasure-face--back" id="treasureCardBack" aria-hidden="true">
+            <div class="treasure-honeycomb-bg" aria-hidden="true"></div>
+            <div class="treasure-sparkles treasure-sparkles--active" aria-hidden="true">
+              <span class="sparkle s1">✦</span>
+              <span class="sparkle s2">✧</span>
+              <span class="sparkle s3">✦</span>
+              <span class="sparkle s4">✧</span>
+            </div>
+
+            <div class="treasure-back-inner">
+              <div class="treasure-back-header">
+                <span class="treasure-unlocked-pill">Treasure Unsealed</span>
+                <button type="button" class="treasure-flip-back-btn" id="treasureFlipBackBtn" aria-label="Flip treasure card back">
+                  ↺ Flip Back
+                </button>
+              </div>
+
+              <div class="treasure-offer-hero">
+                <div class="treasure-discount-badge">
+                  <span class="treasure-discount-value">5% OFF</span>
+                  <span class="treasure-discount-tag">INSTANT HARVEST SAVINGS</span>
+                </div>
+                <div class="treasure-offer-details">
+                  <h3 class="treasure-back-heading">Golden Farm Reward</h3>
+                  <p class="treasure-eligibility-note">
+                    Valid on <strong>Pure Raw Honey</strong> &amp; <strong>Dry Fruits Honey</strong>
+                    <span class="treasure-exclusion-sub">(Excludes Bee-Crafted Honey Comb Jar &amp; Honey Cake)</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="treasure-code-actions">
+                <div class="treasure-code-box" aria-label="Promo code KHF-OFF">
+                  <span class="treasure-code-label">USE CODE</span>
+                  <strong class="treasure-code-value" id="treasurePromoCode">KHF-OFF</strong>
+                </div>
+
+                <div class="treasure-btn-group">
+                  <button type="button" class="treasure-btn treasure-btn--copy" id="copyTreasureCodeBtn">
+                    Copy Code
+                  </button>
+                  <button type="button" class="treasure-btn treasure-btn--apply" id="applyTreasureCodeBtn">
+                    Apply 5% OFF
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2027,7 +2151,7 @@
         <span id="cartSubtotal">₹0</span>
       </div>
       <div class="summary-row" id="cartDiscountRow" style="display: none; color:#27ae60; font-weight:600;">
-        <span>Discount Applied</span>
+        <span id="cartDiscountLabel">Discount Applied <button type="button" id="removeCouponBtn" class="remove-coupon-btn" aria-label="Remove applied coupon">Remove</button></span>
         <span id="cartDiscount">-₹0</span>
       </div>
       <div class="summary-row">
