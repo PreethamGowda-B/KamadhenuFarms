@@ -10361,21 +10361,60 @@ body.overflow-hidden {
   font-size: 1.25rem;
   font-weight: 700;
   color: #2f200b;
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.45rem;
 }
 
-.treasure-eligibility-note {
-  margin: 0;
-  font-size: 0.92rem;
-  color: #463216;
-  line-height: 1.45;
+.treasure-conditions-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(183, 121, 31, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
-.treasure-exclusion-sub {
-  display: block;
-  margin-top: 0.2rem;
-  font-size: 0.78rem;
+.treasure-condition-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.treasure-condition-line--eligible {
+  color: #2f200b;
+  font-weight: 500;
+}
+
+.treasure-condition-line--eligible .treasure-cond-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: rgba(39, 174, 96, 0.16);
+  color: #1e8449;
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.treasure-condition-line--excluded {
   color: #70552c;
+  font-size: 0.76rem;
+}
+
+.treasure-condition-line--excluded .treasure-cond-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  color: #b7791f;
+  font-weight: 800;
+  flex: 0 0 auto;
 }
 
 .treasure-code-actions {
