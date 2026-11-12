@@ -10569,6 +10569,53 @@ body.overflow-hidden {
   overflow: hidden;
 }
 
+.treasure-celebration-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.treasure-blast-piece {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: treasureBlastFly var(--dur, 1.45s) cubic-bezier(0.15, 0.85, 0.35, 1) var(--delay, 0ms) forwards;
+}
+
+.treasure-blast-piece--paper {
+  width: var(--w, 9px);
+  height: var(--h, 13px);
+  border-radius: 2px;
+  background: var(--bg, #f5b82e);
+  box-shadow: 0 2px 6px rgba(143, 88, 13, 0.25);
+}
+
+.treasure-blast-piece--petal {
+  font-size: var(--size, 16px);
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(143, 88, 13, 0.25));
+}
+
+@keyframes treasureBlastFly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, -80px))) scale(1.08) rotate(var(--rot, 180deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx-end, 0px)), calc(-50% + var(--ty-end, 60px))) scale(0.75) rotate(var(--rot-end, 360deg));
+  }
+}
+
 .treasure-spark-dot {
   position: absolute;
   width: 7px;

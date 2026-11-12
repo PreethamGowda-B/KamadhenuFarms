@@ -5101,6 +5101,7 @@ ${points}
     const scratchStage = document.getElementById('treasureScratchStage');
     const scratchCanvas = document.getElementById('treasureScratchCanvas');
     const particleLayer = document.getElementById('treasureParticleLayer');
+    const celebrationLayer = document.getElementById('treasureCelebrationLayer');
     const quickRevealBtn = document.getElementById('treasureQuickRevealBtn');
     const statusPill = document.getElementById('treasureStatusPill');
     if (!card || !front || !back) return;
@@ -5109,6 +5110,53 @@ ${points}
     let isDrawing = false;
     let lastPos = null;
     let lastParticleTs = 0;
+
+    const launchCardCelebrationBlast = () => {
+      if (!celebrationLayer) return;
+      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const paperColors = ['#f5b82e', '#ffe28a', '#d88b1a', '#fff6dc', '#e67e22', '#27ae60', '#c0392b'];
+      const petals = ['✿', '❀', '🌸', '🌼', '✨'];
+      const total = 34;
+
+      for (let i = 0; i < total; i++) {
+        const piece = document.createElement('span');
+        const isPetal = i % 3 === 0;
+        const angle = (Math.PI * 2 * i) / total + (Math.random() - 0.5) * 0.35;
+        const radius = 85 + Math.random() * 145;
+        const tx = Math.round(Math.cos(angle) * radius);
+        const ty = Math.round(Math.sin(angle) * radius - 35);
+        const txEnd = tx + Math.round((Math.random() - 0.5) * 40);
+        const tyEnd = ty + 75 + Math.round(Math.random() * 65);
+        const rot = Math.round((Math.random() - 0.5) * 320);
+        const rotEnd = rot + Math.round((Math.random() - 0.5) * 260);
+        const dur = (1.15 + Math.random() * 0.65).toFixed(2) + 's';
+        const delay = Math.round(Math.random() * 110) + 'ms';
+
+        if (isPetal) {
+          piece.className = 'treasure-blast-piece treasure-blast-piece--petal';
+          piece.textContent = petals[i % petals.length];
+          piece.style.setProperty('--size', `${14 + Math.round(Math.random() * 8)}px`);
+        } else {
+          piece.className = 'treasure-blast-piece treasure-blast-piece--paper';
+          piece.style.setProperty('--w', `${7 + Math.round(Math.random() * 5)}px`);
+          piece.style.setProperty('--h', `${10 + Math.round(Math.random() * 7)}px`);
+          piece.style.setProperty('--bg', paperColors[i % paperColors.length]);
+        }
+
+        piece.style.setProperty('--tx', `${tx}px`);
+        piece.style.setProperty('--ty', `${ty}px`);
+        piece.style.setProperty('--tx-end', `${txEnd}px`);
+        piece.style.setProperty('--ty-end', `${tyEnd}px`);
+        piece.style.setProperty('--rot', `${rot}deg`);
+        piece.style.setProperty('--rot-end', `${rotEnd}deg`);
+        piece.style.setProperty('--dur', dur);
+        piece.style.setProperty('--delay', delay);
+
+        celebrationLayer.appendChild(piece);
+        setTimeout(() => piece.remove(), 2100);
+      }
+    };
 
     const spawnScratchDust = (x, y, count = 2) => {
       if (!particleLayer) return;
@@ -5139,6 +5187,7 @@ ${points}
           spawnScratchDust(Math.random() * w, Math.random() * h, 1);
         }
       }
+      launchCardCelebrationBlast();
       showToast('Secret Honey Treasure unlocked! Code KHF-OFF gives 5% OFF on Pure Raw Honey & Dry Fruits Honey.', 'success');
     };
 
