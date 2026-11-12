@@ -90,6 +90,16 @@ function initKamadhenuApp() {
   // Automatic reconciliation for mobile payments (e.g. after customer returns from PhonePe/GPay app)
   const checkPendingOrderReconciliation = async () => {
     try {
+      if (typeof isCheckoutSubmitting !== 'undefined' && isCheckoutSubmitting) {
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const checkoutStatusParam = (urlParams.get('checkoutStatus') || '').toLowerCase();
+      if (checkoutStatusParam === 'cancelled' || checkoutStatusParam === 'failed') {
+        return;
+      }
+
       const pendingOrder = localStorage.getItem('kamadhenu_pending_order');
       const pendingTime = parseInt(localStorage.getItem('kamadhenu_pending_order_time') || '0', 10);
       if (!pendingOrder || !pendingTime || (Date.now() - pendingTime) > 15 * 60 * 1000) {
@@ -99,31 +109,27 @@ function initKamadhenuApp() {
       if (window._isReconcilingPendingOrder) return;
       window._isReconcilingPendingOrder = true;
 
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderNumber: pendingOrder })
-          }, 8000);
+      const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber: pendingOrder })
+      }, 8000);
 
-          const data = await verifyRes.json();
-          if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
-            localStorage.removeItem('kamadhenu_pending_order');
-            localStorage.removeItem('kamadhenu_pending_order_time');
-            try {
-              localStorage.setItem('kamadhenu_cart', '[]');
-            } catch (cartErr) {}
-            localStorage.setItem('kamadhenu_last_order', pendingOrder);
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}&status=confirmed`;
-            return;
-          }
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 1200));
-          }
-        } catch (attemptErr) {
-          if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
-        }
+      const data = await verifyRes.json();
+      if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+        localStorage.removeItem('kamadhenu_pending_order');
+        localStorage.removeItem('kamadhenu_pending_order_time');
+        localStorage.removeItem('kamadhenu_checkout_draft');
+        try {
+          localStorage.setItem('kamadhenu_cart', '[]');
+        } catch (cartErr) {}
+        localStorage.setItem('kamadhenu_last_order', pendingOrder);
+        window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(pendingOrder)}`;
+        return;
+      }
+      if (data.cancelled || data.failed || data.status === 'CANCELLED' || data.status === 'FAILED') {
+        localStorage.removeItem('kamadhenu_pending_order');
+        localStorage.removeItem('kamadhenu_pending_order_time');
       }
     } catch (e) {
       // Background reconciliation error - ignore silently
@@ -2479,6 +2485,93 @@ ${points}
     }
   };
 
+  const CHECKOUT_DRAFT_KEY = 'kamadhenu_checkout_draft';
+  let activeRetryOrder = null;
+  let isPaymentRetryMode = false;
+
+  const saveCheckoutDraft = (overrideRetryOrder = undefined) => {
+    try {
+      if (overrideRetryOrder !== undefined) {
+        activeRetryOrder = overrideRetryOrder;
+      }
+      const activePaymentCard = document.querySelector('.payment-option-card.active');
+      const draft = {
+        savedAt: Date.now(),
+        name: document.getElementById('chkName')?.value || '',
+        phone: document.getElementById('chkPhone')?.value || '',
+        email: document.getElementById('chkEmail')?.value || '',
+        address: document.getElementById('chkAddress')?.value || '',
+        area: document.getElementById('chkArea')?.value || '',
+        city: document.getElementById('chkCity')?.value || '',
+        state: document.getElementById('chkState')?.value || '',
+        pincode: document.getElementById('chkPincode')?.value || '',
+        landmark: document.getElementById('chkLandmark')?.value || '',
+        paymentMethod: activePaymentCard ? activePaymentCard.dataset.method : 'cashfree',
+        couponCode: currentCoupon || null,
+        activeRetryOrder: activeRetryOrder || null,
+      };
+      localStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify(draft));
+    } catch (_) {}
+  };
+
+  const clearCheckoutDraft = () => {
+    activeRetryOrder = null;
+    isPaymentRetryMode = false;
+    try {
+      localStorage.removeItem(CHECKOUT_DRAFT_KEY);
+    } catch (_) {}
+  };
+
+  const restoreCheckoutDraft = (fallbackOrderNumber = '', fallbackToken = '') => {
+    try {
+      const raw = localStorage.getItem(CHECKOUT_DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft && draft.savedAt && (Date.now() - draft.savedAt) <= 2 * 60 * 60 * 1000) {
+          const fieldMap = {
+            chkName: draft.name,
+            chkPhone: draft.phone,
+            chkEmail: draft.email,
+            chkAddress: draft.address,
+            chkArea: draft.area,
+            chkCity: draft.city,
+            chkState: draft.state,
+            chkPincode: draft.pincode,
+            chkLandmark: draft.landmark,
+          };
+          Object.entries(fieldMap).forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el && typeof val === 'string' && val) el.value = val;
+          });
+          if (draft.couponCode) {
+            currentCoupon = draft.couponCode;
+          }
+          if (draft.paymentMethod) {
+            const cards = document.querySelectorAll('.payment-option-card');
+            cards.forEach((card) => {
+              const isMatch = card.dataset.method === draft.paymentMethod;
+              card.classList.toggle('active', isMatch);
+              const radio = card.querySelector('input[type="radio"]');
+              if (radio) radio.checked = isMatch;
+            });
+          }
+          if (draft.activeRetryOrder) {
+            activeRetryOrder = draft.activeRetryOrder;
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (fallbackOrderNumber && (!activeRetryOrder || activeRetryOrder.orderNumber !== fallbackOrderNumber)) {
+      activeRetryOrder = {
+        orderNumber: fallbackOrderNumber,
+        orderAccessToken: fallbackToken || '',
+      };
+    } else if (activeRetryOrder && fallbackToken && !activeRetryOrder.orderAccessToken) {
+      activeRetryOrder.orderAccessToken = fallbackToken;
+    }
+  };
+
   const calculateShippingRate = async (pincodeVal) => {
     const cleanPin = (pincodeVal || '').replace(/\D/g, '');
 
@@ -3033,18 +3126,26 @@ ${points}
       if (codAdvanceEl) codAdvanceEl.textContent = `₹${advanceAmount}`;
       if (codRemainingEl) codRemainingEl.textContent = `₹${remainingAmount}`;
       if (checkoutSubmitBtnText) {
-        checkoutSubmitBtnText.textContent = `Pay 50% Advance via Cashfree ₹${advanceAmount} (₹${remainingAmount} on Delivery)`;
+        checkoutSubmitBtnText.textContent = isPaymentRetryMode
+          ? `Retry Payment • ₹${advanceAmount} Advance`
+          : `Pay 50% Advance via Cashfree ₹${advanceAmount} (₹${remainingAmount} on Delivery)`;
       }
       if (mobileStickyPayBtnText) {
-        mobileStickyPayBtnText.textContent = `Pay 50% Advance ₹${advanceAmount} ➔`;
+        mobileStickyPayBtnText.textContent = isPaymentRetryMode
+          ? `Retry Payment ₹${advanceAmount} ➔`
+          : `Pay 50% Advance ₹${advanceAmount} ➔`;
       }
     } else {
       if (codBreakdownEl) codBreakdownEl.style.display = 'none';
       if (checkoutSubmitBtnText) {
-        checkoutSubmitBtnText.textContent = `Pay Securely via Cashfree ₹${finalTotal}`;
+        checkoutSubmitBtnText.textContent = isPaymentRetryMode
+          ? `Retry Payment • ₹${finalTotal}`
+          : `Pay Securely via Cashfree ₹${finalTotal}`;
       }
       if (mobileStickyPayBtnText) {
-        mobileStickyPayBtnText.textContent = `Pay Securely ₹${finalTotal} ➔`;
+        mobileStickyPayBtnText.textContent = isPaymentRetryMode
+          ? `Retry Payment ₹${finalTotal} ➔`
+          : `Pay Securely ₹${finalTotal} ➔`;
       }
     }
   };
@@ -3186,40 +3287,111 @@ ${points}
       }
 
       try {
-        const checkoutAttemptKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
-          ? crypto.randomUUID()
-          : `chk_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        saveCheckoutDraft();
+        let createData = null;
 
-        const createRes = await fetchWithTimeout('/api/checkout/create-order', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-idempotency-key': checkoutAttemptKey
-          },
-          body: JSON.stringify({
-            name,
-            mobile: cleanMobile,
-            email: effectiveEmail,
-            addressLine1: address,
-            area,
-            city,
-            state,
-            pincode: cleanPin,
-            landmark,
-            items: cart.map(i => ({
-              productId: i.id,
-              weightVariant: i.size,
-              quantity: i.qty
-            })),
-            couponCode: currentCoupon || undefined,
-            paymentMethod: paymentMethod // 'cashfree' or 'cod'
-          })
-        }, 15000);
+        // If retrying a previously cancelled/failed order, reuse the same order & Cashfree session when valid
+        if (activeRetryOrder && activeRetryOrder.orderNumber) {
+          try {
+            const retryRes = await fetchWithTimeout('/api/checkout/retry-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderNumber: activeRetryOrder.orderNumber,
+                token: activeRetryOrder.orderAccessToken || undefined,
+                name,
+                mobile: cleanMobile,
+                email: effectiveEmail,
+                addressLine1: address,
+                area,
+                city,
+                state,
+                pincode: cleanPin,
+                landmark,
+                items: cart.map(i => ({
+                  productId: i.id,
+                  weightVariant: i.size,
+                  quantity: i.qty
+                })),
+                couponCode: currentCoupon || undefined,
+                paymentMethod: paymentMethod
+              })
+            }, 15000);
+            const retryData = await retryRes.json();
 
-        const createData = await createRes.json();
-        if (!createData.success) {
-          throw new Error(createData.message || 'Failed to create payment session');
+            if (retryData.alreadyPaid) {
+              localStorage.removeItem('kamadhenu_pending_order');
+              localStorage.removeItem('kamadhenu_pending_order_time');
+              clearCheckoutDraft();
+              cart = [];
+              saveCart();
+              currentCoupon = null;
+              closeCheckout();
+              const tokenParam = retryData.orderAccessToken ? `&token=${encodeURIComponent(retryData.orderAccessToken)}` : '';
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(retryData.orderNumber)}&token=${tokenParam ? retryData.orderAccessToken : ''}`;
+              return;
+            }
+
+            if (retryData.pending) {
+              closeCheckout();
+              const tokenParam = retryData.orderAccessToken ? `&token=${encodeURIComponent(retryData.orderAccessToken)}` : '';
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(retryData.orderNumber)}&status=pending${tokenParam}`;
+              return;
+            }
+
+            if (retryData.success && retryData.paymentSessionId) {
+              createData = retryData;
+            }
+          } catch (retryErr) {
+            console.warn('Retry order lookup fallback to create-order:', retryErr);
+          }
         }
+
+        if (!createData) {
+          const checkoutAttemptKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : `chk_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+          const createRes = await fetchWithTimeout('/api/checkout/create-order', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-idempotency-key': checkoutAttemptKey
+            },
+            body: JSON.stringify({
+              name,
+              mobile: cleanMobile,
+              email: effectiveEmail,
+              addressLine1: address,
+              area,
+              city,
+              state,
+              pincode: cleanPin,
+              landmark,
+              items: cart.map(i => ({
+                productId: i.id,
+                weightVariant: i.size,
+                quantity: i.qty
+              })),
+              couponCode: currentCoupon || undefined,
+              paymentMethod: paymentMethod // 'cashfree' or 'cod'
+            })
+          }, 15000);
+
+          createData = await createRes.json();
+          if (!createData.success) {
+            throw new Error(createData.message || 'Failed to create payment session');
+          }
+        }
+
+        saveCheckoutDraft({
+          orderNumber: createData.orderNumber,
+          orderId: createData.orderId,
+          cashfreeOrderId: createData.cashfreeOrderId,
+          orderAccessToken: createData.orderAccessToken,
+          paymentSessionId: createData.paymentSessionId,
+          environment: createData.environment,
+        });
 
         // Store customer mobile and order number in localStorage for seamless "My Orders" access
         try {
@@ -3234,129 +3406,153 @@ ${points}
 
         const checkoutOptions = {
           paymentSessionId: createData.paymentSessionId,
-          returnUrl: `${window.location.origin}/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&order_id=${encodeURIComponent(createData.orderNumber)}&status=confirmed`,
+          returnUrl: `${window.location.origin}/api/checkout/return?orderNumber=${encodeURIComponent(createData.orderNumber)}&token=${encodeURIComponent(createData.orderAccessToken || '')}`,
           redirectTarget: '_modal'
         };
 
-        const verifyPaymentWithBackend = async () => {
-          checkoutSubmitBtn.disabled = true;
-          const mobileStickyPayBtnModal = document.getElementById('mobileStickyPayBtn');
-          if (mobileStickyPayBtnModal) mobileStickyPayBtnModal.disabled = true;
-          if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Verifying payment with bank...';
-          const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
-          if (mobileStickyPayBtnText) mobileStickyPayBtnText.textContent = 'Verifying...';
+        let activeVerifyPromise = null;
+        const verifyPaymentWithBackend = (fastSingleCheck = false) => {
+          if (activeVerifyPromise) return activeVerifyPromise;
+          activeVerifyPromise = (async () => {
+            checkoutSubmitBtn.disabled = true;
+            const mobileStickyPayBtnModal = document.getElementById('mobileStickyPayBtn');
+            if (mobileStickyPayBtnModal) mobileStickyPayBtnModal.disabled = true;
+            if (checkoutSubmitBtnText) checkoutSubmitBtnText.textContent = 'Checking payment status...';
+            const mobileStickyPayBtnText = document.getElementById('mobileStickyPayBtnText');
+            if (mobileStickyPayBtnText) mobileStickyPayBtnText.textContent = 'Checking...';
 
-          let verifyData = null;
-          let verifySuccess = false;
+            let verifyData = null;
+            const maxAttempts = fastSingleCheck ? 1 : 2;
 
-          for (let attempt = 1; attempt <= 4; attempt++) {
-            try {
-              if (checkoutSubmitBtnText) {
-                checkoutSubmitBtnText.textContent = attempt === 1
-                  ? 'Verifying payment with bank...'
-                  : `Confirming payment (attempt ${attempt}/4)...`;
-              }
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              try {
+                const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderNumber: createData.orderNumber,
+                    orderId: createData.orderId,
+                    cashfreeOrderId: createData.cashfreeOrderId,
+                    token: createData.orderAccessToken
+                  })
+                }, 10000);
 
-              const verifyRes = await fetchWithTimeout('/api/checkout/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  orderNumber: createData.orderNumber,
-                  orderId: createData.orderId,
-                  cashfreeOrderId: createData.cashfreeOrderId,
-                  token: createData.orderAccessToken
-                })
-              }, 12000);
-
-              const data = await verifyRes.json();
-              if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+                const data = await verifyRes.json();
                 verifyData = data;
-                verifySuccess = true;
-                break;
-              } else if (attempt < 4 && (verifyRes.status === 404 || verifyRes.status === 202 || data.pending)) {
-                await new Promise(r => setTimeout(r, 1200));
-              } else {
-                verifyData = data;
-                if (data.success) verifySuccess = true;
-                break;
-              }
-            } catch (retryErr) {
-              if (attempt < 4) {
-                await new Promise(r => setTimeout(r, 1000));
-              } else {
-                throw retryErr;
+                if (data.success && data.order && (data.order.paymentStatus === 'PAID' || data.order.paymentStatus === 'COD_ADVANCE_PAID' || data.order.paymentStatus === 'FULLY_PAID')) {
+                  break;
+                }
+                if (data.cancelled || data.failed || data.status === 'CANCELLED' || data.status === 'FAILED') {
+                  break;
+                }
+                if (attempt < maxAttempts && (verifyRes.status === 404 || verifyRes.status === 202 || data.pending)) {
+                  await new Promise(r => setTimeout(r, 700));
+                } else {
+                  break;
+                }
+              } catch (retryErr) {
+                if (attempt < maxAttempts) {
+                  await new Promise(r => setTimeout(r, 500));
+                } else {
+                  throw retryErr;
+                }
               }
             }
-          }
 
-          if (verifySuccess && verifyData && verifyData.success) {
-            localStorage.removeItem('kamadhenu_pending_order');
-            localStorage.removeItem('kamadhenu_pending_order_time');
-            cart = [];
-            saveCart();
-            currentCoupon = null;
-            closeCheckout();
-            const targetOrder = verifyData.orderNumber || createData.orderNumber;
-            const tokenParam = createData.orderAccessToken ? `&token=${encodeURIComponent(createData.orderAccessToken)}` : '';
-            localStorage.setItem('kamadhenu_last_order', targetOrder);
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}&status=confirmed${tokenParam}`;
-            return true;
-          }
+            if (verifyData && verifyData.success) {
+              localStorage.removeItem('kamadhenu_pending_order');
+              localStorage.removeItem('kamadhenu_pending_order_time');
+              clearCheckoutDraft();
+              cart = [];
+              saveCart();
+              currentCoupon = null;
+              closeCheckout();
+              const targetOrder = verifyData.orderNumber || createData.orderNumber;
+              const tokenParam = createData.orderAccessToken ? `&token=${encodeURIComponent(createData.orderAccessToken)}` : '';
+              localStorage.setItem('kamadhenu_last_order', targetOrder);
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}${tokenParam}`;
+              return { status: 'PAID' };
+            }
 
-          if (verifyData && verifyData.pending) {
-            closeCheckout();
-            const tokenParam = createData.orderAccessToken ? `&token=${encodeURIComponent(createData.orderAccessToken)}` : '';
-            localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
-            window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending${tokenParam}`;
-            return true;
-          }
+            if (verifyData && (verifyData.pending || verifyData.status === 'PENDING')) {
+              closeCheckout();
+              const tokenParam = createData.orderAccessToken ? `&token=${encodeURIComponent(createData.orderAccessToken)}` : '';
+              localStorage.setItem('kamadhenu_last_order', createData.orderNumber);
+              window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(createData.orderNumber)}&status=pending${tokenParam}`;
+              return { status: 'PENDING' };
+            }
 
-          return false;
+            if (verifyData && (verifyData.failed || verifyData.status === 'FAILED')) {
+              return {
+                status: 'FAILED',
+                message: verifyData.message || 'Payment failed. No payment was completed. Please try again.'
+              };
+            }
+
+            return {
+              status: 'CANCELLED',
+              message: (verifyData && verifyData.message) || 'Payment cancelled. No payment was completed. You can try again.'
+            };
+          })().finally(() => {
+            activeVerifyPromise = null;
+          });
+          return activeVerifyPromise;
+        };
+
+        const handleNonCompletedPayment = (outcome) => {
+          localStorage.removeItem('kamadhenu_pending_order');
+          localStorage.removeItem('kamadhenu_pending_order_time');
+          isPaymentRetryMode = true;
+          isCheckoutSubmitting = false;
+          checkoutSubmitBtn.disabled = false;
+          const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
+          if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
+          renderCheckoutSummary();
+          const msg = outcome && outcome.status === 'FAILED'
+            ? (outcome.message || 'Payment failed. No payment was completed. Please try again.')
+            : 'Payment cancelled. No payment was completed. You can try again.';
+          showCheckoutError(msg);
         };
 
         cashfree.checkout(checkoutOptions).then(async (result) => {
-          // If modal reported an error (or user switched/closed modal), FIRST verify if payment succeeded in bank
+          // If modal reported an error (or user switched/closed modal), do one fast server check
           if (result && result.error) {
-            console.log('Cashfree modal event received, verifying payment state with backend...');
-            const isConfirmed = await verifyPaymentWithBackend();
-            if (!isConfirmed) {
-              localStorage.removeItem('kamadhenu_pending_order');
-              localStorage.removeItem('kamadhenu_pending_order_time');
-              showCheckoutError(result.error.message || 'Payment was cancelled or not completed.');
-              isCheckoutSubmitting = false;
-              checkoutSubmitBtn.disabled = false;
-              const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
-              if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
-              renderCheckoutSummary();
+            const outcome = await verifyPaymentWithBackend(true);
+            if (outcome.status === 'CANCELLED' || outcome.status === 'FAILED') {
+              handleNonCompletedPayment(outcome);
             }
             return;
           }
 
           if (result && result.redirect) {
-            console.log('Cashfree SDK is handling redirection to payment gateway...');
-            // In case of app-switch on mobile, verify as soon as the user returns to this window
             const onReturnFocus = async () => {
               window.removeEventListener('focus', onReturnFocus);
-              await verifyPaymentWithBackend();
+              const outcome = await verifyPaymentWithBackend(false);
+              if (outcome.status === 'CANCELLED' || outcome.status === 'FAILED') {
+                handleNonCompletedPayment(outcome);
+              }
             };
             window.addEventListener('focus', onReturnFocus);
             return;
           }
 
-          // Modal completed payment
-          await verifyPaymentWithBackend();
+          // Modal completed or closed
+          const outcome = await verifyPaymentWithBackend(false);
+          if (outcome.status === 'CANCELLED' || outcome.status === 'FAILED') {
+            handleNonCompletedPayment(outcome);
+          }
         }).catch(async (cfErr) => {
           console.error('Cashfree checkout exception, checking payment status:', cfErr);
-          const isConfirmed = await verifyPaymentWithBackend();
-          if (!isConfirmed) {
-            localStorage.removeItem('kamadhenu_pending_order');
-            localStorage.removeItem('kamadhenu_pending_order_time');
-            showCheckoutError(cfErr?.message || 'Payment window closed.');
-            isCheckoutSubmitting = false;
-            checkoutSubmitBtn.disabled = false;
-            const mobileStickyPayBtn = document.getElementById('mobileStickyPayBtn');
-            if (mobileStickyPayBtn) mobileStickyPayBtn.disabled = false;
-            renderCheckoutSummary();
+          try {
+            const outcome = await verifyPaymentWithBackend(true);
+            if (outcome.status === 'CANCELLED' || outcome.status === 'FAILED') {
+              handleNonCompletedPayment(outcome);
+            }
+          } catch (_) {
+            handleNonCompletedPayment({
+              status: 'CANCELLED',
+              message: 'Payment cancelled. No payment was completed. You can try again.'
+            });
           }
         });
 
@@ -3371,6 +3567,37 @@ ${points}
       }
     });
   }
+
+  // Restore Checkout Modal with preserved draft & Retry Payment button when returning from cancelled/failed payment
+  (() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const checkoutStatus = (params.get('checkoutStatus') || '').toLowerCase();
+      if (checkoutStatus !== 'cancelled' && checkoutStatus !== 'failed') return;
+
+      const returnedOrderNumber = (params.get('orderNumber') || '').trim();
+      const returnedToken = (params.get('token') || '').trim();
+
+      localStorage.removeItem('kamadhenu_pending_order');
+      localStorage.removeItem('kamadhenu_pending_order_time');
+
+      restoreCheckoutDraft(returnedOrderNumber, returnedToken);
+      isPaymentRetryMode = true;
+      openCheckout();
+      renderCheckoutSummary();
+
+      const statusMsg = checkoutStatus === 'failed'
+        ? 'Payment failed. No payment was completed. Please try again.'
+        : 'Payment cancelled. No payment was completed. You can try again.';
+      showCheckoutError(statusMsg);
+
+      if (window.history && typeof window.history.replaceState === 'function') {
+        window.history.replaceState({}, '', window.location.pathname || '/');
+      }
+    } catch (restoreErr) {
+      console.warn('Failed to restore checkout state on return:', restoreErr);
+    }
+  })();
 
   /* ==========================================================================
      Simulated Order Tracker Logic

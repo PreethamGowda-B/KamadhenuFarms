@@ -90,10 +90,33 @@ function ConfirmationContent() {
   const tokenQuery = orderToken ? `&token=${encodeURIComponent(orderToken)}` : '';
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isPendingVerification, setIsPendingVerification] = useState<boolean>(false);
+  const [pendingPollCount, setPendingPollCount] = useState<number>(0);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isVerifyingRef = useRef<boolean>(false);
 
-  const verifyAndLoadInvoice = async () => {
-    setLoading(true);
+  const redirectBackToCheckout = (status: 'cancelled' | 'failed') => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem('kamadhenu_pending_order');
+      localStorage.removeItem('kamadhenu_pending_order_time');
+    } catch {}
+    const params = new URLSearchParams();
+    params.set('checkoutStatus', status);
+    if (orderNumber) params.set('orderNumber', orderNumber);
+    if (orderToken) params.set('token', orderToken);
+    window.location.replace(`/?${params.toString()}`);
+  };
+
+  const verifyAndLoadInvoice = async (isBackgroundPoll = false) => {
+    if (isVerifyingRef.current) return;
+    isVerifyingRef.current = true;
+    if (!isBackgroundPoll) {
+      setLoading(true);
+    }
+
+    try {
 
     // 1. Instant Direct Load: Fetch official invoice directly from DB (instant ~40ms if already confirmed)
     try {
@@ -103,6 +126,7 @@ function ConfirmationContent() {
       const fastData = await fastRes.json();
       if (fastData.success && fastData.order) {
         setOrder(fastData.order);
+        setIsPendingVerification(false);
         setLoading(false);
 
         if (typeof window !== 'undefined') {
@@ -115,6 +139,7 @@ function ConfirmationContent() {
             }
             localStorage.removeItem('kamadhenu_pending_order');
             localStorage.removeItem('kamadhenu_pending_order_time');
+            localStorage.removeItem('kamadhenu_checkout_draft');
           } catch (e) {}
         }
 
@@ -130,7 +155,7 @@ function ConfirmationContent() {
       // Fallback to active verification
     }
 
-    // 2. If order status is pending or not yet verified in DB, trigger payment verification
+    // 2. Active server-side verification against Cashfree API
     try {
       const verifyRes = await fetch('/api/checkout/verify', {
         method: 'POST',
@@ -138,8 +163,10 @@ function ConfirmationContent() {
         body: JSON.stringify({ orderNumber, token: orderToken || undefined }),
       });
       const verifyData = await verifyRes.json();
+
       if (verifyData.success && verifyData.order) {
         setOrder(verifyData.order);
+        setIsPendingVerification(false);
         setLoading(false);
         if (typeof window !== 'undefined') {
           try {
@@ -149,46 +176,36 @@ function ConfirmationContent() {
             if (verifyData.order.orderNumber) {
               localStorage.setItem('kamadhenu_last_order', verifyData.order.orderNumber);
             }
+            localStorage.removeItem('kamadhenu_pending_order');
+            localStorage.removeItem('kamadhenu_pending_order_time');
+            localStorage.removeItem('kamadhenu_checkout_draft');
           } catch (e) {}
         }
+        return;
+      }
+
+      if (verifyData.cancelled || verifyData.status === 'CANCELLED') {
+        redirectBackToCheckout('cancelled');
+        return;
+      }
+
+      if (verifyData.failed || verifyData.status === 'FAILED') {
+        redirectBackToCheckout('failed');
+        return;
+      }
+
+      if (verifyRes.status === 202 || verifyData.pending || verifyData.status === 'PENDING') {
+        setIsPendingVerification(true);
+        setLoading(false);
         return;
       }
     } catch (e) {
       console.warn('Verify call on confirmation page:', e);
     }
 
-    // 3. Polling retry loop if payment is still settling with bank
-    try {
-      let attempts = 0;
-      let invoiceData = null;
-      while (attempts < 3) {
-        attempts++;
-        await new Promise((r) => setTimeout(r, 600));
-        const res = await fetch(`/api/orders/invoice?orderNumber=${encodeURIComponent(orderNumber)}${tokenQuery}`);
-        const data = await res.json();
-        if (data.success && data.order) {
-          invoiceData = data.order;
-          break;
-        }
-      }
-
-      if (invoiceData) {
-        setOrder(invoiceData);
-        if (typeof window !== 'undefined') {
-          try {
-            if (invoiceData.customer?.mobile) {
-              localStorage.setItem('kamadhenu_customer_mobile', invoiceData.customer.mobile);
-            }
-            if (invoiceData.orderNumber) {
-              localStorage.setItem('kamadhenu_last_order', invoiceData.orderNumber);
-            }
-          } catch (e) {}
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load order invoice details', err);
+    setLoading(false);
     } finally {
-      setLoading(false);
+      isVerifyingRef.current = false;
     }
   };
 
@@ -197,8 +214,34 @@ function ConfirmationContent() {
       setLoading(false);
       return;
     }
-    verifyAndLoadInvoice();
+    verifyAndLoadInvoice(false);
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
   }, [orderNumber]);
+
+  // Safe background polling ONLY when payment is genuinely PENDING confirmation from bank
+  useEffect(() => {
+    if (!isPendingVerification || order || !orderNumber || pendingPollCount >= 20) {
+      return;
+    }
+
+    pollTimerRef.current = setTimeout(async () => {
+      setPendingPollCount((c) => c + 1);
+      await verifyAndLoadInvoice(true);
+    }, 3000);
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [isPendingVerification, order, orderNumber, pendingPollCount]);
 
   const isConfirmedPaid = order && (
     order.paymentStatus === 'PAID' ||

@@ -371,7 +371,7 @@ export async function POST(req: NextRequest) {
     }
 
     const orderAccessToken = signOrderAccessToken(orderNumber, dbOrder.customerId);
-    const returnUrl = `${appBaseUrl}/order-confirmation?orderNumber={order_id}&order_id={order_id}&status=confirmed&token=${encodeURIComponent(orderAccessToken)}`;
+    const returnUrl = `${appBaseUrl}/api/checkout/return?orderNumber={order_id}&order_id={order_id}&token=${encodeURIComponent(orderAccessToken)}`;
     const notifyUrl = `${appBaseUrl}/api/payment/cashfree/webhook`;
 
     let cashfreeOrder;

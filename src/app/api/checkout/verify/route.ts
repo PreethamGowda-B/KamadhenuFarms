@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCashfreeOrder, getCashfreeOrderPayments, CashfreePaymentEntity } from '@/lib/cashfree';
+import { getCashfreeOrder, getCashfreeOrderPayments } from '@/lib/cashfree';
 import { getAdminSessionFromRequest } from '@/lib/auth';
 import {
   createCustomerSession,
@@ -11,13 +11,7 @@ import {
   signOrderAccessToken,
   ORDER_ACCESS_COOKIE_NAME,
 } from '@/lib/customerAuth';
-import { settleCashfreePaymentAtomic } from '@/lib/orderPaymentSettlement';
-import { isOrderPaymentConfirmed } from '@/lib/orderStateMachine';
-import {
-  notifyAdminNewOrder,
-  notifyCustomerOrderConfirmed,
-  notifyCustomerPaymentFailed,
-} from '@/lib/notifications';
+import { verifyCashfreeOrderStatus } from '@/lib/cashfreeVerify';
 
 function formatOrderResponse(order: any, paymentDetails?: any) {
   const latestPayment = paymentDetails || (order.payments && order.payments[0]) || null;
@@ -274,177 +268,89 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Idempotency Check: If already confirmed as PAID / COD_ADVANCE_PAID / FULLY_PAID
-    if (isOrderPaymentConfirmed(order.paymentStatus)) {
+    // 3. Authoritatively verify payment status via DB + Cashfree Server-Side APIs
+    const verification = await verifyCashfreeOrderStatus(order);
 
-      const response = NextResponse.json({
-        success: true,
-        orderNumber: order.orderNumber,
-        orderId: order.id,
-        amount: order.total,
-        order: formatOrderResponse(order),
-        message: 'Order already verified and confirmed',
-      });
-
-      if (!cookieOrderToken && isOwnerByOrderToken) {
-        attachOrderAccessCookie(response, signOrderAccessToken(order.orderNumber, order.customerId));
-      }
-      return response;
-    }
-
-    // 4. Verify Payment Status directly with Cashfree Official APIs
-    const targetOrderId = order.cashfreeOrderId || order.orderNumber;
-    const cfPayments = await getCashfreeOrderPayments(targetOrderId);
-    const successfulPayment: CashfreePaymentEntity | undefined = cfPayments.find(
-      (p) => p.payment_status === 'SUCCESS'
-    );
-
-    const isCod = order.paymentMethod === 'COD';
-    const expectedChargedAmount = isCod ? order.advanceAmount : order.total;
-
-    if (!successfulPayment) {
-      const failedPayment = cfPayments.find(
-        (p) =>
-          p.payment_status === 'FAILED' ||
-          p.payment_status === 'CANCELLED' ||
-          p.payment_status === 'USER_DROPPED'
-      );
-
-      if (failedPayment) {
-        const failedClaim = await prisma.order.updateMany({
-          where: {
-            id: order.id,
-            paymentStatus: { in: ['PAYMENT_PENDING', 'COD_ADVANCE_PENDING'] },
-          },
-          data: { paymentStatus: 'FAILED' },
-        });
-
-        if (failedClaim.count > 0) {
-          const firstName = order.customer?.name
-            ? String(order.customer.name).trim().split(' ')[0]
-            : 'Customer';
-
-          await prisma.adminNotification
-            .upsert({
-              where: { dedupKey: `PAYMENT_FAILED:${order.orderNumber}` },
-              update: {},
-              create: {
-                title: `Payment Failed: ${order.orderNumber}`,
-                message: `${firstName}'s payment attempt of ₹${order.total} (${order.orderNumber}) was declined or cancelled.`,
-                type: 'PAYMENT_FAILED',
-                link: `/admin/orders/${order.id}`,
-                dedupKey: `PAYMENT_FAILED:${order.orderNumber}`,
-              },
-            })
-            .catch((e) => console.warn('Failed to record admin payment failed notification:', e));
-
-          await notifyCustomerPaymentFailed(order).catch((e) =>
-            console.warn('Customer failed payment notice error:', e)
-          );
-        }
-
-        return NextResponse.json(
-          {
-            success: false,
-            failed: true,
-            message: isAuthorizedCaller
-              ? (failedPayment.payment_message || 'Payment was declined or cancelled. Please try again.')
-              : 'Payment was declined or cancelled.',
-          },
-          { status: 400 }
-        );
-      }
-
+    if (verification.outcome === 'TAMPER_MISMATCH') {
       return NextResponse.json(
         {
           success: false,
-          pending: true,
-          message: 'Payment is currently pending confirmation from bank. Please wait or check your bank app.',
-        },
-        { status: 202 }
-      );
-    }
-
-    // 5. Atomic & Idempotent Settlement (prevents duplicate rewards/referrals under race conditions)
-    let methodDescription = 'ONLINE';
-    if (typeof successfulPayment.payment_method === 'object' && successfulPayment.payment_method !== null) {
-      const methodKeys = Object.keys(successfulPayment.payment_method);
-      if (methodKeys.length > 0) methodDescription = methodKeys[0].toUpperCase();
-    }
-
-    const completedAt = successfulPayment.payment_completion_time
-      ? new Date(successfulPayment.payment_completion_time)
-      : new Date();
-
-    const settlement = await settleCashfreePaymentAtomic({
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      customerId: order.customerId,
-      customerName: order.customer?.name,
-      orderTotal: order.total,
-      expectedAmount: expectedChargedAmount,
-      expectedCurrency: order.currency || 'INR',
-      isCod,
-      referralCode: order.referralCode,
-      discount: order.discount,
-      currentOrderStatus: order.orderStatus,
-      cashfreeOrderId: targetOrderId,
-      cfPaymentId: String(successfulPayment.cf_payment_id),
-      paidAmount: Number(successfulPayment.payment_amount),
-      paidCurrency: successfulPayment.payment_currency || 'INR',
-      paymentMethodDescription: methodDescription,
-      paidAt: completedAt,
-      rawPayload: successfulPayment,
-      source: 'checkout_verify',
-    });
-
-    if (settlement.currencyMismatch || settlement.amountMismatch) {
-      console.error(
-        `🚨 [Payment Tampering Detected] Order ${order.orderNumber}: Expected ₹${expectedChargedAmount} ${order.currency}, Received ${successfulPayment.payment_amount} ${successfulPayment.payment_currency}`
-      );
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'Security error: Paid amount or currency does not match authoritative order total.',
+          status: 'FAILED',
+          failed: true,
+          message: verification.message,
         },
         { status: 400 }
       );
     }
 
-    const updatedOrder = settlement.updatedOrder || order;
-
-    if (!settlement.alreadyPaid) {
-      const orderWithDetails = {
-        ...updatedOrder,
-        customer: order.customer,
-        shippingAddress: order.shippingAddress,
-        items: order.items,
-      };
-      await Promise.allSettled([
-        notifyAdminNewOrder(orderWithDetails as any).catch((err) =>
-          console.warn('Admin push notice error:', err)
-        ),
-        notifyCustomerOrderConfirmed(orderWithDetails as any).catch((err) =>
-          console.warn('Customer push notice error:', err)
-        ),
-      ]);
+    if (verification.outcome === 'PENDING') {
+      return NextResponse.json(
+        {
+          success: false,
+          pending: true,
+          status: 'PENDING',
+          message: verification.message,
+        },
+        { status: 202 }
+      );
     }
 
-    if (!isAuthorizedCaller) {
-      return NextResponse.json({
+    if (verification.outcome === 'CANCELLED') {
+      return NextResponse.json(
+        {
+          success: false,
+          cancelled: true,
+          failed: false,
+          status: 'CANCELLED',
+          message: verification.message,
+        },
+        { status: 400 }
+      );
+    }
+
+    if (verification.outcome === 'FAILED') {
+      return NextResponse.json(
+        {
+          success: false,
+          failed: true,
+          cancelled: false,
+          status: 'FAILED',
+          message: verification.message,
+        },
+        { status: 400 }
+      );
+    }
+
+    const updatedOrder = verification.order;
+    const successfulPayment = verification.successfulPayment;
+
+    if (verification.alreadyConfirmed && !successfulPayment) {
+      const response = NextResponse.json({
         success: true,
+        status: 'PAID',
         orderNumber: updatedOrder.orderNumber,
         orderId: updatedOrder.id,
-        message: 'Payment verified and recorded. Sign in or open your confirmation link to view order details.',
+        amount: updatedOrder.total,
+        order: formatOrderResponse(updatedOrder),
+        message: 'Order already verified and confirmed',
       });
+
+      if (!cookieOrderToken && isOwnerByOrderToken) {
+        attachOrderAccessCookie(
+          response,
+          signOrderAccessToken(updatedOrder.orderNumber, updatedOrder.customerId)
+        );
+      }
+      return response;
     }
 
     const response = NextResponse.json({
       success: true,
+      status: 'PAID',
       orderNumber: updatedOrder.orderNumber,
       orderId: updatedOrder.id,
       amount: updatedOrder.total,
-      paymentId: String(successfulPayment.cf_payment_id),
+      paymentId: successfulPayment ? String(successfulPayment.cf_payment_id) : undefined,
       order: formatOrderResponse(
         {
           ...updatedOrder,

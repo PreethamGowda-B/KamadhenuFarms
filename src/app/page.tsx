@@ -40,7 +40,7 @@ export default function RootHomePage() {
       {galleryStartIdx !== -1 && galleryEndIdx !== -1 && <GalleryLightboxSection />}
       {afterGalleryHtml && <div dangerouslySetInnerHTML={{ __html: afterGalleryHtml }} />}
       <script src="https://sdk.cashfree.com/js/v3/cashfree.js" async />
-      <script src="/script.js?v=20261111_v72" defer />
+      <script src="/script.js?v=20261112_v73" defer />
     </>
   );
 }
