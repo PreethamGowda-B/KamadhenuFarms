@@ -205,7 +205,7 @@ function initKamadhenuApp() {
       features: [
         'Crisp California Almonds & Crunchy Cashews',
         'Packed with Brain-Healthy Walnuts & Pistachios',
-        'Soaked in 100% Pure Raw Forest Honey',
+        'Soaked in Pure & Natural Raw Forest Honey',
         'Daily Energy, Stamina & Immunity Booster'
       ],
       highlights: ['Premium Nuts', 'High Protein', 'Immunity Boost'],
@@ -2368,7 +2368,7 @@ function initKamadhenuApp() {
     // Luxury concise message tailored per product
     let headerTitle = 'Pure Raw Honey';
     let productDesc = 'Harvested fresh & unheated from pristine bee boxes, keeping natural enzymes, pollen & raw goodness intact.';
-    let points = '✓ 100% Pure & Raw • Zero Added Sugar\n✓ Natural Immunity & Live Enzyme Rich';
+    let points = '✓ Pure & Natural Raw • Zero Added Sugar\n✓ Natural Immunity & Live Enzyme Rich';
 
     if (productId === 'p2') {
       headerTitle = 'Dry Fruits Raw Honey';
@@ -2379,14 +2379,14 @@ function initKamadhenuApp() {
       productDesc = 'Built naturally by bees inside the glass jar and filled with pure raw honey — zero human processing.';
       points = '✓ 100% Raw Comb & Liquid Honey Dual Delight\n✓ Edible Natural Beeswax Rich in Propolis';
     } else if (productId === 'p4') {
-      headerTitle = 'Raw Honeycomb Box';
+      headerTitle = 'Honey Cake';
       productDesc = 'Fresh raw honeycomb cut straight from the hive — experience honey sealed in its virgin wax cells.';
-      points = '✓ 100% Pure Raw Honeycomb from the Hive\n✓ Edible Virgin Wax with Wildflower Nectar';
+      points = '✓ Pure & Natural Raw Honeycomb from the Hive\n✓ Edible Virgin Wax with Wildflower Nectar';
     }
 
     const professionalMessage = 
 `🍯 *${headerTitle}* — Kamadhenu Honey Farms
-100% Pure & Raw Apiary Harvest (Bangalore)
+Pure & Natural Raw Apiary Harvest (Bangalore)
 
 ${productDesc}
 

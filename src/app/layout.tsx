@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Kamadhenu Honey Farms | Pure Raw Honey Bangalore',
-    description: 'Buy 100% Pure Raw Honey direct from beekeepers in Taverekere, Bangalore. Unpasteurized, zero added sugar, lab tested.',
+    description: 'Buy Pure & Natural Raw Honey direct from beekeepers in Taverekere, Bangalore. Unpasteurized, zero added sugar, lab tested.',
     url: 'https://www.kamadhenuhoneyfarms.in',
     siteName: 'Kamadhenu Honey Farms',
     images: [
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Kamadhenu Honey Farms | Pure Raw Honey Bangalore',
-    description: 'Buy 100% Pure Raw Honey direct from beekeepers in Taverekere, Bangalore. Fast home delivery across Bangalore & India.',
+    description: 'Buy Pure & Natural Raw Honey direct from beekeepers in Taverekere, Bangalore. Fast home delivery across Bangalore & India.',
     images: ['/assets/hero_honey.jpg'],
   },
   manifest: '/site.webmanifest',

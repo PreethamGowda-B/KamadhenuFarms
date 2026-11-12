@@ -237,7 +237,7 @@ function TrackOrderContent() {
     { key: 'PAID', label: 'Payment Verified', desc: 'Securely received via Cashfree / UPI' },
     { key: 'PACKED', label: 'Hygienically Packed', desc: 'Cushion-wrapped jar boxed for transit' },
     { key: 'SHIPPED', label: 'Dispatched in Transit', desc: 'Handed over to Bangalore courier partner' },
-    { key: 'DELIVERED', label: 'Delivered', desc: 'Enjoy 100% pure raw farm honey' },
+    { key: 'DELIVERED', label: 'Delivered', desc: 'Enjoy pure and natural raw farm honey' },
   ];
 
   const getStepStatus = (stepKey: string, currentStatus: string, paymentStatus: string) => {
