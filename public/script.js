@@ -400,32 +400,51 @@ function initKamadhenuApp() {
     'HONEY50': { type: 'fixed', value: 50 },
     'FREEPURE': { type: 'percent', value: 15 },
     'PREETHUGOWDA01': { type: 'percent', value: 10 },
-    'KHF-OFF': { type: 'percent', value: 5, eligibleProductIds: ['p1', 'p2'] }
+    'KHF-OFF': { type: 'percent', value: 5, eligibleProductIds: ['p1', 'p2'], minEligibleKg: 1 }
   };
+
+  function getCartItemWeightKg(item) {
+    const qty = Math.max(1, parseInt(String(item.qty ?? item.quantity ?? 1), 10) || 1);
+    const variant = String(item.size ?? item.weightVariant ?? '').toLowerCase();
+    let unitKg = 0.5;
+    if (variant.includes('250')) unitKg = 0.25;
+    else if (variant.includes('500')) unitKg = 0.5;
+    else if (variant.includes('1kg') || variant.includes('1000')) unitKg = 1.0;
+    return unitKg * qty;
+  }
 
   /**
    * Single shared coupon discount calculator used by both Cart and Checkout Summary.
-   * Enforces per-product-ID eligibility and prevents double-discounting.
+   * Enforces per-product-ID eligibility, minimum eligible weight, and prevents double-discounting.
    */
   function calculateCouponDiscount(items, couponCode) {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
     if (!couponCode || !validCoupons[couponCode]) {
-      return { valid: false, ineligibleOnly: false, isPartial: false, subtotal, eligibleSubtotal: 0, discount: 0 };
+      return { valid: false, ineligibleOnly: false, belowMinWeight: false, eligibleWeightKg: 0, minEligibleKg: 0, isPartial: false, subtotal, eligibleSubtotal: 0, discount: 0 };
     }
 
     const codeData = validCoupons[couponCode];
     let eligibleSubtotal = subtotal;
+    let eligibleWeightKg = 0;
     let isPartial = false;
 
     if (Array.isArray(codeData.eligibleProductIds) && codeData.eligibleProductIds.length > 0) {
       const allowed = new Set(codeData.eligibleProductIds);
       eligibleSubtotal = items.reduce((sum, item) => {
-        return allowed.has(item.id) ? sum + (item.price * item.qty) : sum;
+        if (!allowed.has(item.id)) return sum;
+        eligibleWeightKg += getCartItemWeightKg(item);
+        return sum + (item.price * item.qty);
       }, 0);
+      eligibleWeightKg = Math.round(eligibleWeightKg * 100) / 100;
 
       if (items.length > 0 && eligibleSubtotal <= 0) {
-        return { valid: false, ineligibleOnly: true, isPartial: false, subtotal, eligibleSubtotal: 0, discount: 0 };
+        return { valid: false, ineligibleOnly: true, belowMinWeight: false, eligibleWeightKg: 0, minEligibleKg: codeData.minEligibleKg || 0, isPartial: false, subtotal, eligibleSubtotal: 0, discount: 0 };
       }
+
+      if (codeData.minEligibleKg && items.length > 0 && eligibleWeightKg < codeData.minEligibleKg) {
+        return { valid: false, ineligibleOnly: false, belowMinWeight: true, eligibleWeightKg, minEligibleKg: codeData.minEligibleKg, isPartial: false, subtotal, eligibleSubtotal, discount: 0 };
+      }
+
       isPartial = items.length > 0 && eligibleSubtotal < subtotal;
     }
 
@@ -441,6 +460,9 @@ function initKamadhenuApp() {
     return {
       valid: true,
       ineligibleOnly: false,
+      belowMinWeight: false,
+      eligibleWeightKg,
+      minEligibleKg: codeData.minEligibleKg || 0,
       isPartial,
       subtotal,
       eligibleSubtotal,
@@ -1000,6 +1022,13 @@ function initKamadhenuApp() {
           couponFeedback.textContent = `Coupon "${ineligibleCode}" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).`;
           couponFeedback.className = 'coupon-feedback error';
         }
+      } else if (couponCalc.belowMinWeight && currentCoupon) {
+        const minCode = currentCoupon;
+        currentCoupon = null;
+        if (couponFeedback) {
+          couponFeedback.textContent = `Coupon "${minCode}" requires a minimum purchase of ${couponCalc.minEligibleKg} kg of Pure Raw Honey or Dry Fruits Honey (currently ${couponCalc.eligibleWeightKg} kg).`;
+          couponFeedback.className = 'coupon-feedback error';
+        }
       } else if (currentCoupon && !validCoupons[currentCoupon]) {
         currentCoupon = null;
       }
@@ -1153,6 +1182,15 @@ function initKamadhenuApp() {
 
         if (cart.length > 0 && previewCalc.ineligibleOnly) {
           couponFeedback.textContent = `Coupon "${code}" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).`;
+          couponFeedback.classList.add('error');
+          renderCart();
+          renderCheckoutSummary();
+          revealCouponFeedbackOnMobile();
+          return;
+        }
+
+        if (cart.length > 0 && previewCalc.belowMinWeight) {
+          couponFeedback.textContent = `Coupon "${code}" requires a minimum purchase of ${previewCalc.minEligibleKg} kg of Pure Raw Honey or Dry Fruits Honey (currently ${previewCalc.eligibleWeightKg} kg).`;
           couponFeedback.classList.add('error');
           renderCart();
           renderCheckoutSummary();
@@ -5466,20 +5504,31 @@ ${points}
     }
 
     if (applyBtn) {
+      const selectOneKgProductVariants = () => {
+        ['p1', 'p2'].forEach((pid) => {
+          const cardEl = document.querySelector(`.product-card[data-product="${pid}"]`);
+          if (!cardEl) return;
+          const oneKgBtn = cardEl.querySelector('.size-pill[data-size="1kg"], .weight-btn[data-size="1kg"], button[data-size="1kg"]');
+          if (oneKgBtn) oneKgBtn.click();
+        });
+      };
+
       applyBtn.addEventListener('click', () => {
         const code = 'KHF-OFF';
         if (couponInput) {
           couponInput.value = code;
         }
+
         if (cart.length === 0) {
+          selectOneKgProductVariants();
           currentCoupon = code;
           if (typeof saveCheckoutDraft === 'function') saveCheckoutDraft();
           if (couponFeedback) {
-            couponFeedback.textContent = 'Coupon "KHF-OFF" saved! Add Pure Raw Honey or Dry Fruits Honey to get 5% OFF.';
+            couponFeedback.textContent = 'Coupon "KHF-OFF" saved! Add 1 kg of Pure Raw Honey or Dry Fruits Honey to get 5% OFF.';
             couponFeedback.className = 'coupon-feedback success';
           }
           if (window.KamadhenuSound) window.KamadhenuSound.play('coupon');
-          showToast('KHF-OFF is ready! Add Pure Raw Honey or Dry Fruits Honey to get 5% OFF.', 'success');
+          showToast('Minimum 1 kg required for KHF-OFF! Add 1 kg Pure Raw Honey or Dry Fruits Honey for 5% OFF.', 'success');
           const productsSec = document.getElementById('products');
           if (productsSec) {
             productsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -5489,11 +5538,30 @@ ${points}
 
         const check = calculateCouponDiscount(cart, code);
         if (check.ineligibleOnly) {
+          selectOneKgProductVariants();
           if (couponFeedback) {
-            couponFeedback.textContent = 'Coupon "KHF-OFF" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).';
+            couponFeedback.textContent = 'Coupon "KHF-OFF" is only valid on Pure Raw Honey and Dry Fruits Honey (Min. 1 kg).';
             couponFeedback.className = 'coupon-feedback error';
           }
-          showToast('KHF-OFF applies only to Pure Raw Honey & Dry Fruits Honey.', 'error');
+          showToast('KHF-OFF applies only to 1 kg Pure Raw Honey & Dry Fruits Honey.', 'error');
+          const productsSec = document.getElementById('products');
+          if (productsSec) {
+            productsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+          return;
+        }
+
+        if (check.belowMinWeight) {
+          selectOneKgProductVariants();
+          if (couponFeedback) {
+            couponFeedback.textContent = `Coupon "KHF-OFF" requires a minimum purchase of 1 kg of Pure Raw Honey or Dry Fruits Honey (currently ${check.eligibleWeightKg} kg).`;
+            couponFeedback.className = 'coupon-feedback error';
+          }
+          showToast(`Minimum 1 kg required for KHF-OFF (currently ${check.eligibleWeightKg} kg). Select 1 kg jar below!`, 'error');
+          const productsSec = document.getElementById('products');
+          if (productsSec) {
+            productsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
           return;
         }
 
@@ -5503,7 +5571,7 @@ ${points}
         if (typeof openCart === 'function') {
           openCart();
         }
-        showToast(`5% OFF applied (-₹${check.discount} on eligible honey)!`, 'success');
+        showToast(`5% OFF applied (-₹${check.discount} on eligible 1 kg+ honey)!`, 'success');
       });
     }
   };

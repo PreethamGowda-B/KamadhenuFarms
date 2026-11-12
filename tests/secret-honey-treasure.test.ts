@@ -48,22 +48,32 @@ describe('Secret Honey Treasure (KHF-OFF) Promotion', () => {
     expect(PRODUCTS.p4.prices['250g']).toBeUndefined();
   });
 
-  it('configures KHF-OFF as 5% OFF restricted strictly to p1 and p2', () => {
+  it('configures KHF-OFF as 5% OFF restricted strictly to p1 and p2 with 1kg minimum', () => {
     expect(STATIC_VALID_COUPONS['KHF-OFF']).toEqual({
       type: 'percent',
       value: 5,
       eligibleProductIds: ['p1', 'p2'],
+      minEligibleKg: 1,
     });
   });
 
-  it('applies 5% OFF accurately for p1 (Pure Raw Honey) and p2 (Dry Fruits Honey)', async () => {
-    const p1Res = await validateDiscountOrReferralCode('khf-off', 399, [
+  it('rejects KHF-OFF when eligible honey weight is below 1kg (e.g., single 500g jar)', async () => {
+    const p1HalfKg = await validateDiscountOrReferralCode('KHF-OFF', 399, [
       { productId: 'p1', weightVariant: '500g', quantity: 1 },
+    ]);
+    expect(p1HalfKg.valid).toBe(false);
+    expect(p1HalfKg.calculatedDiscount).toBe(0);
+    expect(p1HalfKg.message).toContain('minimum purchase of 1 kg');
+  });
+
+  it('applies 5% OFF accurately for p1 (Pure Raw Honey) and p2 (Dry Fruits Honey) at >= 1kg', async () => {
+    const p1Res = await validateDiscountOrReferralCode('khf-off', 749, [
+      { productId: 'p1', weightVariant: '1kg', quantity: 1 },
     ]);
     expect(p1Res.valid).toBe(true);
     expect(p1Res.code).toBe('KHF-OFF');
-    expect(p1Res.eligibleSubtotal).toBe(399);
-    expect(p1Res.calculatedDiscount).toBe(20); // Math.round(399 * 0.05)
+    expect(p1Res.eligibleSubtotal).toBe(749);
+    expect(p1Res.calculatedDiscount).toBe(37); // Math.round(749 * 0.05)
 
     const p2Res = await validateDiscountOrReferralCode('KHF-OFF', 999, [
       { productId: 'p2', weightVariant: '1kg', quantity: 1 },
@@ -106,16 +116,23 @@ describe('Secret Honey Treasure (KHF-OFF) Promotion', () => {
     expect(p3AndP4.calculatedDiscount).toBe(0);
   });
 
-  it('calculates 5% discount ONLY on p1 and p2 subtotal in mixed carts', async () => {
-    const mixedRes = await validateDiscountOrReferralCode('KHF-OFF', 1897, [
-      { productId: 'p1', weightVariant: '500g', quantity: 1 }, // 399 (eligible)
+  it('calculates 5% discount ONLY on p1 and p2 subtotal in mixed carts when eligible >= 1kg', async () => {
+    const mixedUnderMin = await validateDiscountOrReferralCode('KHF-OFF', 1298, [
+      { productId: 'p1', weightVariant: '500g', quantity: 1 }, // 399 (0.5kg)
+      { productId: 'p4', weightVariant: '500g', quantity: 1 }, // 899 (excluded, doesn't count toward 1kg)
+    ]);
+    expect(mixedUnderMin.valid).toBe(false);
+    expect(mixedUnderMin.calculatedDiscount).toBe(0);
+
+    const mixedRes = await validateDiscountOrReferralCode('KHF-OFF', 2247, [
+      { productId: 'p1', weightVariant: '1kg', quantity: 1 },  // 749 (eligible, 1kg)
       { productId: 'p3', weightVariant: '500g', quantity: 1 }, // 599 (excluded)
       { productId: 'p4', weightVariant: '500g', quantity: 1 }, // 899 (excluded)
     ]);
 
     expect(mixedRes.valid).toBe(true);
-    expect(mixedRes.eligibleSubtotal).toBe(399);
-    expect(mixedRes.calculatedDiscount).toBe(20); // 5% of 399 only, NOT 5% of 1897 (95)
+    expect(mixedRes.eligibleSubtotal).toBe(749);
+    expect(mixedRes.calculatedDiscount).toBe(37); // 5% of 749 only, NOT 5% of 2247
     expect(mixedRes.message).toContain('Pure Raw Honey & Dry Fruits Honey items only');
   });
 
@@ -138,15 +155,15 @@ describe('Secret Honey Treasure (KHF-OFF) Promotion', () => {
     expect(invalidRes.calculatedDiscount).toBe(0);
   });
 
-  it('enforces two-product eligibility via POST /api/referrals/validate', async () => {
+  it('enforces two-product and 1kg eligibility via POST /api/referrals/validate', async () => {
     const reqMixed = new NextRequest('http://localhost/api/referrals/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: 'KHF-OFF',
-        subtotal: 1498,
+        subtotal: 1898,
         items: [
-          { productId: 'p2', weightVariant: '500g', quantity: 1 }, // 599
+          { productId: 'p2', weightVariant: '1kg', quantity: 1 },  // 999
           { productId: 'p4', weightVariant: '500g', quantity: 1 }, // 899
         ],
       }),
@@ -155,8 +172,8 @@ describe('Secret Honey Treasure (KHF-OFF) Promotion', () => {
     const dataMixed = await resMixed.json();
     expect(resMixed.status).toBe(200);
     expect(dataMixed.valid).toBe(true);
-    expect(dataMixed.eligibleSubtotal).toBe(599);
-    expect(dataMixed.calculatedDiscount).toBe(30); // Math.round(599 * 0.05)
+    expect(dataMixed.eligibleSubtotal).toBe(999);
+    expect(dataMixed.calculatedDiscount).toBe(50); // Math.round(999 * 0.05)
 
     const reqExcluded = new NextRequest('http://localhost/api/referrals/validate', {
       method: 'POST',

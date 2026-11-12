@@ -5,6 +5,7 @@ export interface StaticCouponConfig {
   type: 'percent' | 'fixed';
   value: number;
   eligibleProductIds?: readonly string[];
+  minEligibleKg?: number;
 }
 
 export const STATIC_VALID_COUPONS: Record<string, StaticCouponConfig> = {
@@ -12,7 +13,7 @@ export const STATIC_VALID_COUPONS: Record<string, StaticCouponConfig> = {
   HONEY50: { type: 'fixed', value: 50 },
   FREEPURE: { type: 'percent', value: 15 },
   PREETHUGOWDA01: { type: 'percent', value: 10 },
-  'KHF-OFF': { type: 'percent', value: 5, eligibleProductIds: ['p1', 'p2'] },
+  'KHF-OFF': { type: 'percent', value: 5, eligibleProductIds: ['p1', 'p2'], minEligibleKg: 1 },
 };
 
 export interface CartItemInput {
@@ -74,6 +75,21 @@ export function calculateEligibleSubtotal(
 }
 
 /**
+ * Calculates total net honey weight in Kilograms for eligible product IDs only
+ */
+export function calculateEligibleWeightKg(
+  items: CartItemInput[] = [],
+  eligibleProductIds: readonly string[]
+): number {
+  const allowed = new Set(eligibleProductIds);
+  const eligibleItems = items.filter((it) => {
+    const pid = String(it.productId ?? it.id ?? '').trim();
+    return pid && allowed.has(pid);
+  });
+  return calculateTotalWeightKg(eligibleItems);
+}
+
+/**
  * Calculates total net honey weight in Kilograms across cart items
  */
 export function calculateTotalWeightKg(items: CartItemInput[] = []): number {
@@ -122,6 +138,7 @@ export async function validateDiscountOrReferralCode(
 
     if (coupon.eligibleProductIds && coupon.eligibleProductIds.length > 0) {
       const eligibleSubtotal = calculateEligibleSubtotal(items, coupon.eligibleProductIds);
+      const eligibleWeightKg = calculateEligibleWeightKg(items, coupon.eligibleProductIds);
 
       if (items.length > 0 && eligibleSubtotal <= 0) {
         return {
@@ -133,6 +150,22 @@ export async function validateDiscountOrReferralCode(
           eligibleSubtotal: 0,
           eligibleProductIds: [...coupon.eligibleProductIds],
           message: `Coupon "${code}" is only valid on Pure Raw Honey and Dry Fruits Honey (not applicable to Bee-Crafted Honey Comb Jar or Honey Cake).`,
+          source: 'STATIC_COUPON',
+          totalWeightKg,
+        };
+      }
+
+      if (coupon.minEligibleKg && items.length > 0 && eligibleWeightKg < coupon.minEligibleKg) {
+        return {
+          valid: false,
+          code,
+          discountType: coupon.type,
+          discountValue: coupon.value,
+          calculatedDiscount: 0,
+          eligibleSubtotal,
+          eligibleProductIds: [...coupon.eligibleProductIds],
+          minPurchaseKg: coupon.minEligibleKg,
+          message: `Coupon "${code}" requires a minimum purchase of ${coupon.minEligibleKg} kg of Pure Raw Honey or Dry Fruits Honey (currently ${eligibleWeightKg} kg).`,
           source: 'STATIC_COUPON',
           totalWeightKg,
         };
