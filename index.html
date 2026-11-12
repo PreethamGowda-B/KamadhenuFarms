@@ -367,46 +367,62 @@
 
               <div class="treasure-back-inner">
                 <div class="treasure-back-header">
-                  <span class="treasure-unlocked-pill">Secret Honey Treasure</span>
+                  <span class="treasure-unlocked-pill" id="treasureStatusPill">Scratch &amp; Win</span>
                   <button type="button" class="treasure-flip-back-btn" id="treasureFlipBackBtn" aria-label="Flip back to honey jar">
                     ↺ Flip Back
                   </button>
                 </div>
 
-                <div class="treasure-offer-hero hero-treasure-offer-hero">
-                  <div class="treasure-discount-badge">
-                    <span class="treasure-discount-value">5% OFF</span>
-                    <span class="treasure-discount-tag">GOLDEN FARM REWARD</span>
-                  </div>
-                  <div class="treasure-offer-details">
-                    <h3 class="treasure-back-heading">Unsealed Just For You</h3>
-                    <div class="treasure-conditions-box" role="note" aria-label="Offer eligibility conditions">
-                      <div class="treasure-condition-line treasure-condition-line--eligible">
-                        <span class="treasure-cond-icon" aria-hidden="true">✓</span>
-                        <span>Valid on <strong>Pure Raw Honey</strong> &amp; <strong>Dry Fruits Honey</strong></span>
+                <div class="treasure-scratch-stage" id="treasureScratchStage">
+                  <div class="treasure-scratch-content">
+                    <div class="treasure-offer-hero hero-treasure-offer-hero">
+                      <div class="treasure-discount-badge">
+                        <span class="treasure-discount-value">5% OFF</span>
+                        <span class="treasure-discount-tag">GOLDEN FARM REWARD</span>
                       </div>
-                      <div class="treasure-condition-line treasure-condition-line--excluded">
-                        <span class="treasure-cond-icon" aria-hidden="true">•</span>
-                        <span>Excludes Bee-Crafted Honey Comb Jar &amp; Honey Cake</span>
+                      <div class="treasure-offer-details">
+                        <h3 class="treasure-back-heading">Unsealed Just For You</h3>
+                        <div class="treasure-conditions-box" role="note" aria-label="Offer eligibility conditions">
+                          <div class="treasure-condition-line treasure-condition-line--eligible">
+                            <span class="treasure-cond-icon" aria-hidden="true">✓</span>
+                            <span>Valid on <strong>Pure Raw Honey</strong> &amp; <strong>Dry Fruits Honey</strong></span>
+                          </div>
+                          <div class="treasure-condition-line treasure-condition-line--excluded">
+                            <span class="treasure-cond-icon" aria-hidden="true">•</span>
+                            <span>Excludes Bee-Crafted Honey Comb Jar &amp; Honey Cake</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="treasure-code-actions hero-treasure-code-actions">
+                      <div class="treasure-code-box" aria-label="Promo code KHF-OFF">
+                        <span class="treasure-code-label">USE CODE</span>
+                        <strong class="treasure-code-value" id="treasurePromoCode">KHF-OFF</strong>
+                      </div>
+
+                      <div class="treasure-btn-group">
+                        <button type="button" class="treasure-btn treasure-btn--copy" id="copyTreasureCodeBtn">
+                          Copy Code
+                        </button>
+                        <button type="button" class="treasure-btn treasure-btn--apply" id="applyTreasureCodeBtn">
+                          Apply 5% OFF
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div class="treasure-code-actions hero-treasure-code-actions">
-                  <div class="treasure-code-box" aria-label="Promo code KHF-OFF">
-                    <span class="treasure-code-label">USE CODE</span>
-                    <strong class="treasure-code-value" id="treasurePromoCode">KHF-OFF</strong>
-                  </div>
-
-                  <div class="treasure-btn-group">
-                    <button type="button" class="treasure-btn treasure-btn--copy" id="copyTreasureCodeBtn">
-                      Copy Code
-                    </button>
-                    <button type="button" class="treasure-btn treasure-btn--apply" id="applyTreasureCodeBtn">
-                      Apply 5% OFF
-                    </button>
-                  </div>
+                  <!-- Interactive Gold Foil Scratch Canvas -->
+                  <canvas
+                    class="treasure-scratch-canvas"
+                    id="treasureScratchCanvas"
+                    aria-label="Scratch off the golden foil to reveal your 5% off reward code"
+                  ></canvas>
+                  <div class="treasure-scratch-glint" id="treasureScratchGlint" aria-hidden="true"></div>
+                  <div class="treasure-particle-layer" id="treasureParticleLayer" aria-hidden="true"></div>
+                  <button type="button" class="treasure-quick-reveal-btn" id="treasureQuickRevealBtn">
+                    Tap to Scratch / Reveal
+                  </button>
                 </div>
               </div>
             </div>

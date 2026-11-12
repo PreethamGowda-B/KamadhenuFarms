@@ -10507,6 +10507,119 @@ body.overflow-hidden {
   background: rgba(176, 58, 46, 0.16);
 }
 
+/* Interactive Gold Foil Scratch-Off Stage */
+.treasure-scratch-stage {
+  position: relative;
+  border-radius: 16px;
+  padding: 0.9rem;
+  background: rgba(255, 253, 246, 0.72);
+  border: 1px solid rgba(216, 166, 79, 0.35);
+  overflow: hidden;
+}
+
+.treasure-scratch-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.treasure-scratch-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  cursor: crosshair;
+  touch-action: none;
+  border-radius: 15px;
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.treasure-scratch-glint {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  border-radius: 15px;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.38) 46%,
+    rgba(255, 248, 220, 0.65) 50%,
+    rgba(255, 255, 255, 0.32) 54%,
+    transparent 80%
+  );
+  transform: translateX(-120%);
+  animation: treasureFoilGlint 3.2s ease-in-out infinite;
+  transition: opacity 0.4s ease;
+}
+
+@keyframes treasureFoilGlint {
+  0% { transform: translateX(-125%); }
+  45%, 100% { transform: translateX(135%); }
+}
+
+.treasure-particle-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.treasure-spark-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8d6 0%, #f5b82e 55%, #b7791f 100%);
+  box-shadow: 0 0 8px rgba(245, 184, 46, 0.85);
+  pointer-events: none;
+  animation: treasureDustBurst 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes treasureDustBurst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, -22px))) scale(0.25);
+  }
+}
+
+.treasure-quick-reveal-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 7;
+  padding: 0.3rem 0.68rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 248, 220, 0.65);
+  background: rgba(47, 32, 11, 0.72);
+  color: #fff6dc;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: opacity 0.3s ease, background 0.2s ease;
+}
+
+.treasure-quick-reveal-btn:hover {
+  background: rgba(47, 32, 11, 0.9);
+}
+
+.treasure-scratch-stage.is-revealed .treasure-scratch-canvas,
+.treasure-scratch-stage.is-revealed .treasure-scratch-glint,
+.treasure-scratch-stage.is-revealed .treasure-quick-reveal-btn {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
 @media (max-width: 680px) {
   .hero-treasure-card {
     height: 440px;

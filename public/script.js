@@ -5098,7 +5098,191 @@ ${points}
     const flipBackBtn = document.getElementById('treasureFlipBackBtn');
     const copyBtn = document.getElementById('copyTreasureCodeBtn');
     const applyBtn = document.getElementById('applyTreasureCodeBtn');
+    const scratchStage = document.getElementById('treasureScratchStage');
+    const scratchCanvas = document.getElementById('treasureScratchCanvas');
+    const particleLayer = document.getElementById('treasureParticleLayer');
+    const quickRevealBtn = document.getElementById('treasureQuickRevealBtn');
+    const statusPill = document.getElementById('treasureStatusPill');
     if (!card || !front || !back) return;
+
+    let isScratched = false;
+    let isDrawing = false;
+    let lastPos = null;
+    let lastParticleTs = 0;
+
+    const spawnScratchDust = (x, y, count = 2) => {
+      if (!particleLayer) return;
+      for (let i = 0; i < count; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'treasure-spark-dot';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 12 + Math.random() * 24;
+        dot.style.left = `${x}px`;
+        dot.style.top = `${y}px`;
+        dot.style.setProperty('--dx', `${Math.round(Math.cos(angle) * dist)}px`);
+        dot.style.setProperty('--dy', `${Math.round(Math.sin(angle) * dist - 8)}px`);
+        particleLayer.appendChild(dot);
+        setTimeout(() => dot.remove(), 680);
+      }
+    };
+
+    const completeScratchReveal = () => {
+      if (isScratched) return;
+      isScratched = true;
+      isDrawing = false;
+      if (scratchStage) scratchStage.classList.add('is-revealed');
+      if (statusPill) statusPill.textContent = 'Treasure Unlocked ✓';
+      if (scratchStage) {
+        const w = scratchStage.clientWidth || 320;
+        const h = scratchStage.clientHeight || 220;
+        for (let i = 0; i < 14; i++) {
+          spawnScratchDust(Math.random() * w, Math.random() * h, 1);
+        }
+      }
+      showToast('Secret Honey Treasure unlocked! Code KHF-OFF gives 5% OFF on Pure Raw Honey & Dry Fruits Honey.', 'success');
+    };
+
+    const drawGoldFoil = () => {
+      if (!scratchCanvas || !scratchStage || isScratched) return;
+      const w = scratchStage.clientWidth || 360;
+      const h = scratchStage.clientHeight || 230;
+      if (w < 20 || h < 20) return;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      scratchCanvas.width = Math.floor(w * dpr);
+      scratchCanvas.height = Math.floor(h * dpr);
+      const ctx = scratchCanvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+
+      // Rich metallic honey-gold foil base
+      const grad = ctx.createLinearGradient(0, 0, w, h);
+      grad.addColorStop(0, '#f3d078');
+      grad.addColorStop(0.35, '#d8a64f');
+      grad.addColorStop(0.68, '#f7dd94');
+      grad.addColorStop(1, '#b67818');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Subtle honeycomb lattice on foil
+      ctx.strokeStyle = 'rgba(120, 74, 10, 0.22)';
+      ctx.lineWidth = 1.1;
+      const r = 16;
+      const dx = r * 1.5;
+      const dy = r * Math.sqrt(3);
+      for (let col = -1; col * dx < w + r; col++) {
+        for (let row = -1; row * dy < h + r; row++) {
+          const cx = col * dx;
+          const cy = row * dy + (col % 2 === 0 ? 0 : dy / 2);
+          ctx.beginPath();
+          for (let s = 0; s < 6; s++) {
+            const a = (Math.PI / 3) * s;
+            const px = cx + r * Math.cos(a);
+            const py = cy + r * Math.sin(a);
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+
+      // Embossed center prompt
+      ctx.fillStyle = 'rgba(62, 37, 6, 0.88)';
+      ctx.textAlign = 'center';
+      ctx.font = '700 18px Georgia, serif';
+      ctx.fillText('✦ SCRATCH TO REVEAL ✦', w / 2, h / 2 - 8);
+      ctx.font = '600 13px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(62, 37, 6, 0.78)';
+      ctx.fillText('Rub here with finger or mouse to unlock your 5% OFF', w / 2, h / 2 + 18);
+    };
+
+    const getCanvasPos = (e) => {
+      const rect = scratchCanvas.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      };
+    };
+
+    const scratchAt = (pos) => {
+      if (!scratchCanvas || isScratched) return;
+      const ctx = scratchCanvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 40;
+      ctx.beginPath();
+      if (lastPos) {
+        ctx.moveTo(lastPos.x, lastPos.y);
+        ctx.lineTo(pos.x, pos.y);
+      } else {
+        ctx.arc(pos.x, pos.y, 20, 0, Math.PI * 2);
+      }
+      ctx.stroke();
+      ctx.restore();
+      lastPos = pos;
+
+      const now = Date.now();
+      if (now - lastParticleTs > 45) {
+        lastParticleTs = now;
+        spawnScratchDust(pos.x, pos.y, 2);
+      }
+    };
+
+    const checkScratchProgress = () => {
+      if (!scratchCanvas || isScratched) return;
+      const ctx = scratchCanvas.getContext('2d');
+      if (!ctx) return;
+      try {
+        const { width, height } = scratchCanvas;
+        const data = ctx.getImageData(0, 0, width, height).data;
+        let cleared = 0;
+        let total = 0;
+        const step = 32; // fast alpha sampling
+        for (let i = 3; i < data.length; i += 4 * step) {
+          total++;
+          if (data[i] < 128) cleared++;
+        }
+        if (total > 0 && cleared / total >= 0.32) {
+          completeScratchReveal();
+        }
+      } catch (err) {}
+    };
+
+    if (scratchCanvas) {
+      scratchCanvas.addEventListener('pointerdown', (e) => {
+        if (isScratched) return;
+        isDrawing = true;
+        lastPos = null;
+        try { scratchCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+        scratchAt(getCanvasPos(e));
+      });
+      scratchCanvas.addEventListener('pointermove', (e) => {
+        if (!isDrawing || isScratched) return;
+        scratchAt(getCanvasPos(e));
+      });
+      const finishStroke = () => {
+        if (!isDrawing) return;
+        isDrawing = false;
+        lastPos = null;
+        checkScratchProgress();
+      };
+      scratchCanvas.addEventListener('pointerup', finishStroke);
+      scratchCanvas.addEventListener('pointercancel', finishStroke);
+    }
+
+    if (quickRevealBtn) {
+      quickRevealBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        completeScratchReveal();
+      });
+    }
 
     const setFlipped = (flipped) => {
       card.classList.toggle('is-flipped', flipped);
@@ -5109,6 +5293,9 @@ ${points}
       front.setAttribute('aria-expanded', flipped ? 'true' : 'false');
       front.setAttribute('aria-hidden', flipped ? 'true' : 'false');
       back.setAttribute('aria-hidden', flipped ? 'false' : 'true');
+      if (flipped && !isScratched) {
+        requestAnimationFrame(() => drawGoldFoil());
+      }
     };
 
     front.addEventListener('click', () => setFlipped(true));
@@ -5119,9 +5306,9 @@ ${points}
       }
     });
 
-    // Clicking anywhere on the backside (outside buttons/code box) also flips back
+    // Clicking anywhere on the backside (outside interactive areas) flips back
     back.addEventListener('click', (e) => {
-      if (e.target && e.target.closest('button, .treasure-code-box')) return;
+      if (e.target && e.target.closest('button, .treasure-code-box, .treasure-scratch-stage')) return;
       setFlipped(false);
     });
 
