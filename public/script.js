@@ -1169,6 +1169,7 @@ function initKamadhenuApp() {
           couponFeedback.textContent = `Coupon "${code}" applied successfully! You got ${codeData.value}${codeData.type === 'percent' ? '% off' : ' Rs off'}.`;
         }
         couponFeedback.classList.add('success');
+        if (window.KamadhenuSound) window.KamadhenuSound.play('coupon');
         renderCart();
         renderCheckoutSummary();
         revealCouponFeedbackOnMobile();
@@ -1202,6 +1203,7 @@ function initKamadhenuApp() {
           };
           couponFeedback.textContent = data.message || `Referral code "${code}" applied! You got ${data.discountValue}% off.`;
           couponFeedback.classList.add('success');
+          if (window.KamadhenuSound) window.KamadhenuSound.play('coupon');
           renderCart();
           renderCheckoutSummary();
         } else {
@@ -3579,6 +3581,7 @@ ${points}
             }
 
             if (verifyData && verifyData.success) {
+              if (window.KamadhenuSound) window.KamadhenuSound.play('order');
               localStorage.removeItem('kamadhenu_pending_order');
               localStorage.removeItem('kamadhenu_pending_order_time');
               clearCheckoutDraft();
@@ -3589,6 +3592,7 @@ ${points}
               const targetOrder = verifyData.orderNumber || createData.orderNumber;
               const tokenParam = createData.orderAccessToken ? `&token=${encodeURIComponent(createData.orderAccessToken)}` : '';
               localStorage.setItem('kamadhenu_last_order', targetOrder);
+              await new Promise(r => setTimeout(r, 240));
               window.location.href = `/order-confirmation?orderNumber=${encodeURIComponent(targetOrder)}${tokenParam}`;
               return { status: 'PAID' };
             }
@@ -4587,6 +4591,75 @@ ${points}
   };
 
   /* ==========================================================================
+     Kamadhenu Premium Web Audio Sound Engine (Zero-Asset Harmonic Chimes)
+     ========================================================================== */
+  window.KamadhenuSound = {
+    audioCtx: null,
+    lastScratchTs: 0,
+    getContext: function() {
+      if (!this.audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) this.audioCtx = new AudioContextClass();
+      }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+      return this.audioCtx;
+    },
+    play: function(cue) {
+      try {
+        const ctx = this.getContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        if (cue === 'scratch') {
+          const ts = Date.now();
+          if (ts - this.lastScratchTs < 110) return;
+          this.lastScratchTs = ts;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(1400 + Math.random() * 450, now);
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(0.018, now + 0.008);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+          return;
+        }
+
+        const presets = {
+          cartFirst: { freqs: [523.25, 659.25, 783.99, 1046.50], step: 0.06, dur: 0.36, vol: 0.08, type: 'sine' },
+          cart:      { freqs: [1046.50, 1318.51], step: 0.06, dur: 0.30, vol: 0.07, type: 'sine' },
+          flip:      { freqs: [392.00, 587.33], step: 0.055, dur: 0.24, vol: 0.05, type: 'triangle' },
+          copy:      { freqs: [880.00, 1174.66], step: 0.045, dur: 0.20, vol: 0.05, type: 'sine' },
+          coupon:    { freqs: [659.25, 830.61, 987.77], step: 0.06, dur: 0.34, vol: 0.07, type: 'sine' },
+          treasure:  { freqs: [587.33, 739.99, 880.00, 1174.66, 1479.98], step: 0.055, dur: 0.42, vol: 0.075, type: 'sine' },
+          order:     { freqs: [523.25, 659.25, 783.99, 987.77, 1046.50], step: 0.065, dur: 0.50, vol: 0.085, type: 'sine' }
+        };
+
+        const p = presets[cue] || presets.cart;
+        p.freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = p.type;
+          const t0 = now + idx * p.step;
+          osc.frequency.setValueAtTime(freq, t0);
+          gain.gain.setValueAtTime(0, t0);
+          gain.gain.linearRampToValueAtTime(p.vol, t0 + 0.018);
+          gain.gain.exponentialRampToValueAtTime(0.001, t0 + p.dur);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t0);
+          osc.stop(t0 + p.dur + 0.04);
+        });
+      } catch (e) {}
+    }
+  };
+
+  /* ==========================================================================
      Add to Cart Premium Celebration System (GPU Accelerated & Synchronized)
      ========================================================================== */
   window.CartCelebration = {
@@ -4648,33 +4721,8 @@ ${points}
     },
 
     playChime: function(isFirstItem) {
-      try {
-        if (!this.audioCtx) {
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (AudioContextClass) this.audioCtx = new AudioContextClass();
-        }
-        if (!this.audioCtx) return;
-        if (this.audioCtx.state === 'suspended') {
-          this.audioCtx.resume();
-        }
-
-        const now = this.audioCtx.currentTime;
-        const notes = isFirstItem ? [523.25, 659.25, 783.99, 1046.50] : [1046.50, 1318.51];
-        notes.forEach((freq, index) => {
-          const osc = this.audioCtx.createOscillator();
-          const gain = this.audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, now + index * 0.06);
-          gain.gain.setValueAtTime(0, now + index * 0.06);
-          gain.gain.linearRampToValueAtTime(0.08, now + index * 0.06 + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.06 + 0.35);
-          osc.connect(gain);
-          gain.connect(this.audioCtx.destination);
-          osc.start(now + index * 0.06);
-          osc.stop(now + index * 0.06 + 0.4);
-        });
-      } catch (e) {
-        // Safe audio fallback
+      if (window.KamadhenuSound) {
+        window.KamadhenuSound.play(isFirstItem ? 'cartFirst' : 'cart');
       }
     },
 
@@ -5188,6 +5236,7 @@ ${points}
         }
       }
       launchCardCelebrationBlast();
+      if (window.KamadhenuSound) window.KamadhenuSound.play('treasure');
       showToast('Secret Honey Treasure unlocked! Code KHF-OFF gives 5% OFF on Pure Raw Honey & Dry Fruits Honey.', 'success');
     };
 
@@ -5281,6 +5330,7 @@ ${points}
       if (now - lastParticleTs > 45) {
         lastParticleTs = now;
         spawnScratchDust(pos.x, pos.y, 2);
+        if (window.KamadhenuSound) window.KamadhenuSound.play('scratch');
       }
     };
 
@@ -5341,6 +5391,7 @@ ${points}
     }
 
     const setFlipped = (flipped) => {
+      if (window.KamadhenuSound) window.KamadhenuSound.play('flip');
       card.classList.toggle('is-flipped', flipped);
       if (heroMedia) {
         heroMedia.classList.toggle('is-treasure-flipped', flipped);
@@ -5406,6 +5457,7 @@ ${points}
           tempInput.remove();
         }
         copyBtn.textContent = copied ? 'Copied! ✓' : 'Code: KHF-OFF';
+        if (window.KamadhenuSound) window.KamadhenuSound.play('copy');
         showToast('Code KHF-OFF copied! Valid for 5% OFF on Pure Raw Honey & Dry Fruits Honey.', 'success');
         setTimeout(() => {
           copyBtn.textContent = 'Copy Code';
@@ -5426,6 +5478,7 @@ ${points}
             couponFeedback.textContent = 'Coupon "KHF-OFF" saved! Add Pure Raw Honey or Dry Fruits Honey to get 5% OFF.';
             couponFeedback.className = 'coupon-feedback success';
           }
+          if (window.KamadhenuSound) window.KamadhenuSound.play('coupon');
           showToast('KHF-OFF is ready! Add Pure Raw Honey or Dry Fruits Honey to get 5% OFF.', 'success');
           const productsSec = document.getElementById('products');
           if (productsSec) {
