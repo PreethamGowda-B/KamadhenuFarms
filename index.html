@@ -355,9 +355,10 @@
               </div>
             </div>
 
-            <!-- Back Face: Revealed 5% OFF + KHF-OFF -->
+            <!-- Back Face: Revealed 5% OFF + KHF-OFF (Luxury Heritage Design) -->
             <div class="treasure-face treasure-face--back hero-treasure-back" id="treasureCardBack" aria-hidden="true">
               <div class="treasure-honeycomb-bg" aria-hidden="true"></div>
+              <div class="treasure-drip-top" aria-hidden="true"></div>
               <div class="treasure-sparkles treasure-sparkles--active" aria-hidden="true">
                 <span class="sparkle s1">✦</span>
                 <span class="sparkle s2">✧</span>
@@ -365,39 +366,54 @@
                 <span class="sparkle s4">✧</span>
               </div>
 
-              <div class="treasure-back-inner">
-                <div class="treasure-back-header">
-                  <span class="treasure-unlocked-pill" id="treasureStatusPill">Scratch &amp; Win</span>
+              <div class="treasure-back-inner treasure-luxury-back">
+                <!-- Brand Header + Flip Back -->
+                <div class="treasure-brand-top">
+                  <div class="treasure-brand-crest">
+                    <span class="treasure-brand-bee" aria-hidden="true">🐝</span>
+                    <span class="treasure-brand-name">KAMADHENU HONEY FARMS</span>
+                    <span class="treasure-brand-since">SINCE 2020</span>
+                  </div>
                   <button type="button" class="treasure-flip-back-btn" id="treasureFlipBackBtn" aria-label="Flip back to honey jar">
                     ↺ Flip Back
                   </button>
                 </div>
 
-                <div class="treasure-scratch-stage" id="treasureScratchStage">
+                <div class="treasure-title-ribbon-wrap">
+                  <span class="treasure-dark-ribbon" id="treasureStatusPill">🔒 SECRET HONEY TREASURE</span>
+                  <h3 class="treasure-back-heading treasure-unsealed-script">Unsealed Just For You</h3>
+                </div>
+
+                <!-- Interactive Scratch-Off Stage -->
+                <div class="treasure-scratch-stage treasure-luxury-stage" id="treasureScratchStage">
                   <div class="treasure-scratch-content">
+                    <!-- Seal Badge + 2-Line Conditions -->
                     <div class="treasure-offer-hero hero-treasure-offer-hero">
-                      <div class="treasure-discount-badge">
-                        <span class="treasure-discount-value">5% OFF</span>
-                        <span class="treasure-discount-tag">GOLDEN FARM REWARD</span>
+                      <div class="treasure-wax-seal" aria-label="5% OFF Golden Farm Reward">
+                        <div class="treasure-wax-ring">
+                          <span class="treasure-wax-percent">5%</span>
+                          <span class="treasure-wax-off">OFF</span>
+                        </div>
+                        <span class="treasure-wax-ribbon">GOLDEN FARM REWARD</span>
                       </div>
-                      <div class="treasure-offer-details">
-                        <h3 class="treasure-back-heading">Unsealed Just For You</h3>
-                        <div class="treasure-conditions-box" role="note" aria-label="Offer eligibility conditions">
-                          <div class="treasure-condition-line treasure-condition-line--eligible">
-                            <span class="treasure-cond-icon" aria-hidden="true">✓</span>
-                            <span>Valid on <strong>Pure Raw Honey</strong> &amp; <strong>Dry Fruits Honey</strong></span>
-                          </div>
-                          <div class="treasure-condition-line treasure-condition-line--excluded">
-                            <span class="treasure-cond-icon" aria-hidden="true">•</span>
-                            <span>Excludes Bee-Crafted Honey Comb Jar &amp; Honey Cake</span>
-                          </div>
+
+                      <div class="treasure-conditions-box" role="note" aria-label="Offer eligibility conditions">
+                        <div class="treasure-condition-line treasure-condition-line--eligible">
+                          <span class="treasure-cond-icon" aria-hidden="true">✓</span>
+                          <span>Valid on <strong>Pure Raw Honey &amp; Dry Fruits Honey</strong></span>
+                        </div>
+                        <div class="treasure-condition-line treasure-condition-line--excluded">
+                          <span class="treasure-cond-icon" aria-hidden="true">⊘</span>
+                          <span>Excludes Bee-Crafted Honey Comb Jar &amp; Honey Cake</span>
                         </div>
                       </div>
                     </div>
 
+                    <!-- Code Pill + Dual Action Buttons -->
                     <div class="treasure-code-actions hero-treasure-code-actions">
                       <div class="treasure-code-box" aria-label="Promo code KHF-OFF">
                         <span class="treasure-code-label">USE CODE</span>
+                        <span class="treasure-code-sep" aria-hidden="true">|</span>
                         <strong class="treasure-code-value" id="treasurePromoCode">KHF-OFF</strong>
                       </div>
 
@@ -406,8 +422,28 @@
                           Copy Code
                         </button>
                         <button type="button" class="treasure-btn treasure-btn--apply" id="applyTreasureCodeBtn">
-                          Apply 5% OFF
+                          Apply 5% OFF →
                         </button>
+                      </div>
+                    </div>
+
+                    <!-- 4-Column Offer Eligibility & Notes Footer -->
+                    <div class="treasure-notes-panel" aria-label="Offer eligibility and notes">
+                      <div class="treasure-notes-pill">OFFER ELIGIBILITY &amp; NOTES</div>
+                      <div class="treasure-notes-grid">
+                        <div class="treasure-note-item">
+                          <span class="treasure-note-label">Eligible sizes:</span>
+                          <span class="treasure-note-chip">250g · 500g · 1kg</span>
+                        </div>
+                        <div class="treasure-note-item">
+                          <span>Valid only on <strong>Pure Raw Honey &amp; Dry Fruits Honey</strong></span>
+                        </div>
+                        <div class="treasure-note-item">
+                          <span><strong>5% discount</strong> applies to eligible products only.</span>
+                        </div>
+                        <div class="treasure-note-item">
+                          <span>Cannot be combined with other coupon codes.</span>
+                        </div>
                       </div>
                     </div>
                   </div>
