@@ -333,20 +333,40 @@ function initKamadhenuApp() {
      Global Toast Notification Manager
      ========================================================================== */
   let globalToastTimer = null;
-  const showToast = (titleOrMessage, subtitleText = '') => {
+  const showToast = (titleOrMessage, subtitleText = '', variant = 'success') => {
     try {
       const toast = document.getElementById('cart-celebration-toast');
       if (!toast) return;
 
       const titleEl = toast.querySelector('.toast-title');
       const subEl = toast.querySelector('.toast-subtitle');
+      const iconEl = toast.querySelector('.toast-icon-wrap');
       const progressBar = toast.querySelector('.toast-progress-bar');
+
+      const normalizedVariant =
+        variant === 'warning' || variant === 'error' || variant === 'info' ? variant : 'success';
+      toast.setAttribute('data-variant', normalizedVariant);
+
+      const defaultTitles = {
+        success: 'Added to Cart',
+        warning: 'Payment Cancelled',
+        error: 'Payment Notice',
+        info: 'Notice',
+      };
+      const variantIcons = {
+        success: '🍯',
+        warning: '⚠️',
+        error: '✕',
+        info: 'ℹ️',
+      };
+
+      if (iconEl) iconEl.textContent = variantIcons[normalizedVariant];
 
       if (subtitleText) {
         if (titleEl) titleEl.textContent = titleOrMessage;
         if (subEl) subEl.textContent = subtitleText;
       } else {
-        if (titleEl) titleEl.textContent = 'Success!';
+        if (titleEl) titleEl.textContent = defaultTitles[normalizedVariant];
         if (subEl) subEl.textContent = titleOrMessage;
       }
 
@@ -359,9 +379,10 @@ function initKamadhenuApp() {
       });
 
       if (globalToastTimer) clearTimeout(globalToastTimer);
+      const durationMs = normalizedVariant === 'warning' || normalizedVariant === 'error' ? 4200 : 3200;
       globalToastTimer = setTimeout(() => {
         toast.className = 'toast-hidden';
-      }, 3200);
+      }, durationMs);
 
       toast.onclick = () => {
         clearTimeout(globalToastTimer);
@@ -2474,14 +2495,21 @@ ${points}
   const showCheckoutError = (msg) => {
     if (!checkoutErrorMsg) return;
     if (msg) {
+      const isCancelled = /cancel/i.test(msg);
+      checkoutErrorMsg.setAttribute('data-variant', isCancelled ? 'warning' : 'error');
       checkoutErrorMsg.textContent = msg;
-      checkoutErrorMsg.style.display = 'block';
+      checkoutErrorMsg.style.display = 'flex';
       try {
         checkoutErrorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch (_) {}
-      showToast(msg);
+      showToast(
+        isCancelled ? 'Payment Cancelled' : 'Payment Not Completed',
+        msg,
+        isCancelled ? 'warning' : 'error'
+      );
     } else {
       checkoutErrorMsg.style.display = 'none';
+      checkoutErrorMsg.removeAttribute('data-variant');
     }
   };
 
@@ -3525,16 +3553,32 @@ ${points}
           }
 
           if (result && result.redirect) {
-            const onReturnFocus = async () => {
-              window.removeEventListener('focus', onReturnFocus);
-              const outcome = await verifyPaymentWithBackend(false);
+            let returnHandled = false;
+            const handleMobileReturn = async () => {
+              if (returnHandled) return;
+              if (document.visibilityState && document.visibilityState !== 'visible') return;
+              returnHandled = true;
+              window.removeEventListener('focus', handleMobileReturn);
+              document.removeEventListener('visibilitychange', handleMobileReturn);
+              window.__kamadhenuOnBfcacheReturn = null;
+              const outcome = await verifyPaymentWithBackend(true);
               if (outcome.status === 'CANCELLED' || outcome.status === 'FAILED') {
                 handleNonCompletedPayment(outcome);
               }
             };
-            window.addEventListener('focus', onReturnFocus);
+            window.__kamadhenuOnBfcacheReturn = handleMobileReturn;
+            window.addEventListener('focus', handleMobileReturn);
+            document.addEventListener('visibilitychange', handleMobileReturn);
             return;
           }
+
+          window.__kamadhenuOnBfcacheReturn = async () => {
+            window.__kamadhenuOnBfcacheReturn = null;
+            const outcome = await verifyPaymentWithBackend(true);
+            if (outcome.status === 'CANCELLED' || outcome.status === 'FAILED') {
+              handleNonCompletedPayment(outcome);
+            }
+          };
 
           // Modal completed or closed
           const outcome = await verifyPaymentWithBackend(false);
@@ -3590,6 +3634,15 @@ ${points}
         ? 'Payment failed. No payment was completed. Please try again.'
         : 'Payment cancelled. No payment was completed. You can try again.';
       showCheckoutError(statusMsg);
+
+      // Ensure error banner stays visible on mobile after openCheckout()'s 50ms top-scroll reset
+      setTimeout(() => {
+        if (checkoutErrorMsg && checkoutErrorMsg.style.display !== 'none') {
+          try {
+            checkoutErrorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } catch (_) {}
+        }
+      }, 120);
 
       if (window.history && typeof window.history.replaceState === 'function') {
         window.history.replaceState({}, '', window.location.pathname || '/');
@@ -4953,11 +5006,18 @@ if (typeof document !== 'undefined') {
     initKamadhenuApp();
   }
 
-  window.addEventListener('pageshow', () => {
+  window.addEventListener('pageshow', (event) => {
     document.body.classList.add('loaded');
-    document.documentElement.classList.remove('overflow-hidden');
-    document.body.classList.remove('overflow-hidden');
-    document.body.style.overflow = '';
+    const checkoutOverlay = document.getElementById('checkoutModalOverlay');
+    const isCheckoutActive = checkoutOverlay && checkoutOverlay.classList.contains('active');
+    if (!isCheckoutActive) {
+      document.documentElement.classList.remove('overflow-hidden');
+      document.body.classList.remove('overflow-hidden');
+      document.body.style.overflow = '';
+    }
     document.querySelectorAll('.reveal').forEach(el => el.classList.add('active'));
+    if (event && event.persisted && typeof window.__kamadhenuOnBfcacheReturn === 'function') {
+      window.__kamadhenuOnBfcacheReturn();
+    }
   });
 }

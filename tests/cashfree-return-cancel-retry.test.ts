@@ -159,7 +159,7 @@ describe('Cashfree Return, Cancellation, Failure, Pending & Retry Flow', () => {
       body: JSON.stringify({ orderNumber: 'KHF-ORD-CF1', token }),
     });
     const verifyRes = await checkoutVerifyPost(verifyReq);
-    expect(verifyRes.status).toBe(400);
+    expect(verifyRes.status).toBe(200);
     const verifyJson = await verifyRes.json();
     expect(verifyJson.success).toBe(false);
     expect(verifyJson.cancelled).toBe(true);

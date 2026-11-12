@@ -304,7 +304,7 @@ export async function POST(req: NextRequest) {
           status: 'CANCELLED',
           message: verification.message,
         },
-        { status: 400 }
+        { status: 200 }
       );
     }
 
@@ -317,7 +317,7 @@ export async function POST(req: NextRequest) {
           status: 'FAILED',
           message: verification.message,
         },
-        { status: 400 }
+        { status: 200 }
       );
     }
 
