@@ -5235,8 +5235,13 @@ ${points}
       }
     };
 
-    const checkScratchProgress = () => {
+    let lastProgressCheckTs = 0;
+    const checkScratchProgress = (force = false) => {
       if (!scratchCanvas || isScratched) return;
+      const now = Date.now();
+      if (!force && now - lastProgressCheckTs < 90) return;
+      lastProgressCheckTs = now;
+
       const ctx = scratchCanvas.getContext('2d');
       if (!ctx) return;
       try {
@@ -5249,7 +5254,7 @@ ${points}
           total++;
           if (data[i] < 128) cleared++;
         }
-        if (total > 0 && cleared / total >= 0.32) {
+        if (total > 0 && cleared / total >= 0.06) {
           completeScratchReveal();
         }
       } catch (err) {}
@@ -5262,16 +5267,18 @@ ${points}
         lastPos = null;
         try { scratchCanvas.setPointerCapture(e.pointerId); } catch (err) {}
         scratchAt(getCanvasPos(e));
+        checkScratchProgress();
       });
       scratchCanvas.addEventListener('pointermove', (e) => {
         if (!isDrawing || isScratched) return;
         scratchAt(getCanvasPos(e));
+        checkScratchProgress();
       });
       const finishStroke = () => {
         if (!isDrawing) return;
         isDrawing = false;
         lastPos = null;
-        checkScratchProgress();
+        checkScratchProgress(true);
       };
       scratchCanvas.addEventListener('pointerup', finishStroke);
       scratchCanvas.addEventListener('pointercancel', finishStroke);
