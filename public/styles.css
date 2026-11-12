@@ -10878,13 +10878,31 @@ body.overflow-hidden {
 }
 
 @media (max-width: 680px) {
+  .hero-treasure-scene {
+    max-width: 100%;
+  }
+
   .hero-treasure-card {
+    display: grid;
     height: auto;
-    min-height: 495px;
+    min-height: 440px;
+  }
+
+  .treasure-face {
+    position: relative;
+    grid-area: 1 / 1;
+    height: auto;
+    min-height: 440px;
+  }
+
+  .hero-img-wrapper.treasure-face--front {
+    min-height: 360px;
+    height: 100%;
   }
 
   .hero-treasure-back {
-    padding: 0.95rem 0.85rem;
+    padding: 0.9rem 0.85rem;
+    overflow-y: visible;
   }
 
   .treasure-brand-crest {
@@ -10894,16 +10912,16 @@ body.overflow-hidden {
   .treasure-offer-hero {
     flex-direction: column;
     text-align: center;
-    gap: 0.6rem;
+    gap: 0.55rem;
   }
 
   .treasure-wax-ring {
-    width: 78px;
-    height: 78px;
+    width: 74px;
+    height: 74px;
   }
 
   .treasure-wax-percent {
-    font-size: 1.65rem;
+    font-size: 1.55rem;
   }
 
   .treasure-notes-grid {

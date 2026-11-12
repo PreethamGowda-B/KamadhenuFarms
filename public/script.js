@@ -5305,6 +5305,12 @@ ${points}
       }
     };
 
+    window.addEventListener('resize', () => {
+      if (card.classList.contains('is-flipped') && !isScratched) {
+        drawGoldFoil();
+      }
+    });
+
     front.addEventListener('click', () => setFlipped(true));
     front.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
