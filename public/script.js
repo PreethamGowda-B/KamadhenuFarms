@@ -5092,6 +5092,7 @@ ${points}
   // ============================================================================
   const initSecretHoneyTreasure = () => {
     const card = document.getElementById('secretTreasureCard');
+    const heroMedia = document.getElementById('heroTreasureMedia');
     const front = document.getElementById('treasureCardFront');
     const back = document.getElementById('treasureCardBack');
     const flipBackBtn = document.getElementById('treasureFlipBackBtn');
@@ -5101,6 +5102,9 @@ ${points}
 
     const setFlipped = (flipped) => {
       card.classList.toggle('is-flipped', flipped);
+      if (heroMedia) {
+        heroMedia.classList.toggle('is-treasure-flipped', flipped);
+      }
       card.setAttribute('data-flipped', flipped ? 'true' : 'false');
       front.setAttribute('aria-expanded', flipped ? 'true' : 'false');
       front.setAttribute('aria-hidden', flipped ? 'true' : 'false');
@@ -5113,6 +5117,12 @@ ${points}
         e.preventDefault();
         setFlipped(true);
       }
+    });
+
+    // Clicking anywhere on the backside (outside buttons/code box) also flips back
+    back.addEventListener('click', (e) => {
+      if (e.target && e.target.closest('button, .treasure-code-box')) return;
+      setFlipped(false);
     });
 
     if (flipBackBtn) {
