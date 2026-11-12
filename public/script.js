@@ -5165,7 +5165,7 @@ ${points}
 
       const paperColors = ['#f5b82e', '#ffe28a', '#d88b1a', '#fff6dc', '#e67e22', '#27ae60', '#c0392b'];
       const petals = ['✿', '❀', '🌸', '🌼', '✨'];
-      const total = 34;
+      const total = window.innerWidth <= 680 ? 18 : 34;
 
       for (let i = 0; i < total; i++) {
         const piece = document.createElement('span');

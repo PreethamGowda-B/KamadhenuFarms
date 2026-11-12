@@ -10925,6 +10925,22 @@ body.overflow-hidden {
 }
 
 @media (max-width: 680px) {
+  .treasure-scratch-glint {
+    animation: none;
+  }
+
+  .hero-treasure-card.is-flipped .treasure-scratch-glint {
+    animation: treasureFoilGlint 3.2s ease-in-out infinite;
+  }
+
+  .treasure-face--front,
+  .treasure-btn,
+  .treasure-flip-back-btn,
+  .treasure-quick-reveal-btn,
+  .remove-coupon-btn {
+    touch-action: manipulation;
+  }
+
   .hero-treasure-scene {
     max-width: 100%;
   }
